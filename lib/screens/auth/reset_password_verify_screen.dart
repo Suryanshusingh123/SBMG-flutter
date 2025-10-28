@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../../services/auth_services.dart';
 
 class ResetPasswordVerifyScreen extends StatefulWidget {
@@ -78,97 +79,101 @@ class _ResetPasswordVerifyScreenState extends State<ResetPasswordVerifyScreen> {
       ),
       body: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.all(24.0),
+          padding: EdgeInsets.all(24.r),
           child: Form(
             key: _formKey,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                const SizedBox(height: 40),
+                SizedBox(height: 40.h),
 
                 // Lock Icon
                 Container(
-                  width: 120,
-                  height: 120,
+                  width: 120.w,
+                  height: 120.h,
                   decoration: BoxDecoration(
                     color: const Color(0xFF009B56).withOpacity(0.1),
                     shape: BoxShape.circle,
                   ),
-                  child: const Icon(
+                  child: Icon(
                     Icons.security,
-                    size: 60,
-                    color: Color(0xFF009B56),
+                    size: 60.sp,
+                    color: const Color(0xFF009B56),
                   ),
                 ),
 
-                const SizedBox(height: 20),
+                SizedBox(height: 20.h),
 
                 // OTP Visual
                 Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 8,
+                  padding: EdgeInsets.symmetric(
+                    horizontal: 16.w,
+                    vertical: 8.h,
                   ),
                   decoration: BoxDecoration(
                     color: Colors.grey.shade100,
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius: BorderRadius.circular(8.r),
                   ),
-                  child: const Row(
+                  child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(Icons.pin, size: 20, color: Color(0xFF009B56)),
-                      SizedBox(width: 8),
+                      Icon(
+                        Icons.pin,
+                        size: 20.sp,
+                        color: const Color(0xFF009B56),
+                      ),
+                      SizedBox(width: 8.w),
                       Text(
                         'OTP',
                         style: TextStyle(
-                          fontSize: 18,
+                          fontSize: 18.sp,
                           fontWeight: FontWeight.bold,
-                          color: Color(0xFF009B56),
+                          color: const Color(0xFF009B56),
                         ),
                       ),
                     ],
                   ),
                 ),
 
-                const SizedBox(height: 40),
+                SizedBox(height: 40.h),
 
                 // Title
-                const Text(
+                Text(
                   'Verify OTP',
                   style: TextStyle(
-                    fontSize: 28,
+                    fontSize: 28.sp,
                     fontWeight: FontWeight.bold,
-                    color: Color(0xFF2C3E50),
+                    color: const Color(0xFF2C3E50),
                   ),
                 ),
 
-                const SizedBox(height: 8),
+                SizedBox(height: 8.h),
 
                 // Subtitle
                 Text(
                   'Enter the OTP sent to ${widget.phoneNumber}',
                   textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    fontSize: 16,
-                    color: Color(0xFF6B7280),
+                  style: TextStyle(
+                    fontSize: 16.sp,
+                    color: const Color(0xFF6B7280),
                   ),
                 ),
 
-                const SizedBox(height: 40),
+                SizedBox(height: 40.h),
 
                 // OTP Field
-                const Align(
+                Align(
                   alignment: Alignment.centerLeft,
                   child: Text(
                     'Enter OTP',
                     style: TextStyle(
-                      fontSize: 16,
+                      fontSize: 16.sp,
                       fontWeight: FontWeight.w500,
-                      color: Color(0xFF374151),
+                      color: const Color(0xFF374151),
                     ),
                   ),
                 ),
-                const SizedBox(height: 8),
+                SizedBox(height: 8.h),
                 TextFormField(
                   controller: _otpController,
                   keyboardType: TextInputType.number,
@@ -179,7 +184,7 @@ class _ResetPasswordVerifyScreenState extends State<ResetPasswordVerifyScreen> {
                       color: Color(0xFF6B7280),
                     ),
                     border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
+                      borderRadius: BorderRadius.circular(8.r),
                       borderSide: BorderSide(
                         color: _errorMessage != null
                             ? Colors.red
@@ -187,7 +192,7 @@ class _ResetPasswordVerifyScreenState extends State<ResetPasswordVerifyScreen> {
                       ),
                     ),
                     enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
+                      borderRadius: BorderRadius.circular(8.r),
                       borderSide: BorderSide(
                         color: _errorMessage != null
                             ? Colors.red
@@ -195,7 +200,7 @@ class _ResetPasswordVerifyScreenState extends State<ResetPasswordVerifyScreen> {
                       ),
                     ),
                     focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
+                      borderRadius: BorderRadius.circular(8.r),
                       borderSide: const BorderSide(color: Color(0xFF009B56)),
                     ),
                     filled: true,
@@ -216,22 +221,15 @@ class _ResetPasswordVerifyScreenState extends State<ResetPasswordVerifyScreen> {
 
                 // Error Message
                 if (_errorMessage != null) ...[
-                  const SizedBox(height: 8),
+                  SizedBox(height: 8.h),
                   Row(
                     children: [
-                      const Icon(
-                        Icons.error_outline,
-                        color: Colors.red,
-                        size: 16,
-                      ),
-                      const SizedBox(width: 8),
+                      Icon(Icons.error_outline, color: Colors.red, size: 16.sp),
+                      SizedBox(width: 8.w),
                       Expanded(
                         child: Text(
                           _errorMessage!,
-                          style: const TextStyle(
-                            color: Colors.red,
-                            fontSize: 14,
-                          ),
+                          style: TextStyle(color: Colors.red, fontSize: 14.sp),
                         ),
                       ),
                     ],
@@ -243,39 +241,39 @@ class _ResetPasswordVerifyScreenState extends State<ResetPasswordVerifyScreen> {
                 // Verify OTP Button
                 SizedBox(
                   width: double.infinity,
-                  height: 56,
+                  height: 56.h,
                   child: ElevatedButton(
                     onPressed: _isLoading ? null : _handleVerifyOtp,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF009B56),
                       foregroundColor: Colors.white,
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
+                        borderRadius: BorderRadius.circular(8.r),
                       ),
                       elevation: 0,
                     ),
                     child: _isLoading
-                        ? const SizedBox(
-                            height: 20,
-                            width: 20,
-                            child: CircularProgressIndicator(
+                        ? SizedBox(
+                            height: 20.h,
+                            width: 20.w,
+                            child: const CircularProgressIndicator(
                               strokeWidth: 2,
                               valueColor: AlwaysStoppedAnimation<Color>(
                                 Colors.white,
                               ),
                             ),
                           )
-                        : const Text(
+                        : Text(
                             'Verify OTP',
                             style: TextStyle(
-                              fontSize: 16,
+                              fontSize: 16.sp,
                               fontWeight: FontWeight.w600,
                             ),
                           ),
                   ),
                 ),
 
-                const SizedBox(height: 20),
+                SizedBox(height: 20.h),
               ],
             ),
           ),

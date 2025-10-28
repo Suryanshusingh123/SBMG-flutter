@@ -124,7 +124,13 @@ class ComplaintsProvider with ChangeNotifier {
           districtName: complaintData['district_name'],
           blockName: complaintData['block_name'],
           villageName: complaintData['village_name'],
+          location: complaintData['location'],
         );
+
+        print(
+          '🔍 Complaint ${complaintData['id']} location field: ${complaintData['location']}',
+        );
+
         _complaints.add(complaint);
       }
 

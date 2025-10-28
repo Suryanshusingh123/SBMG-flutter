@@ -53,6 +53,12 @@ class SupervisorAttendanceProvider with ChangeNotifier {
   DateTime get selectedDate => _selectedDate;
   String get selectedMonthName => DateFormat('MMMM').format(_selectedDate);
 
+  // Update selected month
+  void updateSelectedMonth(DateTime date) {
+    _selectedDate = date;
+    notifyListeners();
+  }
+
   // Calculate attendance statistics
   int get totalWorkingDays {
     final selectedDate = _selectedDate;
@@ -280,6 +286,47 @@ class SupervisorAttendanceProvider with ChangeNotifier {
     _selectedDate = date;
     notifyListeners();
     applyDateFilter();
+  }
+
+  // Apply custom date range filter
+  void applyCustomDateRangeFilter(DateTime startDate, DateTime endDate) {
+    print('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    print('📅 APPLYING CUSTOM DATE RANGE FILTER');
+    print('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    print(
+      '📅 Filter Range: ${DateFormat('yyyy-MM-dd').format(startDate)} to ${DateFormat('yyyy-MM-dd').format(endDate)}',
+    );
+
+    // Filter attendance data
+    _filteredAttendanceLog = _attendanceLog.where((attendance) {
+      final attendanceDate = DateTime.parse(attendance['date']);
+      final attendanceDateOnly = DateTime(
+        attendanceDate.year,
+        attendanceDate.month,
+        attendanceDate.day,
+      );
+      final startDateOnly = DateTime(
+        startDate.year,
+        startDate.month,
+        startDate.day,
+      );
+      final endDateOnly = DateTime(endDate.year, endDate.month, endDate.day);
+
+      final isInRange =
+          (attendanceDateOnly.isAtSameMomentAs(startDateOnly) ||
+              attendanceDateOnly.isAfter(startDateOnly)) &&
+          (attendanceDateOnly.isAtSameMomentAs(endDateOnly) ||
+              attendanceDateOnly.isBefore(endDateOnly));
+
+      return isInRange;
+    }).toList();
+
+    print(
+      '📊 Filtered Records: ${_filteredAttendanceLog.length} out of ${_attendanceLog.length}',
+    );
+    print('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+
+    notifyListeners();
   }
 
   // Apply date filter

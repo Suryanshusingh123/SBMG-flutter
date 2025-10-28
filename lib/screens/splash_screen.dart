@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:sbmg/services/auth_services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -43,24 +44,107 @@ class _SplashScreenState extends State<SplashScreen>
 
     if (!mounted) return;
 
-    final authService = AuthService();
-    final isLoggedIn = await authService.isLoggedIn();
+    // Check if user has seen onboarding
+    final prefs = await SharedPreferences.getInstance();
+    final hasSeenOnboarding = prefs.getBool('has_seen_onboarding') ?? false;
 
-    if (isLoggedIn) {
-      // User is logged in, check if they've seen onboarding
-      final prefs = await SharedPreferences.getInstance();
-      final hasSeenOnboarding = prefs.getBool('has_seen_onboarding') ?? false;
-
-      if (hasSeenOnboarding) {
-        // Navigate to landing screen
-        Navigator.pushReplacementNamed(context, '/landing');
-      } else {
-        // Navigate to onboarding screen
-        Navigator.pushReplacementNamed(context, '/onboarding');
-      }
-    } else {
-      // User is not logged in, go to onboarding
+    if (!hasSeenOnboarding) {
+      // User hasn't seen onboarding, show it
+      if (!mounted) return;
       Navigator.pushReplacementNamed(context, '/onboarding');
+    } else {
+      // User has seen onboarding before, check login status
+      final authService = AuthService();
+      final isLoggedIn = await authService.isLoggedIn();
+
+      if (!mounted) return;
+
+      if (isLoggedIn) {
+        // User is logged in, first check for stored role (from admin/login)
+        final storedRole = await authService.getRole();
+
+        if (storedRole != null) {
+          // Admin/contractor/supervisor etc login - navigate based on stored role
+          print('📍 Found stored role: $storedRole');
+          _navigateToRoleDashboard(storedRole.toLowerCase());
+        } else {
+          // No stored role, try to get from API (citizen login)
+          print('📍 No stored role, trying to get from API...');
+          final userResponse = await authService.getCurrentUser();
+
+          if (!mounted) return;
+
+          if (userResponse['success'] == true) {
+            final user = userResponse['user'];
+            var role = user['role']?.toLowerCase();
+
+            if (role != null) {
+              print('📍 Found role from API: $role');
+              _navigateToRoleDashboard(role);
+            } else {
+              // No role found, go to landing
+              print('📍 No role found in API response');
+              if (!mounted) return;
+              Navigator.pushReplacementNamed(context, '/landing');
+            }
+          } else {
+            // Failed to get user info, go to landing
+            print('📍 Failed to get user info');
+            if (!mounted) return;
+            Navigator.pushReplacementNamed(context, '/landing');
+          }
+        }
+      } else {
+        // User is not logged in, go to landing to show login options
+        print('📍 User is not logged in');
+        if (!mounted) return;
+        Navigator.pushReplacementNamed(context, '/landing');
+      }
+    }
+  }
+
+  Future<void> _navigateToRoleDashboard(String? role) async {
+    final authService = AuthService();
+
+    switch (role) {
+      case 'worker': // WORKER role maps to supervisor
+        Navigator.pushReplacementNamed(context, '/supervisor-dashboard');
+        break;
+      case 'supervisor':
+        Navigator.pushReplacementNamed(context, '/supervisor-dashboard');
+        break;
+      case 'bdo':
+        Navigator.pushReplacementNamed(context, '/bdo-dashboard');
+        break;
+      case 'admin': // ADMIN role maps to SMD
+        // Check if SMD has selected a district
+        final hasDistrict = await authService.hasSmdSelectedDistrict();
+        if (hasDistrict) {
+          Navigator.pushReplacementNamed(context, '/smd-dashboard');
+        } else {
+          Navigator.pushReplacementNamed(context, '/smd-district-selection');
+        }
+        break;
+      case 'vdo':
+        Navigator.pushReplacementNamed(context, '/vdo-dashboard');
+        break;
+      case 'ceo':
+        Navigator.pushReplacementNamed(context, '/ceo-dashboard');
+        break;
+      case 'smd':
+        // Check if SMD has selected a district
+        final hasDistrict = await authService.hasSmdSelectedDistrict();
+        if (hasDistrict) {
+          Navigator.pushReplacementNamed(context, '/smd-dashboard');
+        } else {
+          Navigator.pushReplacementNamed(context, '/smd-district-selection');
+        }
+        break;
+      case 'contractor':
+        Navigator.pushReplacementNamed(context, '/contractor-dashboard');
+        break;
+      default:
+        Navigator.pushReplacementNamed(context, '/landing');
     }
   }
 
@@ -74,42 +158,38 @@ class _SplashScreenState extends State<SplashScreen>
   Widget build(BuildContext context) {
     return Scaffold(
       body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              Color(0xFFFFD700), // Golden yellow
-              Color(0xFFFFA500), // Orange
-            ],
+        decoration: BoxDecoration(
+          image: DecorationImage(
+            image: AssetImage('assets/images/background.png'),
+            fit: BoxFit.cover,
           ),
         ),
         child: Stack(
           children: [
-            // Top Left - Satyamev Logo
+            // Top Left - Swach Logo
             Positioned(
-              left: 20,
-              top: 60,
-              child: FadeTransition(
-                opacity: _fadeAnimation,
-                child: Image.asset(
-                  'assets/logos/satyamev.png',
-                  width: 80,
-                  height: 80,
-                  fit: BoxFit.contain,
-                ),
-              ),
-            ),
-            // Top Right - Swach Bharat Logo
-            Positioned(
-              right: 20,
-              top: 60,
+              left: 20.w,
+              top: 60.h,
               child: FadeTransition(
                 opacity: _fadeAnimation,
                 child: Image.asset(
                   'assets/logos/swach.png',
-                  width: 80,
-                  height: 80,
+                  width: 70.w,
+                  height: 70.h,
+                  fit: BoxFit.contain,
+                ),
+              ),
+            ),
+            // Top Right - Glasses Logo
+            Positioned(
+              right: 20.w,
+              top: 60.h,
+              child: FadeTransition(
+                opacity: _fadeAnimation,
+                child: Image.asset(
+                  'assets/logos/glasses.png',
+                  width: 80.w,
+                  height: 80.h,
                   fit: BoxFit.contain,
                 ),
               ),
@@ -123,31 +203,44 @@ class _SplashScreenState extends State<SplashScreen>
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
+                      // Map image in center
                       Image.asset(
-                        'assets/logos/applogo.jpeg',
-                        width: 150,
-                        height: 150,
+                        'assets/images/map.png',
+                        width: 250.w,
+                        height: 250.h,
                         fit: BoxFit.contain,
                       ),
-                      const SizedBox(height: 20),
-                      const Text(
-                        'Rajasthan Government',
-                        style: TextStyle(
-                          fontSize: 24,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                        ),
+                      SizedBox(height: 20.h),
+                      // Text images
+                      Image.asset(
+                        'assets/images/sbdmwritten.png',
+                        width: 200.w,
+                        fit: BoxFit.fitWidth,
                       ),
-                      const SizedBox(height: 10),
-                      const Text(
-                        'SBMG',
-                        style: TextStyle(fontSize: 18, color: Colors.white70),
-                      ),
-                      const SizedBox(height: 40),
-                      const CircularProgressIndicator(
-                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                      SizedBox(height: 10.h),
+                      Image.asset(
+                        'assets/images/rj.png',
+                        width: 200.w,
+                        fit: BoxFit.fitWidth,
                       ),
                     ],
+                  ),
+                ),
+              ),
+            ),
+            // Bottom - Satyamev Logo
+            Positioned(
+              bottom: 40.h,
+              left: 0,
+              right: 0,
+              child: FadeTransition(
+                opacity: _fadeAnimation,
+                child: Center(
+                  child: Image.asset(
+                    'assets/logos/satyamev.png',
+                    width: 100.w,
+                    height: 100.h,
+                    fit: BoxFit.contain,
                   ),
                 ),
               ),

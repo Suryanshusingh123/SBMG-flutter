@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:convert' show base64, utf8;
 import 'package:http/http.dart' as http;
 import '../config/connstants.dart';
 import 'storage_service.dart';
@@ -10,6 +11,8 @@ class AuthService {
 
   final StorageService _storageService = StorageService();
   static const String _tokenKey = 'citizen_auth_token';
+  static const String _roleKey = 'user_role';
+  static const String _usernameKey = 'user_username';
   static const String _villageIdKey = 'user_village_id';
   static const String _blockIdKey = 'user_block_id';
   static const String _districtIdKey = 'user_district_id';
@@ -130,11 +133,100 @@ class AuthService {
   /// Check if user is logged in
   Future<bool> isLoggedIn() async {
     final token = await getToken();
-    final isLoggedIn = token != null && token.isNotEmpty;
-    print(
-      '🔍 Auth Check: User is ${isLoggedIn ? "LOGGED IN" : "NOT LOGGED IN"}',
-    );
-    return isLoggedIn;
+    if (token == null || token.isEmpty) {
+      print('🔍 Auth Check: User is NOT LOGGED IN (No token)');
+      return false;
+    }
+
+    // Check if token is expired
+    final isExpired = await _isTokenExpired(token);
+    if (isExpired) {
+      print('🔍 Auth Check: Token is EXPIRED - clearing stored token and data');
+      // Clear expired token and associated data
+      await _storageService.remove(_tokenKey);
+      await _storageService.remove(_roleKey);
+      await _storageService.remove(_usernameKey);
+      await _storageService.remove(_villageIdKey);
+      await _storageService.remove(_blockIdKey);
+      await _storageService.remove(_districtIdKey);
+      print('🗑️ Expired token and user data cleared');
+      return false;
+    }
+
+    print('🔍 Auth Check: User is LOGGED IN (Valid token)');
+    return true;
+  }
+
+  // Check if token is expired
+  // Validates JWT tokens by checking expiration time
+  Future<bool> _isTokenExpired(String token) async {
+    if (token.isEmpty) {
+      print('❌ Token is empty');
+      return true;
+    }
+
+    // Try to decode as JWT only if it has the JWT format (3 parts separated by dots)
+    try {
+      final parts = token.split('.');
+      if (parts.length == 3) {
+        // This is a JWT token, decode and check expiration
+        final payload = parts[1];
+        final normalized = base64.normalize(payload);
+        final decoded = utf8.decode(base64.decode(normalized));
+        final Map<String, dynamic> payloadData = json.decode(decoded);
+
+        if (payloadData.containsKey('exp')) {
+          final expValue = payloadData['exp'];
+          // Handle both integer (Unix timestamp) and string formats
+          int expirationTimestamp;
+
+          if (expValue is int) {
+            expirationTimestamp = expValue;
+          } else if (expValue is String) {
+            expirationTimestamp = int.tryParse(expValue) ?? 0;
+          } else {
+            print('⚠️ Invalid exp format, treating as expired for safety');
+            return true;
+          }
+
+          // Convert to DateTime
+          final expirationTime = DateTime.fromMillisecondsSinceEpoch(
+            expirationTimestamp * 1000,
+          );
+          final now = DateTime.now();
+
+          // Add a 60 second buffer to avoid edge cases
+          final isValid = now.isBefore(
+            expirationTime.subtract(Duration(seconds: 60)),
+          );
+
+          print('🔍 JWT Token expires at: $expirationTime');
+          print('🔍 Current time: $now');
+          print('🔍 Token is ${isValid ? "VALID" : "EXPIRED"}');
+          print(
+            '🔍 Token expires in: ${expirationTime.difference(now).inSeconds} seconds',
+          );
+
+          return !isValid;
+        } else {
+          print(
+            '🔍 JWT token has no exp field, treating as expired for safety',
+          );
+          return true;
+        }
+      }
+    } catch (e) {
+      // Not a JWT token or decode failed
+      print('⚠️ Token decode failed or not a JWT: $e');
+      // Treat non-JWT tokens as valid (legacy support)
+      // But log a warning
+      print('⚠️ Treating non-JWT token as valid (legacy format)');
+      return false;
+    }
+
+    // Not a JWT token (less than 3 parts), treat as valid for backward compatibility
+    print('🔍 Token is not a JWT (UUID/legacy format), considering valid');
+    return false;
   }
 
   /// Get stored authentication token
@@ -156,6 +248,8 @@ class AuthService {
     print('🚪 AUTH: USER LOGOUT');
     print('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
     await _storageService.remove(_tokenKey);
+    await _storageService.remove(_roleKey);
+    await _storageService.remove(_usernameKey);
     await _storageService.remove(_villageIdKey);
     await _storageService.remove(_blockIdKey);
     await _storageService.remove(_districtIdKey);
@@ -203,6 +297,28 @@ class AuthService {
       return districtId != null ? int.tryParse(districtId) : null;
     } catch (e) {
       print('❌ Error getting district ID: $e');
+      return null;
+    }
+  }
+
+  /// Get stored user role
+  Future<String?> getRole() async {
+    try {
+      final role = await _storageService.getString(_roleKey);
+      return role;
+    } catch (e) {
+      print('❌ Error getting role: $e');
+      return null;
+    }
+  }
+
+  /// Get stored username
+  Future<String?> getUsername() async {
+    try {
+      final username = await _storageService.getString(_usernameKey);
+      return username;
+    } catch (e) {
+      print('❌ Error getting username: $e');
       return null;
     }
   }
@@ -299,6 +415,21 @@ class AuthService {
           print('💾 District ID saved: ${data['district_id']}');
         }
 
+        // Store role if provided by API
+        if (data['role'] != null) {
+          await _storageService.saveString(_roleKey, data['role']);
+          print('💾 Role saved from API: ${data['role']}');
+        }
+
+        // If role not in API response, get from stored value
+        if (data['role'] == null) {
+          final storedRole = await getRole();
+          if (storedRole != null) {
+            data['role'] = storedRole;
+            print('🔍 Role retrieved from storage: $storedRole');
+          }
+        }
+
         print('✅ SUCCESS: User information retrieved');
         return {'success': true, 'user': data};
       } else {
@@ -365,6 +496,11 @@ class AuthService {
         // Extract role from username (assuming format: district.block.village.role)
         final usernameParts = username.split('.');
         final role = usernameParts.length > 3 ? usernameParts[3] : 'admin';
+
+        // Store role and username for navigation
+        await _storageService.saveString(_roleKey, role);
+        await _storageService.saveString(_usernameKey, username);
+        print('💾 Role and username saved: $role, $username');
 
         return {
           'success': true,

@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:provider/provider.dart';
+import '../../config/connstants.dart';
 import '../../l10n/app_localizations.dart';
 import '../../models/complaint_model.dart';
 import '../../providers/citizen_auth_provider.dart';
 import '../../providers/citizen_complaints_provider.dart';
 import '../../widgets/common/auth_required_screen.dart';
 import '../../widgets/common/custom_bottom_navigation.dart';
+import '../../widgets/common/date_filter_bottom_sheet.dart';
+import 'complaint_details_screen.dart';
 
 class MyComplaintsScreen extends StatefulWidget {
   const MyComplaintsScreen({super.key});
@@ -20,6 +23,10 @@ class _MyComplaintsScreenState extends State<MyComplaintsScreen> {
   String _selectedStatus = 'Open'; // Default to Open tab
   int _selectedStatusIndex = 0;
   bool _hasLoadedComplaints = false; // Flag to prevent multiple API calls
+  String _sortOrder = 'newest'; // 'newest' or 'oldest'
+  DateTime? _filterDate;
+  DateTime? _filterStartDate;
+  DateTime? _filterEndDate;
 
   @override
   void initState() {
@@ -67,8 +74,8 @@ class _MyComplaintsScreenState extends State<MyComplaintsScreen> {
     return Consumer2<AuthProvider, ComplaintsProvider>(
       builder: (context, authProvider, complaintsProvider, child) {
         // Load complaints when authentication is complete and user is logged in
-        if (!authProvider.isCheckingAuth && 
-            authProvider.isLoggedIn && 
+        if (!authProvider.isCheckingAuth &&
+            authProvider.isLoggedIn &&
             !_hasLoadedComplaints &&
             !complaintsProvider.isLoadingComplaints) {
           print('🔄 Consumer2: Triggering complaint load');
@@ -76,7 +83,7 @@ class _MyComplaintsScreenState extends State<MyComplaintsScreen> {
             _loadComplaintsIfNeeded();
           });
         }
-        
+
         // Show loading while checking authentication
         if (authProvider.isCheckingAuth) {
           return const Scaffold(
@@ -112,15 +119,60 @@ class _MyComplaintsScreenState extends State<MyComplaintsScreen> {
     }
 
     // Filter complaints based on selected status
-    final filteredComplaints = complaintsProvider.complaints.where((complaint) {
-      return _selectedStatus == 'Open'
-          ? complaint.status == 'open'
-          : complaint.status == 'closed';
+    // For citizen flow: resolved and verified are considered "open"
+    List<ComplaintModel>
+    filteredComplaints = complaintsProvider.complaints.where((complaint) {
+      final complaintStatus = complaint.status.toLowerCase();
+
+      // Filter by status
+      final statusMatches = _selectedStatus == 'Open'
+          ? complaintStatus == 'open' ||
+                complaintStatus == 'verified' ||
+                complaintStatus == 'resolved'
+          : complaintStatus == 'closed';
+
+      if (!statusMatches) return false;
+
+      // Filter by date if single date filter is applied (Day)
+      if (_filterDate != null) {
+        final complaintDate = DateTime(
+          complaint.createdAt.year,
+          complaint.createdAt.month,
+          complaint.createdAt.day,
+        );
+        final filterDate = DateTime(
+          _filterDate!.year,
+          _filterDate!.month,
+          _filterDate!.day,
+        );
+        return complaintDate.isAtSameMomentAs(filterDate);
+      }
+
+      // Filter by date range if range filter is applied (Week, Month, Year, Custom)
+      if (_filterStartDate != null && _filterEndDate != null) {
+        final complaintDate = complaint.createdAt;
+        return complaintDate.isAfter(
+              _filterStartDate!.subtract(const Duration(days: 1)),
+            ) &&
+            complaintDate.isBefore(
+              _filterEndDate!.add(const Duration(days: 1)),
+            );
+      }
+
+      return true;
     }).toList();
+
+    // Sort complaints based on sort order
+    if (_sortOrder == 'newest') {
+      filteredComplaints.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    } else {
+      filteredComplaints.sort((a, b) => a.createdAt.compareTo(b.createdAt));
+    }
 
     print('📊 Total complaints: ${complaintsProvider.complaints.length}');
     print('📊 Filtered complaints: ${filteredComplaints.length}');
     print('📊 Selected status: $_selectedStatus');
+    print('📊 Sort order: $_sortOrder');
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -217,9 +269,20 @@ class _MyComplaintsScreenState extends State<MyComplaintsScreen> {
           Row(
             children: [
               // Calendar icon with count
-              Icon(Icons.calendar_today, size: 24.sp, color: Colors.black),
+              GestureDetector(
+                onTap: _showDateFilter,
+                child: Icon(
+                  Icons.calendar_today,
+                  size: 24.sp,
+                  color: Colors.black,
+                ),
+              ),
               SizedBox(width: 12.w),
-              Icon(Icons.swap_vert, size: 24.sp, color: Colors.black),
+              // Sort icon
+              GestureDetector(
+                onTap: _showSortOptions,
+                child: Icon(Icons.swap_vert, size: 24.sp, color: Colors.black),
+              ),
             ],
           ),
         ],
@@ -229,11 +292,13 @@ class _MyComplaintsScreenState extends State<MyComplaintsScreen> {
 
   Widget _buildStatusTabs(ComplaintsProvider complaintsProvider) {
     final l10n = AppLocalizations.of(context)!;
-    final openCount = complaintsProvider.complaints
-        .where((c) => c.status == 'open')
-        .length;
+    // Count: open, verified, and resolved are all considered "open"
+    final openCount = complaintsProvider.complaints.where((c) {
+      final status = c.status.toLowerCase();
+      return status == 'open' || status == 'verified' || status == 'resolved';
+    }).length;
     final closedCount = complaintsProvider.complaints
-        .where((c) => c.status == 'closed')
+        .where((c) => c.status.toLowerCase() == 'closed')
         .length;
 
     return Container(
@@ -312,12 +377,13 @@ class _MyComplaintsScreenState extends State<MyComplaintsScreen> {
   Widget _buildComplaintCard(ComplaintModel complaint) {
     return GestureDetector(
       onTap: () {
-        // Navigator.push(
-        //   context,
-        //   MaterialPageRoute(
-        //     builder: (context) => ComplaintDetailsScreen(complaint: complaint),
-        //   ),
-        // );
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) =>
+                ComplaintDetailsScreen(complaintId: complaint.id),
+          ),
+        );
       },
       child: Container(
         margin: const EdgeInsets.only(bottom: 16),
@@ -352,24 +418,55 @@ class _MyComplaintsScreenState extends State<MyComplaintsScreen> {
                       topLeft: Radius.circular(12),
                       topRight: Radius.circular(12),
                     ),
-                    child: Image.asset(
-                      complaint.imagePaths.first,
-                      width: double.infinity,
-                      height: double.infinity,
-                      fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) {
-                        return Container(
-                          color: Colors.grey.shade400,
-                          child: const Center(
-                            child: Icon(
-                              Icons.image,
-                              size: 48,
-                              color: Colors.grey,
+                    child: complaint.imagePaths.isNotEmpty
+                        ? Image.network(
+                            complaint.imagePaths.first,
+                            width: double.infinity,
+                            height: double.infinity,
+                            fit: BoxFit.cover,
+                            errorBuilder: (context, error, stackTrace) {
+                              return Container(
+                                color: Colors.grey.shade400,
+                                child: const Center(
+                                  child: Icon(
+                                    Icons.image,
+                                    size: 48,
+                                    color: Colors.grey,
+                                  ),
+                                ),
+                              );
+                            },
+                            loadingBuilder: (context, child, loadingProgress) {
+                              if (loadingProgress == null) return child;
+                              return Container(
+                                color: Colors.grey.shade300,
+                                child: Center(
+                                  child: CircularProgressIndicator(
+                                    value:
+                                        loadingProgress.expectedTotalBytes !=
+                                            null
+                                        ? loadingProgress
+                                                  .cumulativeBytesLoaded /
+                                              loadingProgress
+                                                  .expectedTotalBytes!
+                                        : null,
+                                    strokeWidth: 2,
+                                    color: AppColors.primaryColor,
+                                  ),
+                                ),
+                              );
+                            },
+                          )
+                        : Container(
+                            color: Colors.grey.shade400,
+                            child: const Center(
+                              child: Icon(
+                                Icons.image,
+                                size: 48,
+                                color: Colors.grey,
+                              ),
                             ),
                           ),
-                        );
-                      },
-                    ),
                   ),
                   // Date badge
                   Positioned(
@@ -433,7 +530,7 @@ class _MyComplaintsScreenState extends State<MyComplaintsScreen> {
                       ),
                       SizedBox(width: 8.w),
                       Text(
-                        '| 2 Updates',
+                        '| ${_getUpdateCount(complaint)} Update${_getUpdateCount(complaint) > 1 ? 's' : ''}',
                         style: TextStyle(
                           fontSize: 14,
                           color: Colors.grey.shade600,
@@ -455,8 +552,7 @@ class _MyComplaintsScreenState extends State<MyComplaintsScreen> {
                       SizedBox(width: 4.w),
                       Expanded(
                         child: Text(
-                          complaint.imageLocations.first.address ??
-                              'Location not available',
+                          _getLocationDisplay(complaint),
                           style: TextStyle(
                             fontSize: 14,
                             color: Colors.grey.shade600,
@@ -466,36 +562,15 @@ class _MyComplaintsScreenState extends State<MyComplaintsScreen> {
                     ],
                   ),
 
-                  SizedBox(height: 8.h),
-
+                  Divider(color: Colors.grey.shade200, thickness: 1),
                   // Description
                   Text(
                     complaint.description,
-                    style: TextStyle(fontSize: 14.sp, color: Colors.grey.shade700),
-                  ),
-
-                  // Latest update indicator (if applicable)
-                  if (complaint.status == 'open') ...[
-                    SizedBox(height: 12.h),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 4,
-                      ),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFFFF3CD),
-                        borderRadius: BorderRadius.circular(4.r),
-                      ),
-                      child: const Text(
-                        '(latest update)',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Color(0xFF856404),
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
+                    style: TextStyle(
+                      fontSize: 14.sp,
+                      color: Colors.grey.shade700,
                     ),
-                  ],
+                  ),
                 ],
               ),
             ),
@@ -521,5 +596,173 @@ class _MyComplaintsScreenState extends State<MyComplaintsScreen> {
       'Dec',
     ];
     return '${months[date.month - 1]} ${date.day}, ${date.year}';
+  }
+
+  int _getUpdateCount(ComplaintModel complaint) {
+    final status = complaint.status.toLowerCase();
+
+    switch (status) {
+      case 'open':
+        return 1;
+      case 'resolved':
+        return 2;
+      case 'verified':
+        return 3;
+      case 'closed':
+        return 4;
+      default:
+        return 1;
+    }
+  }
+
+  String _getLocationDisplay(ComplaintModel complaint) {
+    print('📍 Location field: ${complaint.location}');
+    print('📍 District: ${complaint.districtName}');
+    print('📍 Block: ${complaint.blockName}');
+    print('📍 Village: ${complaint.villageName}');
+
+    // Priority 1: Check location field first (from API)
+    if (complaint.location != null && complaint.location!.isNotEmpty) {
+      print('✅ Using location field: ${complaint.location}');
+      return complaint.location!;
+    }
+
+    // Priority 2: Display district, block, and village name
+    final parts = <String>[];
+    if (complaint.districtName != null && complaint.districtName!.isNotEmpty) {
+      parts.add(complaint.districtName!);
+    }
+    if (complaint.blockName != null && complaint.blockName!.isNotEmpty) {
+      parts.add(complaint.blockName!);
+    }
+    if (complaint.villageName != null && complaint.villageName!.isNotEmpty) {
+      parts.add(complaint.villageName!);
+    }
+
+    if (parts.isNotEmpty) {
+      print('✅ Using district|block|village: ${parts.join(' | ')}');
+      return parts.join(' | ');
+    }
+
+    // Priority 3: Display lat/long (last resort)
+    if (complaint.imageLocations.isNotEmpty) {
+      final loc = complaint.imageLocations.first;
+      final display =
+          'Lat: ${loc.latitude.toStringAsFixed(6)}, Long: ${loc.longitude.toStringAsFixed(6)}';
+      print('✅ Using lat/long: $display');
+      return display;
+    }
+
+    // Fallback
+    print('❌ No location data available');
+    return 'Location not available';
+  }
+
+  void _showSortOptions() {
+    final l10n = AppLocalizations.of(context)!;
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.only(
+            topLeft: Radius.circular(20),
+            topRight: Radius.circular(20),
+          ),
+        ),
+        padding: EdgeInsets.all(20.w),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Handle bar
+            Container(
+              width: 40.w,
+              height: 4.h,
+              decoration: BoxDecoration(
+                color: Colors.grey.shade300,
+                borderRadius: BorderRadius.circular(2.r),
+              ),
+            ),
+            SizedBox(height: 20.h),
+
+            // Sort options
+            _buildSortOption(l10n.newestFirst, _sortOrder == 'newest', () {
+              setState(() {
+                _sortOrder = 'newest';
+              });
+              Navigator.pop(context);
+            }),
+            SizedBox(height: 12.h),
+            _buildSortOption(l10n.oldestFirst, _sortOrder == 'oldest', () {
+              setState(() {
+                _sortOrder = 'oldest';
+              });
+              Navigator.pop(context);
+            }),
+
+            SizedBox(height: 20.h),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSortOption(String title, bool isSelected, VoidCallback onTap) {
+    return InkWell(
+      onTap: onTap,
+      child: Container(
+        padding: EdgeInsets.symmetric(vertical: 16.h),
+        decoration: BoxDecoration(
+          color: isSelected
+              ? AppColors.primaryColor.withOpacity(0.1)
+              : Colors.transparent,
+          borderRadius: BorderRadius.circular(8.r),
+        ),
+        child: Row(
+          children: [
+            SizedBox(width: 16.w),
+            Expanded(
+              child: Text(
+                title,
+                style: TextStyle(
+                  fontSize: 16.sp,
+                  fontWeight: FontWeight.w600,
+                  color: isSelected ? AppColors.primaryColor : Colors.black,
+                ),
+              ),
+            ),
+            if (isSelected) ...[
+              Icon(
+                Icons.check_circle,
+                color: AppColors.primaryColor,
+                size: 24.sp,
+              ),
+              SizedBox(width: 16.w),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showDateFilter() {
+    showDateFilterBottomSheet(
+      context: context,
+      onApply: (filterType, selectedDate, startDate, endDate) {
+        // Handle date filter application
+        print('📅 Date filter applied:');
+        print('   Filter type: $filterType');
+        print('   Selected date: $selectedDate');
+        print('   Start date: $startDate');
+        print('   End date: $endDate');
+
+        setState(() {
+          _filterDate = selectedDate;
+          _filterStartDate = startDate;
+          _filterEndDate = endDate;
+        });
+      },
+    );
   }
 }

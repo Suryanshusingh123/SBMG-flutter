@@ -131,7 +131,7 @@ abstract class AppLocalizations {
   /// No description provided for @myComplaint.
   ///
   /// In en, this message translates to:
-  /// **'My Complaint'**
+  /// **'My Complaints'**
   String get myComplaint;
 
   /// No description provided for @schemes.
@@ -455,7 +455,7 @@ abstract class AppLocalizations {
   /// No description provided for @pleaseFillAllFields.
   ///
   /// In en, this message translates to:
-  /// **'Please fill all required fields and upload at least one image'**
+  /// **'Please fill all fields'**
   String get pleaseFillAllFields;
 
   /// No description provided for @noComplaintTypesAvailable.
@@ -677,7 +677,7 @@ abstract class AppLocalizations {
   /// No description provided for @profileSavedSuccessfully.
   ///
   /// In en, this message translates to:
-  /// **'Profile saved successfully!'**
+  /// **'Profile saved successfully'**
   String get profileSavedSuccessfully;
 
   /// No description provided for @notification.
@@ -1033,6 +1033,462 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'No images available'**
   String get noImagesAvailable;
+
+  /// No description provided for @enterYourPhoneNumber.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter your phone number'**
+  String get enterYourPhoneNumber;
+
+  /// No description provided for @toRaiseComplaint.
+  ///
+  /// In en, this message translates to:
+  /// **'To raise a complaint, you need to login first.'**
+  String get toRaiseComplaint;
+
+  /// No description provided for @loginRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Login Required'**
+  String get loginRequired;
+
+  /// No description provided for @complaintLocation.
+  ///
+  /// In en, this message translates to:
+  /// **'Complaint Location'**
+  String get complaintLocation;
+
+  /// No description provided for @location.
+  ///
+  /// In en, this message translates to:
+  /// **'Location'**
+  String get location;
+
+  /// No description provided for @enterLocation.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter Location'**
+  String get enterLocation;
+
+  /// No description provided for @yourComplaintHasBeenSubmittedSuccessfully.
+  ///
+  /// In en, this message translates to:
+  /// **'Your Complaint has\nbeen submitted successfully'**
+  String get yourComplaintHasBeenSubmittedSuccessfully;
+
+  /// No description provided for @enterFeedback.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter feedback'**
+  String get enterFeedback;
+
+  /// No description provided for @howWasYourExperience.
+  ///
+  /// In en, this message translates to:
+  /// **'How was your experience with the app?'**
+  String get howWasYourExperience;
+
+  /// No description provided for @chooseYourExperience.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose your experience'**
+  String get chooseYourExperience;
+
+  /// No description provided for @yourFeedbackIsSuccessfullySubmitted.
+  ///
+  /// In en, this message translates to:
+  /// **'Your feedback is successfully submitted'**
+  String get yourFeedbackIsSuccessfullySubmitted;
+
+  /// No description provided for @masterDataDetails.
+  ///
+  /// In en, this message translates to:
+  /// **'Master Data Details'**
+  String get masterDataDetails;
+
+  /// No description provided for @continueButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Continue'**
+  String get continueButton;
+
+  /// No description provided for @pleaseSelectAllFieldsForMasterData.
+  ///
+  /// In en, this message translates to:
+  /// **'Please select all fields'**
+  String get pleaseSelectAllFieldsForMasterData;
+
+  /// No description provided for @villageMasterDataForm.
+  ///
+  /// In en, this message translates to:
+  /// **'Village Master data Form'**
+  String get villageMasterDataForm;
+
+  /// No description provided for @sentOTP.
+  ///
+  /// In en, this message translates to:
+  /// **'Send OTP'**
+  String get sentOTP;
+
+  /// No description provided for @verifyOTP.
+  ///
+  /// In en, this message translates to:
+  /// **'Verify OTP'**
+  String get verifyOTP;
+
+  /// No description provided for @didntReceiveCode.
+  ///
+  /// In en, this message translates to:
+  /// **'Didn\'t receive the code?'**
+  String get didntReceiveCode;
+
+  /// No description provided for @resend.
+  ///
+  /// In en, this message translates to:
+  /// **'Resend'**
+  String get resend;
+
+  /// No description provided for @searchDistricts.
+  ///
+  /// In en, this message translates to:
+  /// **'Search districts...'**
+  String get searchDistricts;
+
+  /// No description provided for @searchBlocks.
+  ///
+  /// In en, this message translates to:
+  /// **'Search blocks...'**
+  String get searchBlocks;
+
+  /// No description provided for @searchVillages.
+  ///
+  /// In en, this message translates to:
+  /// **'Search villages...'**
+  String get searchVillages;
+
+  /// No description provided for @searchComplaintTypes.
+  ///
+  /// In en, this message translates to:
+  /// **'Search complaint types...'**
+  String get searchComplaintTypes;
+
+  /// No description provided for @selectComplaintType.
+  ///
+  /// In en, this message translates to:
+  /// **'Select Complaint Type'**
+  String get selectComplaintType;
+
+  /// No description provided for @noSurveyDataAvailable.
+  ///
+  /// In en, this message translates to:
+  /// **'No survey data available for this GP'**
+  String get noSurveyDataAvailable;
+
+  /// No description provided for @languageSavedSuccessfully.
+  ///
+  /// In en, this message translates to:
+  /// **'Language saved successfully'**
+  String get languageSavedSuccessfully;
+
+  /// No description provided for @darkMode.
+  ///
+  /// In en, this message translates to:
+  /// **'Dark Mode'**
+  String get darkMode;
+
+  /// No description provided for @darkModeComingSoon.
+  ///
+  /// In en, this message translates to:
+  /// **'Dark Mode coming soon'**
+  String get darkModeComingSoon;
+
+  /// No description provided for @lightMode.
+  ///
+  /// In en, this message translates to:
+  /// **'Light Mode'**
+  String get lightMode;
+
+  /// No description provided for @alreadyInLightMode.
+  ///
+  /// In en, this message translates to:
+  /// **'Already in Light Mode'**
+  String get alreadyInLightMode;
+
+  /// No description provided for @feedbackSavedSuccessfully.
+  ///
+  /// In en, this message translates to:
+  /// **'Feedback saved successfully'**
+  String get feedbackSavedSuccessfully;
+
+  /// No description provided for @invalidOTP.
+  ///
+  /// In en, this message translates to:
+  /// **'Invalid OTP. Please try again.'**
+  String get invalidOTP;
+
+  /// No description provided for @pleaseEnterCompleteOTP.
+  ///
+  /// In en, this message translates to:
+  /// **'Please enter complete OTP'**
+  String get pleaseEnterCompleteOTP;
+
+  /// No description provided for @loginRequiredForRaise.
+  ///
+  /// In en, this message translates to:
+  /// **'To raise a complaint, you need to login first.'**
+  String get loginRequiredForRaise;
+
+  /// No description provided for @loginRequiredForComplaints.
+  ///
+  /// In en, this message translates to:
+  /// **'To view your complaints, you need to login first.'**
+  String get loginRequiredForComplaints;
+
+  /// No description provided for @pleaseRateYourExperience.
+  ///
+  /// In en, this message translates to:
+  /// **'Please rate your experience'**
+  String get pleaseRateYourExperience;
+
+  /// No description provided for @workOrderDate.
+  ///
+  /// In en, this message translates to:
+  /// **'Work order date'**
+  String get workOrderDate;
+
+  /// No description provided for @annualContractAmount.
+  ///
+  /// In en, this message translates to:
+  /// **'Annual contract amount'**
+  String get annualContractAmount;
+
+  /// No description provided for @durationOfWork.
+  ///
+  /// In en, this message translates to:
+  /// **'Duration of work'**
+  String get durationOfWork;
+
+  /// No description provided for @frequencyOfWork.
+  ///
+  /// In en, this message translates to:
+  /// **'Frequency of work'**
+  String get frequencyOfWork;
+
+  /// No description provided for @genderMale.
+  ///
+  /// In en, this message translates to:
+  /// **'Male'**
+  String get genderMale;
+
+  /// No description provided for @genderFemale.
+  ///
+  /// In en, this message translates to:
+  /// **'Female'**
+  String get genderFemale;
+
+  /// No description provided for @genderOther.
+  ///
+  /// In en, this message translates to:
+  /// **'Other'**
+  String get genderOther;
+
+  /// No description provided for @complaintResolvedDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Complaint id XYZ resolved by supervisor, please confirm if you are satisfied'**
+  String get complaintResolvedDescription;
+
+  /// No description provided for @newSchemeAdded.
+  ///
+  /// In en, this message translates to:
+  /// **'New scheme added'**
+  String get newSchemeAdded;
+
+  /// No description provided for @newSchemeAddedDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'New scheme added, might be helpful to you'**
+  String get newSchemeAddedDescription;
+
+  /// No description provided for @upcomingEvents.
+  ///
+  /// In en, this message translates to:
+  /// **'Upcoming events'**
+  String get upcomingEvents;
+
+  /// No description provided for @upcomingEventsDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'New event coming, checkout more details'**
+  String get upcomingEventsDescription;
+
+  /// No description provided for @fiveMinutesAgo.
+  ///
+  /// In en, this message translates to:
+  /// **'5 min ago'**
+  String get fiveMinutesAgo;
+
+  /// No description provided for @resetPassword.
+  ///
+  /// In en, this message translates to:
+  /// **'Reset Password'**
+  String get resetPassword;
+
+  /// No description provided for @setPassword.
+  ///
+  /// In en, this message translates to:
+  /// **'Set Password'**
+  String get setPassword;
+
+  /// No description provided for @enterNewPassword.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter new password'**
+  String get enterNewPassword;
+
+  /// No description provided for @confirmPassword.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirm password'**
+  String get confirmPassword;
+
+  /// No description provided for @setNewPassword.
+  ///
+  /// In en, this message translates to:
+  /// **'Set new password'**
+  String get setNewPassword;
+
+  /// Sort option to show newest complaints first
+  ///
+  /// In en, this message translates to:
+  /// **'Newest First'**
+  String get newestFirst;
+
+  /// Sort option to show oldest complaints first
+  ///
+  /// In en, this message translates to:
+  /// **'Oldest First'**
+  String get oldestFirst;
+
+  /// Title for date filter modal
+  ///
+  /// In en, this message translates to:
+  /// **'Filter by'**
+  String get filterBy;
+
+  /// Day filter option
+  ///
+  /// In en, this message translates to:
+  /// **'Day'**
+  String get day;
+
+  /// Week filter option
+  ///
+  /// In en, this message translates to:
+  /// **'Week'**
+  String get week;
+
+  /// Month filter option
+  ///
+  /// In en, this message translates to:
+  /// **'Month'**
+  String get month;
+
+  /// Year filter option
+  ///
+  /// In en, this message translates to:
+  /// **'Year'**
+  String get year;
+
+  /// Custom date range filter option
+  ///
+  /// In en, this message translates to:
+  /// **'Custom'**
+  String get custom;
+
+  /// Apply filter button text
+  ///
+  /// In en, this message translates to:
+  /// **'Apply'**
+  String get apply;
+
+  /// Start date input placeholder
+  ///
+  /// In en, this message translates to:
+  /// **'Select Start Date*'**
+  String get selectStartDate;
+
+  /// End date input placeholder
+  ///
+  /// In en, this message translates to:
+  /// **'Select End Date*'**
+  String get selectEndDate;
+
+  /// No description provided for @complaintCreated.
+  ///
+  /// In en, this message translates to:
+  /// **'Complaint created'**
+  String get complaintCreated;
+
+  /// No description provided for @resolved.
+  ///
+  /// In en, this message translates to:
+  /// **'Resolved'**
+  String get resolved;
+
+  /// No description provided for @verified.
+  ///
+  /// In en, this message translates to:
+  /// **'Verified'**
+  String get verified;
+
+  /// No description provided for @complaintClosed.
+  ///
+  /// In en, this message translates to:
+  /// **'Closed'**
+  String get complaintClosed;
+
+  /// No description provided for @waitingForSupervisorToResolve.
+  ///
+  /// In en, this message translates to:
+  /// **'Waiting for supervisor to resolve'**
+  String get waitingForSupervisorToResolve;
+
+  /// No description provided for @verificationPending.
+  ///
+  /// In en, this message translates to:
+  /// **'Verification Pending'**
+  String get verificationPending;
+
+  /// No description provided for @waitingForVdoToVerify.
+  ///
+  /// In en, this message translates to:
+  /// **'Waiting for VDO to verify'**
+  String get waitingForVdoToVerify;
+
+  /// No description provided for @feedbackRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Feedback Required'**
+  String get feedbackRequired;
+
+  /// No description provided for @feedback.
+  ///
+  /// In en, this message translates to:
+  /// **'Feedback'**
+  String get feedback;
+
+  /// No description provided for @writeYourFeedbackHere.
+  ///
+  /// In en, this message translates to:
+  /// **'Write your feedback here...'**
+  String get writeYourFeedbackHere;
+
+  /// No description provided for @formSubmittedSuccessfully.
+  ///
+  /// In en, this message translates to:
+  /// **'Form submitted successfully!'**
+  String get formSubmittedSuccessfully;
 }
 
 class _AppLocalizationsDelegate

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:provider/provider.dart';
 // import 'package:sbmg/screens/citizen/scheme_details_screen.dart';
 import 'package:sbmg/services/bookmark_service.dart';
@@ -158,24 +159,24 @@ class _CeoHomeScreenState extends State<CeoHomeScreen> {
                           // Overview Section
                           _buildOverviewSection(provider),
 
-                          const SizedBox(height: 24),
+                          SizedBox(height: 24.h),
 
                           // Inspection Section
                           _buildInspectionSection(provider),
 
-                          const SizedBox(height: 24),
+                          SizedBox(height: 24.h),
 
                           // Featured Schemes Section
                           _buildFeaturedSchemesSection(provider),
 
-                          const SizedBox(height: 24),
+                          SizedBox(height: 24.h),
 
                           // Events Section
                           _buildEventsSection(provider),
 
-                          const SizedBox(height: 24),
+                          SizedBox(height: 24.h),
 
-                          const SizedBox(height: 20),
+                          SizedBox(height: 20.h),
                         ],
                       ),
                     ),
@@ -220,31 +221,31 @@ class _CeoHomeScreenState extends State<CeoHomeScreen> {
 
   Widget _buildTopHeader(CeoProvider provider) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: EdgeInsets.all(16.r),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
+              Text(
                 'CEO',
                 style: TextStyle(
                   fontFamily: 'Noto Sans',
-                  fontSize: 18,
+                  fontSize: 18.sp,
                   fontWeight: FontWeight.w500,
-                  color: Color(0xFF111827),
+                  color: const Color(0xFF111827),
                   letterSpacing: 0,
                 ),
               ),
-              const SizedBox(height: 2),
+              SizedBox(height: 2.h),
               Text(
                 provider.districtName,
-                style: const TextStyle(
+                style: TextStyle(
                   fontFamily: 'Noto Sans',
-                  fontSize: 12,
+                  fontSize: 12.sp,
                   fontWeight: FontWeight.bold,
-                  color: Color(0xFF111827),
+                  color: const Color(0xFF111827),
                   letterSpacing: 0.5,
                 ),
               ),
@@ -256,8 +257,8 @@ class _CeoHomeScreenState extends State<CeoHomeScreen> {
                 onPressed: () {},
                 icon: Image.asset(
                   'assets/icons/Vector.png',
-                  width: 24,
-                  height: 24,
+                  width: 24.w,
+                  height: 24.h,
                   color: const Color(0xFF2C3E50),
                 ),
               ),
@@ -267,8 +268,8 @@ class _CeoHomeScreenState extends State<CeoHomeScreen> {
                 },
                 icon: Image.asset(
                   'assets/icons/Translate.png',
-                  width: 24,
-                  height: 24,
+                  width: 24.w,
+                  height: 24.h,
                   color: const Color(0xFF2C3E50),
                 ),
               ),
@@ -283,21 +284,21 @@ class _CeoHomeScreenState extends State<CeoHomeScreen> {
 
   Widget _buildOverviewSection(CeoProvider provider) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
+      padding: EdgeInsets.symmetric(horizontal: 16.w),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
+          Text(
             'Overview',
             style: TextStyle(
               fontFamily: 'Noto Sans',
-              fontSize: 18,
+              fontSize: 18.sp,
               fontWeight: FontWeight.w500,
-              color: Color(0xFF111827),
+              color: const Color(0xFF111827),
               letterSpacing: 0,
             ),
           ),
-          const SizedBox(height: 16),
+          SizedBox(height: 16.h),
 
           // Date Range Picker and Export Button
           Row(
@@ -307,64 +308,64 @@ class _CeoHomeScreenState extends State<CeoHomeScreen> {
                 child: GestureDetector(
                   onTap: () => _selectDateRange(provider),
                   child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 8,
+                    padding: EdgeInsets.symmetric(
+                      horizontal: 12.w,
+                      vertical: 8.h,
                     ),
                     decoration: BoxDecoration(
                       color: Colors.white,
-                      borderRadius: BorderRadius.circular(8),
+                      borderRadius: BorderRadius.circular(8.r),
                       border: Border.all(color: Colors.grey.shade300),
                     ),
                     child: Row(
                       children: [
-                        const Icon(
+                        Icon(
                           Icons.calendar_today,
-                          size: 16,
-                          color: Color(0xFF6B7280),
+                          size: 16.sp,
+                          color: const Color(0xFF6B7280),
                         ),
-                        const SizedBox(width: 8),
+                        SizedBox(width: 8.w),
                         Text(
                           provider.dateRangeText,
-                          style: const TextStyle(
-                            fontSize: 14,
-                            color: Color(0xFF374151),
+                          style: TextStyle(
+                            fontSize: 14.sp,
+                            color: const Color(0xFF374151),
                             fontWeight: FontWeight.w500,
                           ),
                         ),
                         const Spacer(),
-                        const Icon(
+                        Icon(
                           Icons.keyboard_arrow_down,
-                          size: 16,
-                          color: Color(0xFF6B7280),
+                          size: 16.sp,
+                          color: const Color(0xFF6B7280),
                         ),
                       ],
                     ),
                   ),
                 ),
               ),
-              const SizedBox(width: 12),
+              SizedBox(width: 12.w),
               // Export Button
               GestureDetector(
                 onTap: () => _exportToCSV(provider),
                 child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 8,
+                  padding: EdgeInsets.symmetric(
+                    horizontal: 16.w,
+                    vertical: 8.h,
                   ),
                   decoration: BoxDecoration(
                     color: const Color(0xFF009B56),
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius: BorderRadius.circular(8.r),
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Icon(Icons.download, size: 16, color: Colors.white),
-                      const SizedBox(width: 8),
-                      const Text(
+                      Icon(Icons.download, size: 16.sp, color: Colors.white),
+                      SizedBox(width: 8.w),
+                      Text(
                         'Export',
                         style: TextStyle(
-                          fontSize: 14,
+                          fontSize: 14.sp,
                           color: Colors.white,
                           fontWeight: FontWeight.w600,
                         ),
@@ -376,14 +377,14 @@ class _CeoHomeScreenState extends State<CeoHomeScreen> {
             ],
           ),
 
-          const SizedBox(height: 16),
+          SizedBox(height: 16.h),
           // Total Reported Complaints
           Container(
             width: double.infinity,
-            padding: const EdgeInsets.all(16),
+            padding: EdgeInsets.all(16.r),
             decoration: BoxDecoration(
               color: Colors.white,
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(12.r),
               border: Border.all(color: Colors.grey.shade200),
               boxShadow: [
                 BoxShadow(
@@ -402,31 +403,31 @@ class _CeoHomeScreenState extends State<CeoHomeScreen> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const Text(
+                        Text(
                           'Total Reported Complaint',
                           style: TextStyle(
                             fontFamily: 'Noto Sans',
-                            fontSize: 14,
+                            fontSize: 14.sp,
                             fontWeight: FontWeight.w500,
-                            color: Color(0xFF717680),
+                            color: const Color(0xFF717680),
                             letterSpacing: 0.5,
                           ),
                         ),
-                        const SizedBox(width: 8),
-                        const Icon(
+                        SizedBox(width: 8.w),
+                        Icon(
                           Icons.info_outline,
-                          size: 16,
-                          color: Color(0xFF6B7280),
+                          size: 16.sp,
+                          color: const Color(0xFF6B7280),
                         ),
                       ],
                     ),
-                    const SizedBox(height: 8),
+                    SizedBox(height: 8.h),
                     Text(
                       provider.isComplaintsLoading
                           ? '...'
                           : provider.analytics['totalComplaints'].toString(),
-                      style: const TextStyle(
-                        fontSize: 32,
+                      style: TextStyle(
+                        fontSize: 32.sp,
                         fontWeight: FontWeight.bold,
                         color: Colors.black,
                       ),
@@ -436,7 +437,7 @@ class _CeoHomeScreenState extends State<CeoHomeScreen> {
               ],
             ),
           ),
-          const SizedBox(height: 12),
+          SizedBox(height: 12.h),
           // Open and Disposed Complaints
           Row(
             children: [
@@ -450,7 +451,7 @@ class _CeoHomeScreenState extends State<CeoHomeScreen> {
                   Colors.black,
                 ),
               ),
-              const SizedBox(width: 12),
+              SizedBox(width: 12.w),
               Expanded(
                 child: _buildOverviewCard(
                   'Resolved complaints',
@@ -473,7 +474,7 @@ class _CeoHomeScreenState extends State<CeoHomeScreen> {
 
   Widget _buildInspectionSection(CeoProvider provider) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
+      padding: EdgeInsets.symmetric(horizontal: 16.w),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -486,7 +487,7 @@ class _CeoHomeScreenState extends State<CeoHomeScreen> {
                   Icons.calendar_today,
                 ),
               ),
-              const SizedBox(width: 12),
+              SizedBox(width: 12.w),
               Expanded(
                 child: _buildInspectionActionCard(
                   'Contractor details',
@@ -496,12 +497,12 @@ class _CeoHomeScreenState extends State<CeoHomeScreen> {
             ],
           ),
 
-          const SizedBox(height: 16),
+          SizedBox(height: 16.h),
 
           // View Rankings of GP Card
           _buildRankingsCard(),
 
-          const SizedBox(height: 16),
+          SizedBox(height: 16.h),
         ],
       ),
     );
@@ -512,10 +513,10 @@ class _CeoHomeScreenState extends State<CeoHomeScreen> {
       onTap: () {},
       child: Container(
         width: double.infinity,
-        padding: const EdgeInsets.all(16),
+        padding: EdgeInsets.all(16.r),
         decoration: BoxDecoration(
           color: const Color(0xFF18a558), // Medium green background
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(12.r),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withOpacity(0.1),
@@ -528,34 +529,34 @@ class _CeoHomeScreenState extends State<CeoHomeScreen> {
           children: [
             // Icon with light green background
             Container(
-              width: 50,
-              height: 50,
+              width: 50.w,
+              height: 50.h,
               decoration: BoxDecoration(
                 color: const Color(0xFFe8f5e9), // Light green background
                 shape: BoxShape.circle,
                 border: Border.all(color: Colors.white, width: 1),
               ),
-              child: const Icon(
+              child: Icon(
                 Icons.emoji_events, // Ribbon/medal icon
-                color: Color(0xFF18a558),
-                size: 24,
+                color: const Color(0xFF18a558),
+                size: 24.sp,
               ),
             ),
-            const SizedBox(width: 16),
+            SizedBox(width: 16.w),
             // Text
-            const Expanded(
+            Expanded(
               child: Text(
                 'View Rankings of GP',
                 style: TextStyle(
                   fontFamily: 'Noto Sans',
-                  fontSize: 16,
+                  fontSize: 16.sp,
                   fontWeight: FontWeight.w600,
                   color: Colors.white,
                 ),
               ),
             ),
             // Right arrow
-            const Icon(Icons.chevron_right, color: Colors.white, size: 24),
+            Icon(Icons.chevron_right, color: Colors.white, size: 24.sp),
           ],
         ),
       ),
@@ -575,11 +576,11 @@ class _CeoHomeScreenState extends State<CeoHomeScreen> {
         }
       },
       child: Container(
-        height: 150, // Fixed height for both cards
-        padding: const EdgeInsets.all(16),
+        height: 150.h, // Fixed height for both cards
+        padding: EdgeInsets.all(16.r),
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(12.r),
           border: Border.all(color: Colors.grey.shade300),
           boxShadow: [
             BoxShadow(
@@ -594,13 +595,13 @@ class _CeoHomeScreenState extends State<CeoHomeScreen> {
           children: [
             // Icon
             Container(
-              width: 45,
-              height: 45,
+              width: 45.w,
+              height: 45.h,
               decoration: BoxDecoration(
                 color: const Color(0xFF009B56).withOpacity(0.1),
                 shape: BoxShape.circle,
               ),
-              child: Icon(icon, color: const Color(0xFF009B56), size: 24),
+              child: Icon(icon, color: const Color(0xFF009B56), size: 24.sp),
             ),
 
             // Title
@@ -608,11 +609,11 @@ class _CeoHomeScreenState extends State<CeoHomeScreen> {
               child: Center(
                 child: Text(
                   text,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontFamily: 'Noto Sans',
-                    fontSize: 13,
+                    fontSize: 13.sp,
                     fontWeight: FontWeight.w500,
-                    color: Color(0xFF111827),
+                    color: const Color(0xFF111827),
                     letterSpacing: 0,
                     height: 1.0,
                   ),
@@ -627,7 +628,7 @@ class _CeoHomeScreenState extends State<CeoHomeScreen> {
             Icon(
               Icons.arrow_forward_ios,
               color: const Color(0xFF009B56),
-              size: 14,
+              size: 14.sp,
             ),
           ],
         ),
@@ -642,10 +643,10 @@ class _CeoHomeScreenState extends State<CeoHomeScreen> {
     Color color,
   ) {
     return Container(
-      height: 100, // Fixed height for consistent sizing
+      height: 100.h, // Fixed height for consistent sizing
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(12.r),
         border: Border.all(color: Colors.grey.shade200),
         boxShadow: [
           BoxShadow(
@@ -658,25 +659,25 @@ class _CeoHomeScreenState extends State<CeoHomeScreen> {
       child: Stack(
         children: [
           Padding(
-            padding: const EdgeInsets.all(16),
+            padding: EdgeInsets.all(16.r),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
                   title,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontFamily: 'Noto Sans',
-                    fontSize: 12,
+                    fontSize: 12.sp,
                     fontWeight: FontWeight.w500,
-                    color: Color(0xFF717680),
+                    color: const Color(0xFF717680),
                     letterSpacing: 0.5,
                   ),
                 ),
                 Text(
                   value,
                   style: TextStyle(
-                    fontSize: 24,
+                    fontSize: 24.sp,
                     fontWeight: FontWeight.bold,
                     color: color,
                   ),
@@ -687,12 +688,12 @@ class _CeoHomeScreenState extends State<CeoHomeScreen> {
           // Icon positioned in bottom-right corner with white overlay fade
           Positioned(
             bottom: 0,
-            right: 8,
+            right: 8.w,
             child: Opacity(
               opacity: 0.3, // Fade effect with white overlay
               child: icon is String
-                  ? Image.asset(icon, width: 60, height: 60)
-                  : Icon(icon, color: color, size: 60),
+                  ? Image.asset(icon, width: 60.w, height: 60.h)
+                  : Icon(icon, color: color, size: 60.sp),
             ),
           ),
         ],
@@ -706,17 +707,17 @@ class _CeoHomeScreenState extends State<CeoHomeScreen> {
       children: [
         // Section Header
         Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
+          padding: EdgeInsets.symmetric(horizontal: 16.w),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
+              Text(
                 'Featured Scheme',
                 style: TextStyle(
                   fontFamily: 'Noto Sans',
-                  fontSize: 18,
+                  fontSize: 18.sp,
                   fontWeight: FontWeight.w500,
-                  color: Color(0xFF111827),
+                  color: const Color(0xFF111827),
                   letterSpacing: 0,
                 ),
               ),
@@ -738,7 +739,7 @@ class _CeoHomeScreenState extends State<CeoHomeScreen> {
 
         // Horizontal Scrollable Schemes
         SizedBox(
-          height: 200,
+          height: 200.h,
           child: provider.isSchemesLoading
               ? const Center(
                   child: CircularProgressIndicator(
@@ -748,15 +749,15 @@ class _CeoHomeScreenState extends State<CeoHomeScreen> {
                   ),
                 )
               : provider.schemes.isEmpty
-              ? const Center(
+              ? Center(
                   child: Text(
                     'No schemes available',
-                    style: TextStyle(color: Color(0xFF9CA3AF)),
+                    style: TextStyle(color: const Color(0xFF9CA3AF)),
                   ),
                 )
               : ListView.builder(
                   scrollDirection: Axis.horizontal,
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  padding: EdgeInsets.symmetric(horizontal: 16.w),
                   itemCount: provider.schemes.length,
                   itemBuilder: (context, index) {
                     return _buildSchemeCard(provider.schemes[index]);
@@ -771,11 +772,11 @@ class _CeoHomeScreenState extends State<CeoHomeScreen> {
     return GestureDetector(
       onTap: () {},
       child: Container(
-        width: 350,
-        margin: const EdgeInsets.only(right: 16),
-        decoration: BoxDecoration(borderRadius: BorderRadius.circular(16)),
+        width: 350.w,
+        margin: EdgeInsets.only(right: 16.w),
+        decoration: BoxDecoration(borderRadius: BorderRadius.circular(16.r)),
         child: ClipRRect(
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(16.r),
           child: Stack(
             children: [
               // Background Image
@@ -812,7 +813,7 @@ class _CeoHomeScreenState extends State<CeoHomeScreen> {
                 left: 0,
                 right: 0,
                 child: Container(
-                  padding: const EdgeInsets.all(16),
+                  padding: EdgeInsets.all(16.r),
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
                       begin: Alignment.bottomCenter,
@@ -825,9 +826,9 @@ class _CeoHomeScreenState extends State<CeoHomeScreen> {
                   ),
                   child: Text(
                     scheme.name,
-                    style: const TextStyle(
+                    style: TextStyle(
                       color: Colors.white,
-                      fontSize: 16,
+                      fontSize: 16.sp,
                       fontWeight: FontWeight.w600,
                     ),
                     maxLines: 2,
@@ -847,28 +848,28 @@ class _CeoHomeScreenState extends State<CeoHomeScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
+          padding: EdgeInsets.symmetric(horizontal: 16.w),
           child: Text(
             '${provider.events.length} Event${provider.events.length != 1 ? 's' : ''}',
-            style: const TextStyle(
+            style: TextStyle(
               fontFamily: 'Noto Sans',
-              fontSize: 18,
+              fontSize: 18.sp,
               fontWeight: FontWeight.w500,
-              color: Color(0xFF111827),
+              color: const Color(0xFF111827),
               letterSpacing: 0,
               height: 1.0,
             ),
           ),
         ),
 
-        const SizedBox(height: 16),
+        SizedBox(height: 16.h),
 
         // Events List
         provider.isEventsLoading
-            ? const Center(
+            ? Center(
                 child: Padding(
-                  padding: EdgeInsets.all(20),
-                  child: CircularProgressIndicator(
+                  padding: EdgeInsets.all(20.r),
+                  child: const CircularProgressIndicator(
                     valueColor: AlwaysStoppedAnimation<Color>(
                       Color(0xFF009B56),
                     ),
@@ -876,12 +877,12 @@ class _CeoHomeScreenState extends State<CeoHomeScreen> {
                 ),
               )
             : provider.events.isEmpty
-            ? const Center(
+            ? Center(
                 child: Padding(
-                  padding: EdgeInsets.all(20),
+                  padding: EdgeInsets.all(20.r),
                   child: Text(
                     'No events available',
-                    style: TextStyle(color: Color(0xFF9CA3AF)),
+                    style: TextStyle(color: const Color(0xFF9CA3AF)),
                   ),
                 ),
               )
@@ -901,9 +902,9 @@ class _CeoHomeScreenState extends State<CeoHomeScreen> {
 
   Widget _buildEventCard(Event event, int index) {
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      margin: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(12.r),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.05),
@@ -917,17 +918,17 @@ class _CeoHomeScreenState extends State<CeoHomeScreen> {
         children: [
           // Event Banner with eventbanner.png
           Container(
-            height: 120,
+            height: 120.h,
             decoration: BoxDecoration(
-              borderRadius: const BorderRadius.only(
-                topLeft: Radius.circular(12),
-                topRight: Radius.circular(12),
+              borderRadius: BorderRadius.only(
+                topLeft: Radius.circular(12.r),
+                topRight: Radius.circular(12.r),
               ),
             ),
             child: ClipRRect(
-              borderRadius: const BorderRadius.only(
-                topLeft: Radius.circular(12),
-                topRight: Radius.circular(12),
+              borderRadius: BorderRadius.only(
+                topLeft: Radius.circular(12.r),
+                topRight: Radius.circular(12.r),
               ),
               child: Stack(
                 children: [
@@ -955,8 +956,8 @@ class _CeoHomeScreenState extends State<CeoHomeScreen> {
 
                   // Bookmark Button
                   Positioned(
-                    top: 12,
-                    right: 12,
+                    top: 12.h,
+                    right: 12.w,
                     child: GestureDetector(
                       onTap: () {
                         setState(() {
@@ -964,13 +965,13 @@ class _CeoHomeScreenState extends State<CeoHomeScreen> {
                         });
                       },
                       child: Container(
-                        width: 40,
-                        height: 40,
+                        width: 40.w,
+                        height: 40.h,
                         decoration: BoxDecoration(
                           color: _bookmarkService.isEventBookmarked(event.id)
                               ? const Color(0xFF009B56)
                               : Colors.white.withOpacity(0.9),
-                          borderRadius: BorderRadius.circular(8),
+                          borderRadius: BorderRadius.circular(8.r),
                           boxShadow: [
                             BoxShadow(
                               color: Colors.black.withOpacity(0.2),
@@ -986,7 +987,7 @@ class _CeoHomeScreenState extends State<CeoHomeScreen> {
                           color: _bookmarkService.isEventBookmarked(event.id)
                               ? Colors.white
                               : const Color(0xFF4CAF50),
-                          size: 20,
+                          size: 20.sp,
                         ),
                       ),
                     ),
@@ -998,12 +999,12 @@ class _CeoHomeScreenState extends State<CeoHomeScreen> {
 
           // Event Details
           Container(
-            padding: const EdgeInsets.all(12),
+            padding: EdgeInsets.all(12.r),
             decoration: BoxDecoration(
               color: Colors.white,
-              borderRadius: const BorderRadius.only(
-                bottomLeft: Radius.circular(12),
-                bottomRight: Radius.circular(12),
+              borderRadius: BorderRadius.only(
+                bottomLeft: Radius.circular(12.r),
+                bottomRight: Radius.circular(12.r),
               ),
             ),
             child: Column(
@@ -1015,33 +1016,33 @@ class _CeoHomeScreenState extends State<CeoHomeScreen> {
                     Expanded(
                       child: Text(
                         event.title,
-                        style: const TextStyle(
-                          fontSize: 16,
+                        style: TextStyle(
+                          fontSize: 16.sp,
                           fontWeight: FontWeight.w600,
-                          color: Color(0xFF2C3E50),
+                          color: const Color(0xFF2C3E50),
                         ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
                     ),
-                    const SizedBox(width: 110),
+                    SizedBox(width: 110.w),
                     Expanded(
                       child: Row(
                         children: [
-                          const Icon(
+                          Icon(
                             Icons.calendar_today,
-                            size: 16,
-                            color: Color(0xFF009B56),
+                            size: 16.sp,
+                            color: const Color(0xFF009B56),
                           ),
-                          const SizedBox(width: 4),
+                          SizedBox(width: 4.w),
                           Expanded(
                             child: Text(
                               '${_formatDate(event.startTime, includeYear: false)} - ${_formatDate(event.endTime)}',
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontFamily: 'Noto Sans',
-                                fontSize: 12,
+                                fontSize: 12.sp,
                                 fontWeight: FontWeight.w500,
-                                color: Color(0xFF6B7280),
+                                color: const Color(0xFF6B7280),
                                 letterSpacing: 0.5,
                               ),
                               maxLines: 1,
@@ -1053,14 +1054,14 @@ class _CeoHomeScreenState extends State<CeoHomeScreen> {
                     ),
                   ],
                 ),
-                const SizedBox(height: 8),
+                SizedBox(height: 8.h),
                 Text(
                   event.description ?? '',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontFamily: 'Noto Sans',
-                    fontSize: 12,
+                    fontSize: 12.sp,
                     fontWeight: FontWeight.w500,
-                    color: Color(0xFF6B7280),
+                    color: const Color(0xFF6B7280),
                     letterSpacing: 0.5,
                   ),
                   maxLines: 2,
@@ -1230,57 +1231,57 @@ class _GPContractorDetailsBottomSheet extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      decoration: const BoxDecoration(
-        color: Color(0xFFF3F4F6),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF3F4F6),
         borderRadius: BorderRadius.only(
-          topLeft: Radius.circular(20),
-          topRight: Radius.circular(20),
+          topLeft: Radius.circular(20.r),
+          topRight: Radius.circular(20.r),
         ),
       ),
-      padding: const EdgeInsets.all(20),
+      padding: EdgeInsets.all(20.r),
       child: SingleChildScrollView(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             // Modal Handle
             Container(
-              width: 40,
-              height: 4,
-              margin: const EdgeInsets.only(bottom: 20),
+              width: 40.w,
+              height: 4.h,
+              margin: EdgeInsets.only(bottom: 20.h),
               decoration: BoxDecoration(
                 color: const Color(0xFFD1D5DB),
-                borderRadius: BorderRadius.circular(2),
+                borderRadius: BorderRadius.circular(2.r),
               ),
             ),
             // Header
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text(
+                Text(
                   'Contractor Details',
                   style: TextStyle(
                     fontFamily: 'Noto Sans',
-                    fontSize: 20,
+                    fontSize: 20.sp,
                     fontWeight: FontWeight.bold,
-                    color: Color(0xFF111827),
+                    color: const Color(0xFF111827),
                   ),
                 ),
                 IconButton(
                   onPressed: () => Navigator.pop(context),
-                  icon: const Icon(Icons.close, color: Color(0xFF111827)),
+                  icon: Icon(Icons.close, color: const Color(0xFF111827)),
                 ),
               ],
             ),
 
-            const SizedBox(height: 20),
+            SizedBox(height: 20.h),
 
             // View Mode - Display details
             Container(
               width: double.infinity,
-              padding: const EdgeInsets.all(20),
+              padding: EdgeInsets.all(20.r),
               decoration: BoxDecoration(
                 color: Colors.white,
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(12.r),
                 boxShadow: [
                   BoxShadow(
                     color: Colors.black.withOpacity(0.05),
@@ -1295,71 +1296,71 @@ class _GPContractorDetailsBottomSheet extends StatelessWidget {
                       children: [
                         if (gpName != null) ...[
                           _buildDetailRow('Gram Panchayat', gpName!),
-                          const SizedBox(height: 20),
+                          SizedBox(height: 20.h),
                         ],
                         _buildDetailRow(
                           'Agency Name',
                           contractorDetails!.agency.name,
                         ),
-                        const SizedBox(height: 20),
+                        SizedBox(height: 20.h),
                         _buildDetailRow(
                           'Contact Person',
                           contractorDetails!.personName,
                         ),
-                        const SizedBox(height: 20),
+                        SizedBox(height: 20.h),
                         _buildDetailRow(
                           'Contact Phone',
                           contractorDetails!.personPhone,
                         ),
-                        const SizedBox(height: 20),
+                        SizedBox(height: 20.h),
                         _buildDetailRow(
                           'Agency Phone',
                           contractorDetails!.agency.phone,
                         ),
-                        const SizedBox(height: 20),
+                        SizedBox(height: 20.h),
                         _buildDetailRow(
                           'Agency Email',
                           contractorDetails!.agency.email,
                         ),
-                        const SizedBox(height: 20),
+                        SizedBox(height: 20.h),
                         _buildDetailRow(
                           'Contract Start Date',
                           contractorDetails!.contractStartDate,
                         ),
-                        const SizedBox(height: 20),
+                        SizedBox(height: 20.h),
                         _buildDetailRow(
                           'Contract End Date',
                           contractorDetails!.contractEndDate ?? 'N/A',
                         ),
                       ],
                     )
-                  : const Text(
+                  : Text(
                       'No contractor details available',
-                      style: TextStyle(fontSize: 16, color: Colors.grey),
+                      style: TextStyle(fontSize: 16.sp, color: Colors.grey),
                     ),
             ),
 
-            const SizedBox(height: 30),
+            SizedBox(height: 30.h),
 
             // Close Button
             SizedBox(
               width: double.infinity,
-              height: 50,
+              height: 50.h,
               child: ElevatedButton(
                 onPressed: () => Navigator.pop(context),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF009B56),
                   foregroundColor: Colors.white,
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius: BorderRadius.circular(8.r),
                   ),
                   elevation: 0,
                 ),
-                child: const Text(
+                child: Text(
                   'Close',
                   style: TextStyle(
                     fontFamily: 'Noto Sans',
-                    fontSize: 16,
+                    fontSize: 16.sp,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
@@ -1377,21 +1378,21 @@ class _GPContractorDetailsBottomSheet extends StatelessWidget {
       children: [
         Text(
           label,
-          style: const TextStyle(
+          style: TextStyle(
             fontFamily: 'Noto Sans',
-            fontSize: 14,
+            fontSize: 14.sp,
             fontWeight: FontWeight.w400,
-            color: Color(0xFF6B7280),
+            color: const Color(0xFF6B7280),
           ),
         ),
-        const SizedBox(height: 4),
+        SizedBox(height: 4.h),
         Text(
           value,
-          style: const TextStyle(
+          style: TextStyle(
             fontFamily: 'Noto Sans',
-            fontSize: 16,
+            fontSize: 16.sp,
             fontWeight: FontWeight.w600,
-            color: Color(0xFF111827),
+            color: const Color(0xFF111827),
           ),
         ),
       ],

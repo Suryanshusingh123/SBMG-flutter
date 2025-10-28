@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../../services/auth_services.dart';
 import 'reset_password_verify_screen.dart';
 
@@ -77,58 +78,58 @@ class _ResetPasswordRequestScreenState
       ),
       body: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.all(24.0),
+          padding: EdgeInsets.all(24.r),
           child: Form(
             key: _formKey,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                const SizedBox(height: 40),
+                SizedBox(height: 40.h),
 
                 // Lock Icon
                 Container(
-                  width: 120,
-                  height: 120,
+                  width: 120.w,
+                  height: 120.h,
                   decoration: BoxDecoration(
                     color: const Color(0xFF009B56).withOpacity(0.1),
                     shape: BoxShape.circle,
                   ),
-                  child: const Icon(
+                  child: Icon(
                     Icons.lock,
-                    size: 60,
-                    color: Color(0xFF009B56),
+                    size: 60.sp,
+                    color: const Color(0xFF009B56),
                   ),
                 ),
 
-                const SizedBox(height: 20),
+                SizedBox(height: 20.h),
 
                 // Password Visual
                 Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 8,
+                  padding: EdgeInsets.symmetric(
+                    horizontal: 16.w,
+                    vertical: 8.h,
                   ),
                   decoration: BoxDecoration(
                     color: Colors.grey.shade100,
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius: BorderRadius.circular(8.r),
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Text(
+                      Text(
                         '*****',
                         style: TextStyle(
-                          fontSize: 18,
+                          fontSize: 18.sp,
                           fontWeight: FontWeight.bold,
-                          color: Color(0xFF6B7280),
+                          color: const Color(0xFF6B7280),
                         ),
                       ),
-                      const SizedBox(width: 8),
-                      const Text(
+                      SizedBox(width: 8.w),
+                      Text(
                         'On',
                         style: TextStyle(
-                          fontSize: 14,
-                          color: Color(0xFF009B56),
+                          fontSize: 14.sp,
+                          color: const Color(0xFF009B56),
                           fontWeight: FontWeight.w500,
                         ),
                       ),
@@ -136,41 +137,44 @@ class _ResetPasswordRequestScreenState
                   ),
                 ),
 
-                const SizedBox(height: 40),
+                SizedBox(height: 40.h),
 
                 // Title
-                const Text(
+                Text(
                   'Reset Password',
                   style: TextStyle(
-                    fontSize: 28,
+                    fontSize: 28.sp,
                     fontWeight: FontWeight.bold,
-                    color: Color(0xFF2C3E50),
+                    color: const Color(0xFF2C3E50),
                   ),
                 ),
 
-                const SizedBox(height: 8),
+                SizedBox(height: 8.h),
 
                 // Subtitle
-                const Text(
+                Text(
                   'Enter your phone number',
-                  style: TextStyle(fontSize: 16, color: Color(0xFF6B7280)),
+                  style: TextStyle(
+                    fontSize: 16.sp,
+                    color: const Color(0xFF6B7280),
+                  ),
                 ),
 
-                const SizedBox(height: 40),
+                SizedBox(height: 40.h),
 
                 // Phone Number Field
-                const Align(
+                Align(
                   alignment: Alignment.centerLeft,
                   child: Text(
                     'Phone Number',
                     style: TextStyle(
-                      fontSize: 16,
+                      fontSize: 16.sp,
                       fontWeight: FontWeight.w500,
-                      color: Color(0xFF374151),
+                      color: const Color(0xFF374151),
                     ),
                   ),
                 ),
-                const SizedBox(height: 8),
+                SizedBox(height: 8.h),
                 TextFormField(
                   controller: _phoneController,
                   keyboardType: TextInputType.phone,
@@ -179,38 +183,41 @@ class _ResetPasswordRequestScreenState
                     prefixIcon: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const SizedBox(width: 12),
+                        SizedBox(width: 12.w),
                         // Indian Flag Icon (simplified)
                         Container(
-                          width: 20,
-                          height: 15,
+                          width: 20.w,
+                          height: 15.h,
                           decoration: BoxDecoration(
                             color: Colors.orange,
-                            borderRadius: BorderRadius.circular(2),
+                            borderRadius: BorderRadius.circular(2.r),
                           ),
-                          child: const Center(
-                            child: Text('🇮🇳', style: TextStyle(fontSize: 10)),
+                          child: Center(
+                            child: const Text(
+                              '🇮🇳',
+                              style: TextStyle(fontSize: 10),
+                            ),
                           ),
                         ),
-                        const SizedBox(width: 8),
+                        SizedBox(width: 8.w),
                         const Icon(
                           Icons.keyboard_arrow_down,
                           color: Color(0xFF6B7280),
                           size: 20,
                         ),
-                        const SizedBox(width: 8),
-                        const Text(
+                        SizedBox(width: 8.w),
+                        Text(
                           '+91',
-                          style: TextStyle(
+                          style: const TextStyle(
                             color: Color(0xFF374151),
                             fontWeight: FontWeight.w500,
                           ),
                         ),
-                        const SizedBox(width: 8),
+                        SizedBox(width: 8.w),
                       ],
                     ),
                     border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
+                      borderRadius: BorderRadius.circular(8.r),
                       borderSide: BorderSide(
                         color: _errorMessage != null
                             ? Colors.red
@@ -218,7 +225,7 @@ class _ResetPasswordRequestScreenState
                       ),
                     ),
                     enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
+                      borderRadius: BorderRadius.circular(8.r),
                       borderSide: BorderSide(
                         color: _errorMessage != null
                             ? Colors.red
@@ -226,7 +233,7 @@ class _ResetPasswordRequestScreenState
                       ),
                     ),
                     focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
+                      borderRadius: BorderRadius.circular(8.r),
                       borderSide: const BorderSide(color: Color(0xFF009B56)),
                     ),
                     filled: true,
@@ -247,22 +254,15 @@ class _ResetPasswordRequestScreenState
 
                 // Error Message
                 if (_errorMessage != null) ...[
-                  const SizedBox(height: 8),
+                  SizedBox(height: 8.h),
                   Row(
                     children: [
-                      const Icon(
-                        Icons.error_outline,
-                        color: Colors.red,
-                        size: 16,
-                      ),
-                      const SizedBox(width: 8),
+                      Icon(Icons.error_outline, color: Colors.red, size: 16.sp),
+                      SizedBox(width: 8.w),
                       Expanded(
                         child: Text(
                           _errorMessage!,
-                          style: const TextStyle(
-                            color: Colors.red,
-                            fontSize: 14,
-                          ),
+                          style: TextStyle(color: Colors.red, fontSize: 14.sp),
                         ),
                       ),
                     ],
@@ -274,39 +274,39 @@ class _ResetPasswordRequestScreenState
                 // Send OTP Button
                 SizedBox(
                   width: double.infinity,
-                  height: 56,
+                  height: 56.h,
                   child: ElevatedButton(
                     onPressed: _isLoading ? null : _handleSendOtp,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF009B56),
                       foregroundColor: Colors.white,
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
+                        borderRadius: BorderRadius.circular(8.r),
                       ),
                       elevation: 0,
                     ),
                     child: _isLoading
-                        ? const SizedBox(
-                            height: 20,
-                            width: 20,
-                            child: CircularProgressIndicator(
+                        ? SizedBox(
+                            height: 20.h,
+                            width: 20.w,
+                            child: const CircularProgressIndicator(
                               strokeWidth: 2,
                               valueColor: AlwaysStoppedAnimation<Color>(
                                 Colors.white,
                               ),
                             ),
                           )
-                        : const Text(
+                        : Text(
                             'Send OTP',
                             style: TextStyle(
-                              fontSize: 16,
+                              fontSize: 16.sp,
                               fontWeight: FontWeight.w600,
                             ),
                           ),
                   ),
                 ),
 
-                const SizedBox(height: 20),
+                SizedBox(height: 20.h),
               ],
             ),
           ),

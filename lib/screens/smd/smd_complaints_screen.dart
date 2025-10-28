@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import '../../providers/smd_complaints_provider.dart';
@@ -35,19 +36,19 @@ class _SmdComplaintsScreenState extends State<SmdComplaintsScreen>
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Icon(Icons.error_outline, size: 64, color: Colors.red),
-          const SizedBox(height: 16),
+          Icon(Icons.error_outline, size: 64.sp, color: Colors.red),
+          SizedBox(height: 16.h),
           Text(
             provider.errorMessage ?? 'Something went wrong',
-            style: const TextStyle(
+            style: TextStyle(
               fontFamily: 'Noto Sans',
-              fontSize: 16,
+              fontSize: 16.sp,
               fontWeight: FontWeight.w500,
-              color: Color(0xFF6B7280),
+              color: const Color(0xFF6B7280),
             ),
             textAlign: TextAlign.center,
           ),
-          const SizedBox(height: 16),
+          SizedBox(height: 16.h),
           ElevatedButton(
             onPressed: () => provider.loadComplaints(),
             style: ElevatedButton.styleFrom(
@@ -130,7 +131,7 @@ class _SmdComplaintsScreenState extends State<SmdComplaintsScreen>
 
   Widget _buildHeader(SmdComplaintsProvider provider) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: EdgeInsets.all(16.r),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -140,21 +141,21 @@ class _SmdComplaintsScreenState extends State<SmdComplaintsScreen>
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
+                  Text(
                     'Complaint (23)',
                     style: TextStyle(
                       fontFamily: 'Noto Sans',
-                      fontSize: 22,
+                      fontSize: 22.sp,
                       fontWeight: FontWeight.w600,
-                      color: Color(0xFF111827),
+                      color: const Color(0xFF111827),
                     ),
                   ),
-                  const SizedBox(height: 2),
+                  SizedBox(height: 2.h),
                   Text(
                     '${provider.villageName} • ${DateFormat('MMMM').format(DateTime.now())}',
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontFamily: 'Noto Sans',
-                      fontSize: 14,
+                      fontSize: 14.sp,
                       fontWeight: FontWeight.w500,
                       color: Color(0xFF4B5563),
                       letterSpacing: 0,
@@ -171,7 +172,7 @@ class _SmdComplaintsScreenState extends State<SmdComplaintsScreen>
                       Icon(Icons.calendar_today, size: 24, color: Colors.black),
                     ],
                   ),
-                  const SizedBox(width: 8),
+                  SizedBox(width: 8.w),
                   const Icon(Icons.swap_vert, size: 24, color: Colors.black),
                 ],
               ),
@@ -184,7 +185,7 @@ class _SmdComplaintsScreenState extends State<SmdComplaintsScreen>
 
   Widget _buildStatusTabs(SmdComplaintsProvider provider) {
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16),
+      margin: EdgeInsets.symmetric(horizontal: 16.w),
       decoration: const BoxDecoration(
         border: Border(bottom: BorderSide(color: Color(0xFFE5E7EB), width: 1)),
       ),
@@ -197,14 +198,14 @@ class _SmdComplaintsScreenState extends State<SmdComplaintsScreen>
         ),
         labelColor: const Color(0xFF111827),
         unselectedLabelColor: const Color(0xFF9CA3AF),
-        labelStyle: const TextStyle(
+        labelStyle: TextStyle(
           fontFamily: 'Noto Sans',
-          fontSize: 14,
+          fontSize: 14.sp,
           fontWeight: FontWeight.w600,
         ),
-        unselectedLabelStyle: const TextStyle(
+        unselectedLabelStyle: TextStyle(
           fontFamily: 'Noto Sans',
-          fontSize: 14,
+          fontSize: 14.sp,
           fontWeight: FontWeight.w400,
         ),
         tabs: [
@@ -231,12 +232,12 @@ class _SmdComplaintsScreenState extends State<SmdComplaintsScreen>
 
   Widget _buildTab(String text, bool isActive) {
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
+      padding: EdgeInsets.symmetric(vertical: 16.h, horizontal: 16.w),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           Text(text),
-          const SizedBox(width: 8),
+          SizedBox(width: 8.w),
           Container(
             width: 6,
             height: 6,
@@ -255,19 +256,23 @@ class _SmdComplaintsScreenState extends State<SmdComplaintsScreen>
     SmdComplaintsProvider provider,
   ) {
     if (complaints.isEmpty) {
-      return const Center(
+      return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.inbox_outlined, size: 64, color: Color(0xFF9CA3AF)),
-            SizedBox(height: 16),
+            Icon(
+              Icons.inbox_outlined,
+              size: 64.sp,
+              color: const Color(0xFF9CA3AF),
+            ),
+            SizedBox(height: 16.h),
             Text(
               'No complaints found',
               style: TextStyle(
                 fontFamily: 'Noto Sans',
-                fontSize: 16,
+                fontSize: 16.sp,
                 fontWeight: FontWeight.w500,
-                color: Color(0xFF6B7280),
+                color: const Color(0xFF6B7280),
               ),
             ),
           ],
@@ -276,7 +281,7 @@ class _SmdComplaintsScreenState extends State<SmdComplaintsScreen>
     }
 
     return ListView.builder(
-      padding: const EdgeInsets.all(16),
+      padding: EdgeInsets.all(16.r),
       itemCount: complaints.length,
       itemBuilder: (context, index) {
         return _buildComplaintCard(complaints[index], provider);
@@ -299,10 +304,10 @@ class _SmdComplaintsScreenState extends State<SmdComplaintsScreen>
         );
       },
       child: Container(
-        margin: const EdgeInsets.only(bottom: 16),
+        margin: EdgeInsets.only(bottom: 16.h),
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(12.r),
           border: Border.all(color: Colors.grey.shade200),
           boxShadow: [
             BoxShadow(
@@ -345,12 +350,12 @@ class _SmdComplaintsScreenState extends State<SmdComplaintsScreen>
                           fit: BoxFit.cover,
                         ),
                   Positioned(
-                    top: 12,
-                    right: 12,
+                    top: 12.h,
+                    right: 12.w,
                     child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 4,
+                      padding: EdgeInsets.symmetric(
+                        horizontal: 8.w,
+                        vertical: 4.h,
                       ),
                       decoration: BoxDecoration(
                         color: Colors.black.withOpacity(0.7),
@@ -358,10 +363,10 @@ class _SmdComplaintsScreenState extends State<SmdComplaintsScreen>
                       ),
                       child: Text(
                         complaint.formattedDate,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontFamily: 'Noto Sans',
                           color: Colors.white,
-                          fontSize: 12,
+                          fontSize: 12.sp,
                           fontWeight: FontWeight.w500,
                           letterSpacing: 0.5,
                         ),
@@ -374,7 +379,7 @@ class _SmdComplaintsScreenState extends State<SmdComplaintsScreen>
 
             // Content
             Padding(
-              padding: const EdgeInsets.all(16),
+              padding: EdgeInsets.all(16.r),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -384,9 +389,9 @@ class _SmdComplaintsScreenState extends State<SmdComplaintsScreen>
                       Expanded(
                         child: Text(
                           complaint.complaintType,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontFamily: 'Noto Sans',
-                            fontSize: 18,
+                            fontSize: 18.sp,
                             fontWeight: FontWeight.w500,
                             color: Color(0xFF111827),
                             letterSpacing: 0,
@@ -395,7 +400,7 @@ class _SmdComplaintsScreenState extends State<SmdComplaintsScreen>
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
-                      const SizedBox(width: 8),
+                      SizedBox(width: 8.w),
                       Image.asset(
                         'assets/icons/map.png',
                         width: 20,
@@ -404,7 +409,7 @@ class _SmdComplaintsScreenState extends State<SmdComplaintsScreen>
                     ],
                   ),
 
-                  const SizedBox(height: 2),
+                  SizedBox(height: 2.h),
 
                   // Location
                   Row(
@@ -414,13 +419,13 @@ class _SmdComplaintsScreenState extends State<SmdComplaintsScreen>
                         size: 18,
                         color: Color(0xFF6B7280),
                       ),
-                      const SizedBox(width: 4),
+                      SizedBox(width: 4.w),
                       Expanded(
                         child: Text(
                           complaint.fullLocation,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontFamily: 'Noto Sans',
-                            fontSize: 14,
+                            fontSize: 14.sp,
                             fontWeight: FontWeight.w400,
                             color: Color(0xFF6B7280),
                             letterSpacing: 0,
@@ -435,9 +440,9 @@ class _SmdComplaintsScreenState extends State<SmdComplaintsScreen>
                   // Description
                   Text(
                     complaint.description,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontFamily: 'Noto Sans',
-                      fontSize: 14,
+                      fontSize: 14.sp,
                       fontWeight: FontWeight.w400,
                       color: Color(0xFF6B7280),
                       letterSpacing: 0,
@@ -449,73 +454,6 @@ class _SmdComplaintsScreenState extends State<SmdComplaintsScreen>
               ),
             ),
           ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildNavItem(
-    IconData icon,
-    String label,
-    int index, {
-    bool isActive = false,
-  }) {
-    return Expanded(
-      child: GestureDetector(
-        onTap: () {
-          setState(() {
-            _currentIndex = index;
-          });
-
-          if (index == 0) {
-            Navigator.pushReplacementNamed(context, '/smd-dashboard');
-          } else if (index == 2) {
-            Navigator.pushNamed(context, '/smd-monitoring');
-          } else if (index == 3) {
-            Navigator.pushNamed(context, '/smd-settings');
-          }
-          // Index 1 (complaint) does nothing as we're already on complaints screen
-        },
-        child: Container(
-          height: 80,
-          decoration: BoxDecoration(
-            color: isActive ? const Color(0xFFE8F5E8) : Colors.transparent,
-          ),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
-                icon,
-                size: 24,
-                color: isActive
-                    ? const Color(0xFF4CAF50)
-                    : const Color(0xFF9CA3AF),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                label,
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w500,
-                  color: isActive
-                      ? const Color(0xFF111827)
-                      : const Color(0xFF9CA3AF),
-                ),
-              ),
-              const SizedBox(height: 4),
-              if (isActive)
-                Container(
-                  width: 24,
-                  height: 3,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF111827),
-                    borderRadius: BorderRadius.circular(1.5),
-                  ),
-                )
-              else
-                const SizedBox(height: 3),
-            ],
-          ),
         ),
       ),
     );

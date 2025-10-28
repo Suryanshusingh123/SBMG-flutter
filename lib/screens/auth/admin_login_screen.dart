@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../../services/auth_services.dart';
 import 'reset_password_request_screen.dart';
 
@@ -120,44 +121,47 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
       ),
       body: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.all(24.0),
+          padding: EdgeInsets.all(24.r),
           child: Form(
             key: _formKey,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const SizedBox(height: 20),
+                SizedBox(height: 20.h),
 
                 // Title
-                const Text(
+                Text(
                   'Login',
                   style: TextStyle(
-                    fontSize: 32,
+                    fontSize: 32.sp,
                     fontWeight: FontWeight.bold,
-                    color: Color(0xFF2C3E50),
+                    color: const Color(0xFF2C3E50),
                   ),
                 ),
 
-                const SizedBox(height: 8),
+                SizedBox(height: 8.h),
 
                 // Subtitle
-                const Text(
+                Text(
                   'Enter User ID and Password',
-                  style: TextStyle(fontSize: 16, color: Color(0xFF6B7280)),
-                ),
-
-                const SizedBox(height: 40),
-
-                // Username Field
-                const Text(
-                  'User ID',
                   style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w500,
-                    color: Color(0xFF374151),
+                    fontSize: 16.sp,
+                    color: const Color(0xFF6B7280),
                   ),
                 ),
-                const SizedBox(height: 8),
+
+                SizedBox(height: 40.h),
+
+                // Username Field
+                Text(
+                  'User ID',
+                  style: TextStyle(
+                    fontSize: 16.sp,
+                    fontWeight: FontWeight.w500,
+                    color: const Color(0xFF374151),
+                  ),
+                ),
+                SizedBox(height: 8.h),
                 TextFormField(
                   controller: _usernameController,
                   keyboardType: TextInputType.text,
@@ -168,15 +172,15 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
                       color: Color(0xFF6B7280),
                     ),
                     border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
+                      borderRadius: BorderRadius.circular(8.r),
                       borderSide: const BorderSide(color: Color(0xFFD1D5DB)),
                     ),
                     enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
+                      borderRadius: BorderRadius.circular(8.r),
                       borderSide: const BorderSide(color: Color(0xFFD1D5DB)),
                     ),
                     focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
+                      borderRadius: BorderRadius.circular(8.r),
                       borderSide: const BorderSide(color: Color(0xFF009B56)),
                     ),
                     filled: true,
@@ -190,18 +194,18 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
                   },
                 ),
 
-                const SizedBox(height: 24),
+                SizedBox(height: 24.h),
 
                 // Password Field
-                const Text(
+                Text(
                   'Password',
                   style: TextStyle(
-                    fontSize: 16,
+                    fontSize: 16.sp,
                     fontWeight: FontWeight.w500,
-                    color: Color(0xFF374151),
+                    color: const Color(0xFF374151),
                   ),
                 ),
-                const SizedBox(height: 8),
+                SizedBox(height: 8.h),
                 TextFormField(
                   controller: _passwordController,
                   obscureText: !_isPasswordVisible,
@@ -227,7 +231,7 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
                       },
                     ),
                     border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
+                      borderRadius: BorderRadius.circular(8.r),
                       borderSide: BorderSide(
                         color: _errorMessage != null
                             ? Colors.red
@@ -235,7 +239,7 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
                       ),
                     ),
                     enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
+                      borderRadius: BorderRadius.circular(8.r),
                       borderSide: BorderSide(
                         color: _errorMessage != null
                             ? Colors.red
@@ -243,7 +247,7 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
                       ),
                     ),
                     focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
+                      borderRadius: BorderRadius.circular(8.r),
                       borderSide: const BorderSide(color: Color(0xFF009B56)),
                     ),
                     filled: true,
@@ -261,29 +265,22 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
 
                 // Error Message
                 if (_errorMessage != null) ...[
-                  const SizedBox(height: 8),
+                  SizedBox(height: 8.h),
                   Row(
                     children: [
-                      const Icon(
-                        Icons.error_outline,
-                        color: Colors.red,
-                        size: 16,
-                      ),
-                      const SizedBox(width: 8),
+                      Icon(Icons.error_outline, color: Colors.red, size: 16.sp),
+                      SizedBox(width: 8.w),
                       Expanded(
                         child: Text(
                           _errorMessage!,
-                          style: const TextStyle(
-                            color: Colors.red,
-                            fontSize: 14,
-                          ),
+                          style: TextStyle(color: Colors.red, fontSize: 14.sp),
                         ),
                       ),
                     ],
                   ),
                 ],
 
-                const SizedBox(height: 16),
+                SizedBox(height: 16.h),
 
                 // Forgot Password Link
                 Align(
@@ -298,11 +295,11 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
                         ),
                       );
                     },
-                    child: const Text(
+                    child: Text(
                       'Forgot Password?',
                       style: TextStyle(
-                        color: Color(0xFF009B56),
-                        fontSize: 14,
+                        color: const Color(0xFF009B56),
+                        fontSize: 14.sp,
                         fontWeight: FontWeight.w500,
                         decoration: TextDecoration.underline,
                       ),
@@ -315,38 +312,38 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
                 // Login Button
                 SizedBox(
                   width: double.infinity,
-                  height: 56,
+                  height: 56.h,
                   child: ElevatedButton(
                     onPressed: _isLoading ? null : _handleLogin,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF009B56),
                       foregroundColor: Colors.white,
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
+                        borderRadius: BorderRadius.circular(8.r),
                       ),
                       elevation: 0,
                     ),
                     child: _isLoading
-                        ? const SizedBox(
-                            height: 20,
-                            width: 20,
-                            child: CircularProgressIndicator(
+                        ? SizedBox(
+                            height: 20.h,
+                            width: 20.w,
+                            child: const CircularProgressIndicator(
                               strokeWidth: 2,
                               valueColor: AlwaysStoppedAnimation<Color>(
                                 Colors.white,
                               ),
                             ),
                           )
-                        : const Text(
+                        : Text(
                             'Login',
                             style: TextStyle(
-                              fontSize: 16,
+                              fontSize: 16.sp,
                               fontWeight: FontWeight.w600,
                             ),
                           ),
                   ),
                 ),
-                const SizedBox(height: 20),
+                SizedBox(height: 20.h),
               ],
             ),
           ),

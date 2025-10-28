@@ -16,6 +16,7 @@ class ComplaintModel {
   final String? districtName;
   final String? blockName;
   final String? villageName;
+  final String? location;
   final DateTime? resolvedAt;
   final DateTime? verifiedAt;
   final DateTime? closedAt;
@@ -38,6 +39,7 @@ class ComplaintModel {
     this.districtName,
     this.blockName,
     this.villageName,
+    this.location,
     this.resolvedAt,
     this.verifiedAt,
     this.closedAt,
@@ -62,6 +64,7 @@ class ComplaintModel {
       'districtName': districtName,
       'blockName': blockName,
       'villageName': villageName,
+      'location': location,
       'resolvedAt': resolvedAt?.toIso8601String(),
       'verifiedAt': verifiedAt?.toIso8601String(),
       'closedAt': closedAt?.toIso8601String(),
@@ -91,6 +94,7 @@ class ComplaintModel {
       districtName: json['district_name'],
       blockName: json['block_name'],
       villageName: json['village_name'],
+      location: json['location'],
       resolvedAt: json['resolved_at'] != null
           ? DateTime.parse(json['resolved_at'])
           : null,
@@ -121,7 +125,8 @@ class ComplaintModel {
         ComplaintLocation(
           latitude: lat,
           longitude: long,
-          address: json['location'] ?? 'Unknown Location',
+          address:
+              null, // Don't use location here, use it directly from complaint.location
           timestamp: DateTime.parse(json['created_at']),
         ),
       );

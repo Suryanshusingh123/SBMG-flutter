@@ -131,10 +131,10 @@ class AppLocalizationsHi extends AppLocalizations {
   String get complaintResolved => 'शिकायत हल हो गई';
 
   @override
-  String get underProcess => 'प्रक्रियाधीन';
+  String get underProcess => 'प्रसंस्करणाधीन';
 
   @override
-  String get waitingFromYourEnd => 'आपकी ओर से प्रतीक्षारत';
+  String get waitingFromYourEnd => 'आपके पक्ष से प्रतीक्षा';
 
   @override
   String get timeline => 'समयरेखा';
@@ -305,7 +305,7 @@ class AppLocalizationsHi extends AppLocalizations {
   String get other => 'अन्य';
 
   @override
-  String get profileSavedSuccessfully => 'प्रोफ़ाइल सफलतापूर्वक सहेजी गई!';
+  String get profileSavedSuccessfully => 'प्रोफ़ाइल सफलतापूर्वक सहेजी गई';
 
   @override
   String get notification => 'सूचना';
@@ -486,4 +486,241 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String get noImagesAvailable => 'कोई छवि उपलब्ध नहीं है';
+
+  @override
+  String get enterYourPhoneNumber => 'अपना फ़ोन नंबर दर्ज करें';
+
+  @override
+  String get toRaiseComplaint =>
+      'शिकायत दर्ज करने के लिए, आपको पहले लॉगिन करना होगा।';
+
+  @override
+  String get loginRequired => 'लॉगिन आवश्यक';
+
+  @override
+  String get complaintLocation => 'शिकायत स्थान';
+
+  @override
+  String get location => 'स्थान';
+
+  @override
+  String get enterLocation => 'स्थान दर्ज करें';
+
+  @override
+  String get yourComplaintHasBeenSubmittedSuccessfully =>
+      'आपकी शिकायत\nसफलतापूर्वक जमा की गई है';
+
+  @override
+  String get enterFeedback => 'प्रतिक्रिया दर्ज करें';
+
+  @override
+  String get howWasYourExperience => 'ऐप के साथ आपका अनुभव कैसा था?';
+
+  @override
+  String get chooseYourExperience => 'अपना अनुभव चुनें';
+
+  @override
+  String get yourFeedbackIsSuccessfullySubmitted =>
+      'आपकी प्रतिक्रिया सफलतापूर्वक सबमिट की गई';
+
+  @override
+  String get masterDataDetails => 'मास्टर डेटा विवरण';
+
+  @override
+  String get continueButton => 'जारी रखें';
+
+  @override
+  String get pleaseSelectAllFieldsForMasterData => 'कृपया सभी फ़ील्ड चुनें';
+
+  @override
+  String get villageMasterDataForm => 'गाँव मास्टर डेटा फॉर्म';
+
+  @override
+  String get sentOTP => 'OTP भेजें';
+
+  @override
+  String get verifyOTP => 'OTP सत्यापित करें';
+
+  @override
+  String get didntReceiveCode => 'कोड प्राप्त नहीं हुआ?';
+
+  @override
+  String get resend => 'पुनः भेजें';
+
+  @override
+  String get searchDistricts => 'जिलों को खोजें...';
+
+  @override
+  String get searchBlocks => 'ब्लॉक खोजें...';
+
+  @override
+  String get searchVillages => 'गाँव खोजें...';
+
+  @override
+  String get searchComplaintTypes => 'शिकायत प्रकार खोजें...';
+
+  @override
+  String get selectComplaintType => 'शिकायत प्रकार चुनें';
+
+  @override
+  String get noSurveyDataAvailable =>
+      'इस GP के लिए कोई सर्वेक्षण डेटा उपलब्ध नहीं है';
+
+  @override
+  String get languageSavedSuccessfully => 'भाषा सफलतापूर्वक सहेजी गई';
+
+  @override
+  String get darkMode => 'डार्क मोड';
+
+  @override
+  String get darkModeComingSoon => 'डार्क मोड जल्द ही आ रहा है';
+
+  @override
+  String get lightMode => 'लाइट मोड';
+
+  @override
+  String get alreadyInLightMode => 'पहले से ही लाइट मोड में';
+
+  @override
+  String get feedbackSavedSuccessfully => 'प्रतिक्रिया सफलतापूर्वक सहेजी गई';
+
+  @override
+  String get invalidOTP => 'अमान्य OTP। कृपया पुनः प्रयास करें।';
+
+  @override
+  String get pleaseEnterCompleteOTP => 'कृपया पूर्ण OTP दर्ज करें';
+
+  @override
+  String get loginRequiredForRaise =>
+      'शिकायत दर्ज करने के लिए, आपको पहले लॉगिन करना होगा।';
+
+  @override
+  String get loginRequiredForComplaints =>
+      'अपनी शिकायतें देखने के लिए, आपको पहले लॉगिन करना होगा।';
+
+  @override
+  String get pleaseRateYourExperience => 'कृपया अपना अनुभव दर्ज करें';
+
+  @override
+  String get workOrderDate => 'कार्य आदेश तिथि';
+
+  @override
+  String get annualContractAmount => 'वार्षिक अनुबंध राशि';
+
+  @override
+  String get durationOfWork => 'कार्य की अवधि';
+
+  @override
+  String get frequencyOfWork => 'कार्य की आवृत्ति';
+
+  @override
+  String get genderMale => 'पुरुष';
+
+  @override
+  String get genderFemale => 'महिला';
+
+  @override
+  String get genderOther => 'अन्य';
+
+  @override
+  String get complaintResolvedDescription =>
+      'शिकायत ID XYZ पर्यवेक्षक द्वारा हल कर दी गई, कृपया पुष्टि करें कि आप संतुष्ट हैं';
+
+  @override
+  String get newSchemeAdded => 'नई योजना जोड़ी गई';
+
+  @override
+  String get newSchemeAddedDescription =>
+      'नई योजना जोड़ी गई, आपके लिए सहायक हो सकती है';
+
+  @override
+  String get upcomingEvents => 'आगामी कार्यक्रम';
+
+  @override
+  String get upcomingEventsDescription =>
+      'नया कार्यक्रम आ रहा है, अधिक विवरण देखें';
+
+  @override
+  String get fiveMinutesAgo => '5 मिनट पहले';
+
+  @override
+  String get resetPassword => 'पासवर्ड रीसेट करें';
+
+  @override
+  String get setPassword => 'पासवर्ड सेट करें';
+
+  @override
+  String get enterNewPassword => 'नया पासवर्ड दर्ज करें';
+
+  @override
+  String get confirmPassword => 'पासवर्ड की पुष्टि करें';
+
+  @override
+  String get setNewPassword => 'नया पासवर्ड सेट करें';
+
+  @override
+  String get newestFirst => 'नवीनतम पहले';
+
+  @override
+  String get oldestFirst => 'पुराने पहले';
+
+  @override
+  String get filterBy => 'फिल्टर करें';
+
+  @override
+  String get day => 'दिन';
+
+  @override
+  String get week => 'सप्ताह';
+
+  @override
+  String get month => 'महीना';
+
+  @override
+  String get year => 'साल';
+
+  @override
+  String get custom => 'कस्टम';
+
+  @override
+  String get apply => 'लागू करें';
+
+  @override
+  String get selectStartDate => 'प्रारंभ तिथि चुनें*';
+
+  @override
+  String get selectEndDate => 'अंतिम तिथि चुनें*';
+
+  @override
+  String get complaintCreated => 'शिकायत बनाई गई';
+
+  @override
+  String get resolved => 'हल हो गई';
+
+  @override
+  String get verified => 'सत्यापित';
+
+  @override
+  String get complaintClosed => 'बंद';
+
+  @override
+  String get waitingForSupervisorToResolve => 'निरीक्षक के समाधान की प्रतीक्षा';
+
+  @override
+  String get verificationPending => 'सत्यापन लंबित';
+
+  @override
+  String get waitingForVdoToVerify => 'VDO द्वारा सत्यापन की प्रतीक्षा';
+
+  @override
+  String get feedbackRequired => 'प्रतिक्रिया आवश्यक';
+
+  @override
+  String get feedback => 'प्रतिक्रिया';
+
+  @override
+  String get writeYourFeedbackHere => 'अपनी प्रतिक्रिया यहाँ लिखें...';
+
+  @override
+  String get formSubmittedSuccessfully => 'फॉर्म सफलतापूर्वक सबमिट किया गया!';
 }

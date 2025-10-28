@@ -81,6 +81,7 @@ dependencies:
   # URL Launcher
   url_launcher: ^6.3.0
   flutter_screenutil: ^5.9.3
+  google_fonts: ^6.2.1
 
 dev_dependencies:
   flutter_test:

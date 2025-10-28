@@ -24,7 +24,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get home => 'Home';
 
   @override
-  String get myComplaint => 'My Complaint';
+  String get myComplaint => 'My Complaints';
 
   @override
   String get schemes => 'Schemes';
@@ -188,8 +188,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get errorPickingImage => 'Error picking image';
 
   @override
-  String get pleaseFillAllFields =>
-      'Please fill all required fields and upload at least one image';
+  String get pleaseFillAllFields => 'Please fill all fields';
 
   @override
   String get noComplaintTypesAvailable => 'No complaint types available';
@@ -301,7 +300,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get other => 'Other';
 
   @override
-  String get profileSavedSuccessfully => 'Profile saved successfully!';
+  String get profileSavedSuccessfully => 'Profile saved successfully';
 
   @override
   String get notification => 'Notification';
@@ -483,4 +482,241 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get noImagesAvailable => 'No images available';
+
+  @override
+  String get enterYourPhoneNumber => 'Enter your phone number';
+
+  @override
+  String get toRaiseComplaint =>
+      'To raise a complaint, you need to login first.';
+
+  @override
+  String get loginRequired => 'Login Required';
+
+  @override
+  String get complaintLocation => 'Complaint Location';
+
+  @override
+  String get location => 'Location';
+
+  @override
+  String get enterLocation => 'Enter Location';
+
+  @override
+  String get yourComplaintHasBeenSubmittedSuccessfully =>
+      'Your Complaint has\nbeen submitted successfully';
+
+  @override
+  String get enterFeedback => 'Enter feedback';
+
+  @override
+  String get howWasYourExperience => 'How was your experience with the app?';
+
+  @override
+  String get chooseYourExperience => 'Choose your experience';
+
+  @override
+  String get yourFeedbackIsSuccessfullySubmitted =>
+      'Your feedback is successfully submitted';
+
+  @override
+  String get masterDataDetails => 'Master Data Details';
+
+  @override
+  String get continueButton => 'Continue';
+
+  @override
+  String get pleaseSelectAllFieldsForMasterData => 'Please select all fields';
+
+  @override
+  String get villageMasterDataForm => 'Village Master data Form';
+
+  @override
+  String get sentOTP => 'Send OTP';
+
+  @override
+  String get verifyOTP => 'Verify OTP';
+
+  @override
+  String get didntReceiveCode => 'Didn\'t receive the code?';
+
+  @override
+  String get resend => 'Resend';
+
+  @override
+  String get searchDistricts => 'Search districts...';
+
+  @override
+  String get searchBlocks => 'Search blocks...';
+
+  @override
+  String get searchVillages => 'Search villages...';
+
+  @override
+  String get searchComplaintTypes => 'Search complaint types...';
+
+  @override
+  String get selectComplaintType => 'Select Complaint Type';
+
+  @override
+  String get noSurveyDataAvailable => 'No survey data available for this GP';
+
+  @override
+  String get languageSavedSuccessfully => 'Language saved successfully';
+
+  @override
+  String get darkMode => 'Dark Mode';
+
+  @override
+  String get darkModeComingSoon => 'Dark Mode coming soon';
+
+  @override
+  String get lightMode => 'Light Mode';
+
+  @override
+  String get alreadyInLightMode => 'Already in Light Mode';
+
+  @override
+  String get feedbackSavedSuccessfully => 'Feedback saved successfully';
+
+  @override
+  String get invalidOTP => 'Invalid OTP. Please try again.';
+
+  @override
+  String get pleaseEnterCompleteOTP => 'Please enter complete OTP';
+
+  @override
+  String get loginRequiredForRaise =>
+      'To raise a complaint, you need to login first.';
+
+  @override
+  String get loginRequiredForComplaints =>
+      'To view your complaints, you need to login first.';
+
+  @override
+  String get pleaseRateYourExperience => 'Please rate your experience';
+
+  @override
+  String get workOrderDate => 'Work order date';
+
+  @override
+  String get annualContractAmount => 'Annual contract amount';
+
+  @override
+  String get durationOfWork => 'Duration of work';
+
+  @override
+  String get frequencyOfWork => 'Frequency of work';
+
+  @override
+  String get genderMale => 'Male';
+
+  @override
+  String get genderFemale => 'Female';
+
+  @override
+  String get genderOther => 'Other';
+
+  @override
+  String get complaintResolvedDescription =>
+      'Complaint id XYZ resolved by supervisor, please confirm if you are satisfied';
+
+  @override
+  String get newSchemeAdded => 'New scheme added';
+
+  @override
+  String get newSchemeAddedDescription =>
+      'New scheme added, might be helpful to you';
+
+  @override
+  String get upcomingEvents => 'Upcoming events';
+
+  @override
+  String get upcomingEventsDescription =>
+      'New event coming, checkout more details';
+
+  @override
+  String get fiveMinutesAgo => '5 min ago';
+
+  @override
+  String get resetPassword => 'Reset Password';
+
+  @override
+  String get setPassword => 'Set Password';
+
+  @override
+  String get enterNewPassword => 'Enter new password';
+
+  @override
+  String get confirmPassword => 'Confirm password';
+
+  @override
+  String get setNewPassword => 'Set new password';
+
+  @override
+  String get newestFirst => 'Newest First';
+
+  @override
+  String get oldestFirst => 'Oldest First';
+
+  @override
+  String get filterBy => 'Filter by';
+
+  @override
+  String get day => 'Day';
+
+  @override
+  String get week => 'Week';
+
+  @override
+  String get month => 'Month';
+
+  @override
+  String get year => 'Year';
+
+  @override
+  String get custom => 'Custom';
+
+  @override
+  String get apply => 'Apply';
+
+  @override
+  String get selectStartDate => 'Select Start Date*';
+
+  @override
+  String get selectEndDate => 'Select End Date*';
+
+  @override
+  String get complaintCreated => 'Complaint created';
+
+  @override
+  String get resolved => 'Resolved';
+
+  @override
+  String get verified => 'Verified';
+
+  @override
+  String get complaintClosed => 'Closed';
+
+  @override
+  String get waitingForSupervisorToResolve =>
+      'Waiting for supervisor to resolve';
+
+  @override
+  String get verificationPending => 'Verification Pending';
+
+  @override
+  String get waitingForVdoToVerify => 'Waiting for VDO to verify';
+
+  @override
+  String get feedbackRequired => 'Feedback Required';
+
+  @override
+  String get feedback => 'Feedback';
+
+  @override
+  String get writeYourFeedbackHere => 'Write your feedback here...';
+
+  @override
+  String get formSubmittedSuccessfully => 'Form submitted successfully!';
 }

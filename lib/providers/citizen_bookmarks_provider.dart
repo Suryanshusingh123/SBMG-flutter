@@ -1,37 +1,58 @@
 import 'package:flutter/material.dart';
-import '../models/scheme_model.dart';
-import '../models/event_model.dart';
-import '../services/bookmark_service.dart';
 
 class BookmarksProvider with ChangeNotifier {
-  final BookmarkService _bookmarkService = BookmarkService();
+  // Track bookmarked schemes and events by ID
+  final Map<int, bool> _bookmarkedSchemes = {};
+  final Map<int, bool> _bookmarkedEvents = {};
 
-  List<Scheme> get bookmarkedSchemes => _bookmarkService.bookmarkedSchemes;
-  List<Event> get bookmarkedEvents => _bookmarkService.bookmarkedEvents;
+  Map<int, bool> get bookmarkedSchemes => _bookmarkedSchemes;
+  Map<int, bool> get bookmarkedEvents => _bookmarkedEvents;
 
-  int get bookmarkedSchemesCount => _bookmarkService.bookmarkedSchemes.length;
-  int get bookmarkedEventsCount => _bookmarkService.bookmarkedEvents.length;
+  // Get count of bookmarked schemes
+  int get bookmarkedSchemesCount {
+    return _bookmarkedSchemes.values.where((v) => v).length;
+  }
 
+  // Get count of bookmarked events
+  int get bookmarkedEventsCount {
+    return _bookmarkedEvents.values.where((v) => v).length;
+  }
+
+  // Check if a scheme is bookmarked
   bool isSchemeBookmarked(int schemeId) {
-    return _bookmarkService.isSchemeBookmarked(schemeId);
+    return _bookmarkedSchemes[schemeId] ?? false;
   }
 
+  // Check if an event is bookmarked
   bool isEventBookmarked(int eventId) {
-    return _bookmarkService.isEventBookmarked(eventId);
+    return _bookmarkedEvents[eventId] ?? false;
   }
 
-  void toggleSchemeBookmark(Scheme scheme) {
-    _bookmarkService.toggleSchemeBookmark(scheme);
+  // Toggle scheme bookmark
+  void toggleSchemeBookmark(int schemeId, bool isBookmarked) {
+    _bookmarkedSchemes[schemeId] = isBookmarked;
     notifyListeners();
   }
 
-  void toggleEventBookmark(Event event) {
-    _bookmarkService.toggleEventBookmark(event);
+  // Toggle event bookmark
+  void toggleEventBookmark(int eventId, bool isBookmarked) {
+    _bookmarkedEvents[eventId] = isBookmarked;
     notifyListeners();
   }
 
-  void clearAllBookmarks() {
-    // Implement if needed
-    notifyListeners();
+  // Get bookmarked scheme IDs
+  List<int> get bookmarkedSchemeIds {
+    return _bookmarkedSchemes.entries
+        .where((e) => e.value)
+        .map((e) => e.key)
+        .toList();
+  }
+
+  // Get bookmarked event IDs
+  List<int> get bookmarkedEventIds {
+    return _bookmarkedEvents.entries
+        .where((e) => e.value)
+        .map((e) => e.key)
+        .toList();
   }
 }

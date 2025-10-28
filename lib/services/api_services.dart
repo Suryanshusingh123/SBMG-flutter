@@ -25,31 +25,72 @@ class ApiService {
   }) async {
     final url = Uri.parse('${ApiConstants.baseUrl}$endpoint');
 
+    http.Response response;
+
     switch (method.toUpperCase()) {
       case 'GET':
-        return await http.get(url, headers: headers);
+        response = await http.get(url, headers: headers);
+        break;
       case 'POST':
         // Handle JSON body encoding
         if (body is Map<String, dynamic>) {
-          return await http.post(
+          response = await http.post(
             url,
             headers: headers,
             body: json.encode(body),
           );
         } else {
-          return await http.post(url, headers: headers, body: body);
+          response = await http.post(url, headers: headers, body: body);
         }
+        break;
       case 'PUT':
         // Handle JSON body encoding
         if (body is Map<String, dynamic>) {
-          return await http.put(url, headers: headers, body: json.encode(body));
+          response = await http.put(
+            url,
+            headers: headers,
+            body: json.encode(body),
+          );
         } else {
-          return await http.put(url, headers: headers, body: body);
+          response = await http.put(url, headers: headers, body: body);
         }
+        break;
+      case 'PATCH':
+        // Handle JSON body encoding
+        if (body is Map<String, dynamic>) {
+          response = await http.patch(
+            url,
+            headers: headers,
+            body: json.encode(body),
+          );
+        } else {
+          response = await http.patch(url, headers: headers, body: body);
+        }
+        break;
       case 'DELETE':
-        return await http.delete(url, headers: headers);
+        response = await http.delete(url, headers: headers);
+        break;
       default:
         throw Exception('Unsupported HTTP method: $method');
+    }
+
+    // Handle 401 Unauthorized response
+    if (response.statusCode == 401) {
+      print('🚨 401 Unauthorized response detected - logging out user');
+      _handle401Error();
+    }
+
+    return response;
+  }
+
+  // Handle 401 error by logging out the user
+  void _handle401Error() async {
+    try {
+      final authService = AuthService();
+      await authService.logout();
+      print('✅ User logged out due to unauthorized session');
+    } catch (e) {
+      print('❌ Error during 401 logout: $e');
     }
   }
 
@@ -313,6 +354,33 @@ class ApiService {
     }
   }
 
+  /// Fetch a single Gram Panchayat/Village by ID
+  Future<GramPanchayat> getGramPanchayatById(int gpId) async {
+    try {
+      final endpoint = '${ApiConstants.villagesEndpoint}/$gpId';
+
+      print('🔵 API Request: GET ${ApiConstants.baseUrl}$endpoint');
+
+      final response = await _makeRequest(
+        endpoint: endpoint,
+        method: 'GET',
+        headers: ApiConstants.publicHeaders,
+      );
+
+      print('🟢 API Response: Status ${response.statusCode}');
+      print('📦 Response Body: ${response.body}');
+
+      final data = _handleResponse(response);
+      final gramPanchayat = GramPanchayat.fromJson(data);
+
+      print('✅ Gram Panchayat fetched: ${gramPanchayat.name}');
+      return gramPanchayat;
+    } catch (e) {
+      print('❌ Error fetching Gram Panchayat: $e');
+      throw Exception('Failed to fetch Gram Panchayat: $e');
+    }
+  }
+
   /// Fetch contractor for a village
   Future<Contractor> getContractorByVillageId(int villageId) async {
     try {
@@ -448,9 +516,25 @@ class ApiService {
       request.fields['location'] = locationString;
 
       // Add files
-      for (var file in files) {
+      print('📁 Processing ${files.length} files...');
+      if (files.isEmpty) {
+        print('⚠️  Warning: No files to upload');
+      }
+
+      for (var i = 0; i < files.length; i++) {
+        var file = files[i];
+        print('📎 File ${i + 1}/${files.length}: ${file.path}');
+        print('   - File exists: ${await file.exists()}');
+
+        if (!await file.exists()) {
+          print('❌ File does not exist: ${file.path}');
+          throw Exception('File does not exist: ${file.path}');
+        }
+
         var stream = http.ByteStream(file.openRead());
         var length = await file.length();
+        print('   - File size: $length bytes');
+
         var multipartFile = http.MultipartFile(
           'files',
           stream,
@@ -458,7 +542,7 @@ class ApiService {
           filename: file.path.split('/').last,
         );
         request.files.add(multipartFile);
-        print('📎 Added file: ${file.path.split('/').last}');
+        print('✅ Added file to request: ${file.path.split('/').last}');
       }
 
       // Send request
@@ -519,20 +603,22 @@ class ApiService {
 
   /// Close complaint with resolution comment
   Future<Map<String, dynamic>> closeComplaint({
-    required int citizenId,
     required int complaintId,
     required String resolution,
+    required String token,
   }) async {
     try {
       final endpoint =
-          '/api/v1/citizen/$citizenId/close?resolution=$resolution';
+          '/api/v1/citizen/$complaintId/close?resolution=$resolution';
       print('🔵 API Request: POST ${ApiConstants.baseUrl}$endpoint');
+      print('📋 Complaint ID: $complaintId');
+      print('💬 Resolution: $resolution');
 
-      final response = await _makeRequest(
-        endpoint: endpoint,
-        method: 'POST',
-        headers: ApiConstants.publicHeaders,
-        body: '',
+      final url = Uri.parse('${ApiConstants.baseUrl}$endpoint');
+
+      final response = await http.post(
+        url,
+        headers: {'accept': 'application/json', 'user-token': token},
       );
 
       print('🟢 API Response: Status ${response.statusCode}');
@@ -1168,6 +1254,96 @@ class ApiService {
     } catch (e) {
       print('❌ Error getting location from coordinates: $e');
       return 'Unknown Location';
+    }
+  }
+
+  /// Upload media for a complaint
+  Future<Map<String, dynamic>> uploadComplaintMedia({
+    required int complaintId,
+    required File imageFile,
+  }) async {
+    try {
+      final token = await _getAuthToken();
+      final endpoint = '/api/v1/complaints/$complaintId/media';
+      final url = Uri.parse('${ApiConstants.baseUrl}$endpoint');
+
+      print('🔵 Upload Media API Request: POST $url');
+      print('📎 File: ${imageFile.path}');
+
+      final request = http.MultipartRequest('POST', url);
+
+      // Add headers
+      request.headers.addAll({
+        'Accept': 'application/json',
+        'Authorization': 'Bearer $token',
+      });
+
+      // Add file
+      final multipartFile = await http.MultipartFile.fromPath(
+        'file',
+        imageFile.path,
+        filename: imageFile.path.split('/').last,
+      );
+      request.files.add(multipartFile);
+
+      // Send request
+      final streamedResponse = await request.send();
+      final response = await http.Response.fromStream(streamedResponse);
+
+      print('🟢 Upload Media API Response: Status ${response.statusCode}');
+      print('📦 Response Body: ${response.body}');
+
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        final data = json.decode(response.body) as Map<String, dynamic>;
+        print('✅ Media uploaded successfully');
+        return data;
+      } else {
+        print('❌ ERROR: Status ${response.statusCode} - ${response.body}');
+        throw Exception('API Error: ${response.statusCode}');
+      }
+    } catch (e) {
+      print('❌ Error uploading media: $e');
+      throw Exception('Failed to upload media: $e');
+    }
+  }
+
+  /// Resolve a complaint
+  Future<Map<String, dynamic>> resolveComplaint({
+    required int complaintId,
+    required String resolutionComment,
+  }) async {
+    try {
+      final token = await _getAuthToken();
+      final endpoint = '/api/v1/complaints/$complaintId/resolve';
+      final url = Uri.parse('${ApiConstants.baseUrl}$endpoint');
+
+      print('🔵 Resolve API Request: PATCH $url');
+      print('💬 Comment: $resolutionComment');
+
+      final headers = {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'Authorization': 'Bearer $token',
+      };
+
+      final body = json.encode({'resolution_comment': resolutionComment});
+
+      final response = await http.patch(url, headers: headers, body: body);
+
+      print('🟢 Resolve API Response: Status ${response.statusCode}');
+      print('📦 Response Body: ${response.body}');
+
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        final data = json.decode(response.body) as Map<String, dynamic>;
+        print('✅ Complaint resolved successfully');
+        return data;
+      } else {
+        print('❌ ERROR: Status ${response.statusCode} - ${response.body}');
+        throw Exception('API Error: ${response.statusCode}');
+      }
+    } catch (e) {
+      print('❌ Error resolving complaint: $e');
+      throw Exception('Failed to resolve complaint: $e');
     }
   }
 }

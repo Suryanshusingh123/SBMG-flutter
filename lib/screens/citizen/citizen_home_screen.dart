@@ -3,6 +3,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:provider/provider.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:intl/intl.dart';
+import 'package:sbmg/screens/citizen/language_screen.dart';
 import '../../l10n/app_localizations.dart';
 import '../../config/connstants.dart';
 import '../../models/scheme_model.dart';
@@ -13,10 +14,10 @@ import '../../providers/citizen_bookmarks_provider.dart';
 import '../../providers/locale_provider.dart';
 import '../../widgets/common/banner_carousel.dart';
 import '../../widgets/common/custom_bottom_navigation.dart';
+import '../../services/auth_services.dart';
 import 'vendor_details_screen.dart';
 import 'gp_master_data_details_screen.dart';
 import 'notifications_screen.dart';
-import 'scheme_details_screen.dart';
 
 class CitizenHomeScreen extends StatefulWidget {
   const CitizenHomeScreen({super.key});
@@ -89,6 +90,97 @@ class _CitizenHomeScreenState extends State<CitizenHomeScreen> {
     } else {
       return DateFormat('MMM d').format(date);
     }
+  }
+
+  // Check authentication before navigating to create complaint
+  Future<void> _checkAuthAndNavigate(BuildContext context) async {
+    final authService = AuthService();
+    final isLoggedIn = await authService.isLoggedIn();
+
+    if (isLoggedIn) {
+      // User is logged in, navigate to create complaint
+      Navigator.pushNamed(context, '/create-complaint');
+    } else {
+      // User is not logged in, show dialog
+      _showLoginRequiredDialog(context);
+    }
+  }
+
+  // Check authentication before navigating to my complaints
+  Future<void> _checkAuthAndNavigateToComplaints(BuildContext context) async {
+    final authService = AuthService();
+    final isLoggedIn = await authService.isLoggedIn();
+
+    if (isLoggedIn) {
+      // User is logged in, navigate to my complaints
+      Navigator.pushNamed(context, '/my-complaints');
+    } else {
+      // User is not logged in, show dialog
+      _showLoginRequiredForComplaintsDialog(context);
+    }
+  }
+
+  // Show dialog when login is required
+  void _showLoginRequiredDialog(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          backgroundColor: Colors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12.r),
+          ),
+          title: Text(
+            l10n.loginRequired,
+            style: const TextStyle(
+              fontFamily: 'Noto Sans',
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          content: Text(
+            l10n.loginRequiredForRaise,
+            style: const TextStyle(fontFamily: 'Noto Sans', fontSize: 16),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+              child: Text(
+                l10n.cancel,
+                style: TextStyle(
+                  fontFamily: 'Noto Sans',
+                  color: Colors.red,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+                Navigator.pushNamed(context, '/citizen-login');
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF009B56),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8.r),
+                ),
+              ),
+              child: const Text(
+                'Login',
+                style: TextStyle(
+                  fontFamily: 'Noto Sans',
+                  fontWeight: FontWeight.w600,
+                  color: Colors.white,
+                ),
+              ),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   Future<void> _requestLocationPermission() async {
@@ -189,7 +281,7 @@ class _CitizenHomeScreenState extends State<CitizenHomeScreen> {
   void _showLanguageDialog() {
     final l10n = AppLocalizations.of(context)!;
     final localeProvider = Provider.of<LocaleProvider>(context, listen: false);
-
+    // This method is not used as we navigate directly to language screen
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -237,6 +329,69 @@ class _CitizenHomeScreenState extends State<CitizenHomeScreen> {
               ),
             ],
           ),
+        );
+      },
+    );
+  }
+
+  // Show dialog when login is required for viewing complaints
+  void _showLoginRequiredForComplaintsDialog(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          backgroundColor: Colors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12.r),
+          ),
+          title: Text(
+            l10n.loginRequired,
+            style: const TextStyle(
+              fontFamily: 'Noto Sans',
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          content: Text(
+            l10n.loginRequiredForComplaints,
+            style: const TextStyle(fontFamily: 'Noto Sans', fontSize: 16),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+              child: Text(
+                l10n.cancel,
+                style: TextStyle(
+                  fontFamily: 'Noto Sans',
+                  color: Colors.red,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+                Navigator.pushNamed(context, '/citizen-login');
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF009B56),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8.r),
+                ),
+              ),
+              child: Text(
+                l10n.login,
+                style: const TextStyle(
+                  fontFamily: 'Noto Sans',
+                  fontWeight: FontWeight.w600,
+                  color: Colors.white,
+                ),
+              ),
+            ),
+          ],
         );
       },
     );
@@ -294,8 +449,8 @@ class _CitizenHomeScreenState extends State<CitizenHomeScreen> {
         margin: EdgeInsets.symmetric(horizontal: 5.w),
         child: FloatingActionButton.extended(
           onPressed: () {
-            // Navigate to create complaint
-            Navigator.pushNamed(context, '/create-complaint');
+            // Check if user is logged in before navigating
+            _checkAuthAndNavigate(context);
           },
           backgroundColor: const Color(0xFF009B56),
           foregroundColor: Colors.white,
@@ -334,7 +489,7 @@ class _CitizenHomeScreenState extends State<CitizenHomeScreen> {
               // Already on home
               break;
             case 1:
-              Navigator.pushNamed(context, '/my-complaints');
+              _checkAuthAndNavigateToComplaints(context);
               break;
             case 2:
               Navigator.pushReplacementNamed(context, '/schemes');
@@ -403,12 +558,12 @@ class _CitizenHomeScreenState extends State<CitizenHomeScreen> {
             children: [
               IconButton(
                 onPressed: () {
-                  // Navigator.push(
-                  //   context,
-                  //   MaterialPageRoute(
-                  //     builder: (context) => const NotificationsScreen(),
-                  //   ),
-                  // );
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const NotificationsScreen(),
+                    ),
+                  );
                 },
                 icon: Image.asset(
                   'assets/icons/Vector.png',
@@ -419,7 +574,12 @@ class _CitizenHomeScreenState extends State<CitizenHomeScreen> {
               ),
               IconButton(
                 onPressed: () {
-                  _showLanguageDialog();
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const LanguageScreen(),
+                    ),
+                  );
                 },
                 icon: Image.asset(
                   'assets/icons/Translate.png',
@@ -448,7 +608,7 @@ class _CitizenHomeScreenState extends State<CitizenHomeScreen> {
         child: Text(
           l10n.callUsMessage,
           style: const TextStyle(
-            fontSize: 16  ,
+            fontSize: 16,
             fontWeight: FontWeight.w400,
             color: Color(0xFFC2410C), // Burnt orange/brown color
           ),
@@ -474,9 +634,12 @@ class _CitizenHomeScreenState extends State<CitizenHomeScreen> {
                   Text(
                     l10n.featuredScheme,
                     style: const TextStyle(
+                      fontFamily: 'Noto Sans',
                       fontSize: 18,
                       fontWeight: FontWeight.w500,
                       color: Color(0xFF111827),
+                      letterSpacing: 0,
+                      height: 1.0,
                     ),
                   ),
                   TextButton(
@@ -624,7 +787,12 @@ class _CitizenHomeScreenState extends State<CitizenHomeScreen> {
               icon: Icons.description,
               title: l10n.surveyDetails,
               onTap: () {
-                // Navigate to survey details
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const GpMasterDataDetailsScreen(),
+                  ),
+                );
               },
             ),
           ),
@@ -848,7 +1016,10 @@ class _CitizenHomeScreenState extends State<CitizenHomeScreen> {
                             .isEventBookmarked(event.id);
                         return GestureDetector(
                           onTap: () {
-                            bookmarksProvider.toggleEventBookmark(event);
+                            bookmarksProvider.toggleEventBookmark(
+                              event.id,
+                              !isBookmarked,
+                            );
                           },
                           child: Container(
                             width: 40,

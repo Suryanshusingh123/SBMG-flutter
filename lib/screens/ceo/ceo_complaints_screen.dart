@@ -39,11 +39,11 @@ class _CeoComplaintsScreenState extends State<CeoComplaintsScreen>
           SizedBox(height: 16.h),
           Text(
             provider.errorMessage ?? 'Something went wrong',
-            style: const TextStyle(
+            style: TextStyle(
               fontFamily: 'Noto Sans',
-              fontSize: 16  ,
+              fontSize: 16.sp,
               fontWeight: FontWeight.w500,
-              color: Color(0xFF6B7280),
+              color: const Color(0xFF6B7280),
             ),
             textAlign: TextAlign.center,
           ),
@@ -140,19 +140,19 @@ class _CeoComplaintsScreenState extends State<CeoComplaintsScreen>
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
+                  Text(
                     'Complaint (23)',
                     style: TextStyle(
                       fontFamily: 'Noto Sans',
-                      fontSize: 22  ,
+                      fontSize: 22.sp,
                       fontWeight: FontWeight.w600,
-                      color: Color(0xFF111827),
+                      color: const Color(0xFF111827),
                     ),
                   ),
                   SizedBox(height: 2.h),
                   Text(
                     '${provider.villageName} • ${DateFormat('MMMM').format(DateTime.now())}',
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontFamily: 'Noto Sans',
                       fontSize: 14,
                       fontWeight: FontWeight.w500,
@@ -197,14 +197,14 @@ class _CeoComplaintsScreenState extends State<CeoComplaintsScreen>
         ),
         labelColor: const Color(0xFF111827),
         unselectedLabelColor: const Color(0xFF9CA3AF),
-        labelStyle: const TextStyle(
+        labelStyle: TextStyle(
           fontFamily: 'Noto Sans',
-          fontSize: 14,
+          fontSize: 14.sp,
           fontWeight: FontWeight.w600,
         ),
-        unselectedLabelStyle: const TextStyle(
+        unselectedLabelStyle: TextStyle(
           fontFamily: 'Noto Sans',
-          fontSize: 14,
+          fontSize: 14.sp,
           fontWeight: FontWeight.w400,
         ),
         tabs: [
@@ -231,7 +231,7 @@ class _CeoComplaintsScreenState extends State<CeoComplaintsScreen>
 
   Widget _buildTab(String text, bool isActive) {
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
+      padding: EdgeInsets.symmetric(vertical: 16.h, horizontal: 16.w),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -255,19 +255,23 @@ class _CeoComplaintsScreenState extends State<CeoComplaintsScreen>
     CeoComplaintsProvider provider,
   ) {
     if (complaints.isEmpty) {
-      return const Center(
+      return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.inbox_outlined, size: 64, color: Color(0xFF9CA3AF)),
-            SizedBox(height: 16 ),
+            Icon(
+              Icons.inbox_outlined,
+              size: 64.sp,
+              color: const Color(0xFF9CA3AF),
+            ),
+            SizedBox(height: 16.h),
             Text(
               'No complaints found',
               style: TextStyle(
                 fontFamily: 'Noto Sans',
-                fontSize: 16,
+                fontSize: 16.sp,
                 fontWeight: FontWeight.w500,
-                color: Color(0xFF6B7280),
+                color: const Color(0xFF6B7280),
               ),
             ),
           ],
@@ -289,11 +293,9 @@ class _CeoComplaintsScreenState extends State<CeoComplaintsScreen>
     CeoComplaintsProvider provider,
   ) {
     return GestureDetector(
-      onTap: () {
-      
-      },
+      onTap: () {},
       child: Container(
-        margin: const EdgeInsets.only(bottom: 16),
+        margin: EdgeInsets.only(bottom: 16.h),
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(12.r),
@@ -339,12 +341,12 @@ class _CeoComplaintsScreenState extends State<CeoComplaintsScreen>
                           fit: BoxFit.cover,
                         ),
                   Positioned(
-                    top: 12,
-                    right: 12,
+                    top: 12.h,
+                    right: 12.w,
                     child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 4,
+                      padding: EdgeInsets.symmetric(
+                        horizontal: 8.w,
+                        vertical: 4.h,
                       ),
                       decoration: BoxDecoration(
                         color: Colors.black.withOpacity(0.7),
@@ -352,10 +354,10 @@ class _CeoComplaintsScreenState extends State<CeoComplaintsScreen>
                       ),
                       child: Text(
                         complaint.formattedDate,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontFamily: 'Noto Sans',
                           color: Colors.white,
-                          fontSize: 12,
+                          fontSize: 12.sp,
                           fontWeight: FontWeight.w500,
                           letterSpacing: 0.5,
                         ),
@@ -378,9 +380,9 @@ class _CeoComplaintsScreenState extends State<CeoComplaintsScreen>
                       Expanded(
                         child: Text(
                           complaint.complaintType,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontFamily: 'Noto Sans',
-                            fontSize: 18,
+                            fontSize: 18.sp,
                             fontWeight: FontWeight.w500,
                             color: Color(0xFF111827),
                             letterSpacing: 0,
@@ -412,9 +414,9 @@ class _CeoComplaintsScreenState extends State<CeoComplaintsScreen>
                       Expanded(
                         child: Text(
                           complaint.fullLocation,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontFamily: 'Noto Sans',
-                            fontSize: 14,
+                            fontSize: 14.sp,
                             fontWeight: FontWeight.w400,
                             color: Color(0xFF6B7280),
                             letterSpacing: 0,
@@ -429,7 +431,7 @@ class _CeoComplaintsScreenState extends State<CeoComplaintsScreen>
                   // Description
                   Text(
                     complaint.description,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontFamily: 'Noto Sans',
                       fontSize: 14,
                       fontWeight: FontWeight.w400,
@@ -443,73 +445,6 @@ class _CeoComplaintsScreenState extends State<CeoComplaintsScreen>
               ),
             ),
           ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildNavItem(
-    IconData icon,
-    String label,
-    int index, {
-    bool isActive = false,
-  }) {
-    return Expanded(
-      child: GestureDetector(
-        onTap: () {
-          setState(() {
-            _currentIndex = index;
-          });
-
-          if (index == 0) {
-            Navigator.pushReplacementNamed(context, '/ceo-dashboard');
-          } else if (index == 2) {
-            Navigator.pushNamed(context, '/ceo-monitoring');
-          } else if (index == 3) {
-            Navigator.pushNamed(context, '/ceo-settings');
-          }
-          // Index 1 (complaint) does nothing as we're already on complaints screen
-        },
-        child: Container(
-          height: 80,
-          decoration: BoxDecoration(
-            color: isActive ? const Color(0xFFE8F5E8) : Colors.transparent,
-          ),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
-                icon,
-                size: 24.sp,
-                color: isActive
-                    ? const Color(0xFF4CAF50)
-                    : const Color(0xFF9CA3AF),
-              ),
-              SizedBox(height: 4.h),
-              Text(
-                label,
-                style: TextStyle(
-                  fontSize: 12.sp,
-                  fontWeight: FontWeight.w500,
-                  color: isActive
-                      ? const Color(0xFF111827)
-                      : const Color(0xFF9CA3AF),
-                ),
-              ),
-              SizedBox(height: 4.h),
-              if (isActive)
-                Container(
-                  width: 24,
-                  height: 3,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF111827),
-                    borderRadius: BorderRadius.circular(1.5),
-                  ),
-                )
-              else
-                SizedBox(height: 3.h),
-            ],
-          ),
         ),
       ),
     );

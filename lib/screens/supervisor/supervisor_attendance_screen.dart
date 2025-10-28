@@ -3,8 +3,8 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:intl/intl.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:provider/provider.dart';
-// import 'qr_scanner_screen.dart';
-// import 'date_filter_bottom_sheet.dart';
+import 'qr_scanner_screen.dart';
+import '../../widgets/common/date_filter_bottom_sheet.dart';
 import '../../providers/supervisor_attendance_provider.dart';
 
 class SupervisorAttendanceScreen extends StatefulWidget {
@@ -17,11 +17,6 @@ class SupervisorAttendanceScreen extends StatefulWidget {
 
 class _SupervisorAttendanceScreenState
     extends State<SupervisorAttendanceScreen> {
-  String? _selectedFilter;
-  DateTime? _selectedDate;
-  List<Map<String, dynamic>> _attendanceLog = [];
-  List<Map<String, dynamic>> _filteredAttendanceLog = [];
-
   @override
   void initState() {
     super.initState();
@@ -642,23 +637,26 @@ class _SupervisorAttendanceScreenState
   }
 
   Future<void> _markAttendance(SupervisorAttendanceProvider provider) async {
-    final result = await Navigator.push<Map<String, dynamic>>(
+    final result = await Navigator.push<Map<String, String>>(
       context,
-      MaterialPageRoute(
-        builder: (context) => Scaffold(
-          body: Center(child: Text('QR Scanner feature coming soon')),
-        ),
-      ),
+      MaterialPageRoute(builder: (context) => const QRScannerScreen()),
     );
 
     if (result != null && mounted) {
       final lat = result['lat'] as String;
       final long = result['long'] as String;
 
+      print('📍 QR Code Scanned Successfully');
+      print('   Lat: $lat');
+      print('   Long: $long');
+
       final response = await provider.markAttendance(lat, long);
 
       if (mounted) {
         if (response['success']) {
+          // Reload attendance logs to show latest data
+          await provider.fetchAttendanceLogs();
+
           _showSuccessDialog(
             'Attendance Marked',
             response['message'] ??
@@ -679,13 +677,9 @@ class _SupervisorAttendanceScreenState
       return;
     }
 
-    final result = await Navigator.push<Map<String, dynamic>>(
+    final result = await Navigator.push<Map<String, String>>(
       context,
-      MaterialPageRoute(
-        builder: (context) => Scaffold(
-          body: Center(child: Text('End Attendance feature coming soon')),
-        ),
-      ),
+      MaterialPageRoute(builder: (context) => const QRScannerScreen()),
     );
 
     if (result != null && mounted) {
@@ -807,181 +801,32 @@ class _SupervisorAttendanceScreenState
   }
 
   void _showDateFilter(SupervisorAttendanceProvider? provider) {
-    showModalBottomSheet(
+    if (provider == null) return;
+
+    showDateFilterBottomSheet(
       context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => Scaffold(
-        body: Center(child: Text('Date filter feature coming soon')),
-      ),
-    ).then((result) {
-      if (result != null) {
-        // Handle the selected filter and date
+      initialFilterType: DateFilterType.month,
+      onApply: (filterType, selectedDate, startDate, endDate) {
         print('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
         print('📅 CALENDAR SELECTION RECEIVED');
         print('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-        print('🔍 Selected filter: ${result['filter']}');
-        print('📅 Selected date: ${result['date']}');
-        print(
-          '📅 Selected date formatted: ${DateFormat('yyyy-MM-dd').format(result['date'])}',
-        );
-        print('📅 Selected month: ${result['date'].month}');
-        print('📅 Selected year: ${result['date'].year}');
+        print('🔍 Filter type: $filterType');
+        print('📅 Selected date: $selectedDate');
+        print('📅 Start date: $startDate');
+        print('📅 End date: $endDate');
 
-        setState(() {
-          _selectedFilter = result['filter'];
-          _selectedDate = result['date'];
-        });
+        // Update the selected month name based on the selection
+        if (startDate != null && endDate != null) {
+          // Use the start date for the month name
+          provider.updateSelectedMonth(startDate);
+          provider.applyCustomDateRangeFilter(startDate, endDate);
+        } else if (selectedDate != null) {
+          provider.updateSelectedMonth(selectedDate);
+          provider.applyCustomDateRangeFilter(selectedDate, selectedDate);
+        }
 
-        _applyDateFilter();
-      }
-    });
-  }
-
-  void _applyDateFilter() {
-    if (_selectedDate == null) return;
-
-    print('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-    print('📅 APPLYING DATE FILTER');
-    print('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-    print('🔍 Filter Type: $_selectedFilter');
-    print('📅 Selected Date: $_selectedDate');
-
-    DateTime startDate;
-    DateTime endDate;
-
-    switch (_selectedFilter) {
-      case 'Day':
-        final selectedDate = _selectedDate!;
-        startDate = DateTime(
-          selectedDate.year,
-          selectedDate.month,
-          selectedDate.day,
-        );
-        endDate = DateTime(
-          selectedDate.year,
-          selectedDate.month,
-          selectedDate.day,
-          23,
-          59,
-          59,
-        );
-        break;
-      case 'Week':
-        final selectedDate = _selectedDate!;
-        final weekStart = selectedDate.subtract(
-          Duration(days: selectedDate.weekday - 1),
-        );
-        startDate = DateTime(weekStart.year, weekStart.month, weekStart.day);
-        endDate = startDate.add(
-          const Duration(days: 6, hours: 23, minutes: 59, seconds: 59),
-        );
-        break;
-      case 'Month':
-        final selectedDate = _selectedDate!;
-        startDate = DateTime(selectedDate.year, selectedDate.month, 1);
-        endDate = DateTime(
-          selectedDate.year,
-          selectedDate.month + 1,
-          0,
-          23,
-          59,
-          59,
-        );
-        break;
-      case 'Year':
-        final selectedDate = _selectedDate!;
-        startDate = DateTime(selectedDate.year, 1, 1);
-        endDate = DateTime(selectedDate.year, 12, 31, 23, 59, 59);
-        break;
-      case 'Custom':
-        // For custom, we'll use the selected date as both start and end
-        final selectedDate = _selectedDate!;
-        startDate = DateTime(
-          selectedDate.year,
-          selectedDate.month,
-          selectedDate.day,
-        );
-        endDate = DateTime(
-          selectedDate.year,
-          selectedDate.month,
-          selectedDate.day,
-          23,
-          59,
-          59,
-        );
-        break;
-      default:
-        final selectedDate = _selectedDate!;
-        startDate = DateTime(selectedDate.year, selectedDate.month, 1);
-        endDate = DateTime(
-          selectedDate.year,
-          selectedDate.month + 1,
-          0,
-          23,
-          59,
-          59,
-        );
-    }
-
-    // _filterStartDate = startDate;
-    // _filterEndDate = endDate;
-
-    print(
-      '📅 Filter Range: ${DateFormat('yyyy-MM-dd').format(startDate)} to ${DateFormat('yyyy-MM-dd').format(endDate)}',
+        print('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+      },
     );
-
-    print('📊 Original Attendance Data:');
-    for (int i = 0; i < _attendanceLog.length; i++) {
-      final date = _attendanceLog[i]['date'];
-      final parsedDate = DateTime.parse(date);
-      print('   ${i + 1}. $date (${parsedDate.month}/${parsedDate.year})');
-    }
-
-    // Filter attendance data
-    _filteredAttendanceLog = _attendanceLog.where((attendance) {
-      final attendanceDate = DateTime.parse(attendance['date']);
-      // Use date-only comparison (ignore time)
-      final attendanceDateOnly = DateTime(
-        attendanceDate.year,
-        attendanceDate.month,
-        attendanceDate.day,
-      );
-      final startDateOnly = DateTime(
-        startDate.year,
-        startDate.month,
-        startDate.day,
-      );
-      final endDateOnly = DateTime(endDate.year, endDate.month, endDate.day);
-
-      final isInRange =
-          (attendanceDateOnly.isAtSameMomentAs(startDateOnly) ||
-              attendanceDateOnly.isAfter(startDateOnly)) &&
-          (attendanceDateOnly.isAtSameMomentAs(endDateOnly) ||
-              attendanceDateOnly.isBefore(endDateOnly));
-
-      print('📅 Checking attendance: ${attendance['date']}');
-      print('   - Attendance Date: $attendanceDateOnly');
-      print('   - Start Date: $startDateOnly');
-      print('   - End Date: $endDateOnly');
-      print('   - Is in Range: $isInRange');
-
-      return isInRange;
-    }).toList();
-
-    print(
-      '📊 Filtered Records: ${_filteredAttendanceLog.length} out of ${_attendanceLog.length}',
-    );
-
-    print('📊 Filtered Attendance Data:');
-    for (int i = 0; i < _filteredAttendanceLog.length; i++) {
-      final date = _filteredAttendanceLog[i]['date'];
-      final parsedDate = DateTime.parse(date);
-      print('   ${i + 1}. $date (${parsedDate.month}/${parsedDate.year})');
-    }
-
-    print('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-
-    setState(() {});
   }
 }

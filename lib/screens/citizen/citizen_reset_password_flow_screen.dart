@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter/services.dart';
+import '../../l10n/app_localizations.dart';
 
 class ResetPasswordFlowScreen extends StatefulWidget {
   const ResetPasswordFlowScreen({super.key});
@@ -120,19 +121,21 @@ class _ResetPasswordFlowScreenState extends State<ResetPasswordFlowScreen> {
   }
 
   String _getTitle() {
+    final l10n = AppLocalizations.of(context);
     switch (_currentStep) {
       case 0:
-        return 'Reset Password';
+        return l10n?.resetPassword ?? 'Reset Password';
       case 1:
-        return 'Reset Password';
+        return l10n?.resetPassword ?? 'Reset Password';
       case 2:
-        return 'Set Password';
+        return l10n?.setPassword ?? 'Set Password';
       default:
-        return 'Reset Password';
+        return l10n?.resetPassword ?? 'Reset Password';
     }
   }
 
   Widget _buildPhoneStep() {
+    final l10n = AppLocalizations.of(context)!;
     return Padding(
       padding: EdgeInsets.all(20.r),
       child: Column(
@@ -147,7 +150,7 @@ class _ResetPasswordFlowScreenState extends State<ResetPasswordFlowScreen> {
 
           // Title
           Text(
-            'Reset Password',
+            l10n.resetPassword,
             style: TextStyle(
               fontFamily: 'Noto Sans',
               fontSize: 24.sp,
@@ -160,7 +163,7 @@ class _ResetPasswordFlowScreenState extends State<ResetPasswordFlowScreen> {
 
           // Subtitle
           Text(
-            'Enter your phone number',
+            l10n.enterYourPhoneNumber,
             style: TextStyle(
               fontFamily: 'Noto Sans',
               fontSize: 16.sp,
@@ -176,7 +179,7 @@ class _ResetPasswordFlowScreenState extends State<ResetPasswordFlowScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Phone Number',
+                l10n.phoneNumber,
                 style: TextStyle(
                   fontFamily: 'Noto Sans',
                   fontSize: 14.sp,
@@ -245,7 +248,7 @@ class _ResetPasswordFlowScreenState extends State<ResetPasswordFlowScreen> {
                         controller: _phoneController,
                         keyboardType: TextInputType.phone,
                         decoration: InputDecoration(
-                          hintText: '00000 00000',
+                          hintText: l10n.enterMobileNumberPlaceholder,
                           hintStyle: TextStyle(
                             fontFamily: 'Noto Sans',
                             fontSize: 16.sp,
@@ -317,7 +320,7 @@ class _ResetPasswordFlowScreenState extends State<ResetPasswordFlowScreen> {
                 ),
               ),
               child: Text(
-                'Send OTP',
+                l10n.sentOTP,
                 style: TextStyle(
                   fontFamily: 'Noto Sans',
                   fontSize: 16.sp,
@@ -332,6 +335,7 @@ class _ResetPasswordFlowScreenState extends State<ResetPasswordFlowScreen> {
   }
 
   Widget _buildOtpStep() {
+    final l10n = AppLocalizations.of(context)!;
     return Padding(
       padding: EdgeInsets.all(20.r),
       child: Column(
@@ -346,7 +350,7 @@ class _ResetPasswordFlowScreenState extends State<ResetPasswordFlowScreen> {
 
           // Title
           Text(
-            'Reset Password',
+            l10n.resetPassword,
             style: TextStyle(
               fontFamily: 'Noto Sans',
               fontSize: 24.sp,
@@ -359,7 +363,7 @@ class _ResetPasswordFlowScreenState extends State<ResetPasswordFlowScreen> {
 
           // Subtitle
           Text(
-            'Enter the 6-digit verification code sent to mobile number',
+            l10n.enterOtpSentTo,
             textAlign: TextAlign.center,
             style: TextStyle(
               fontFamily: 'Noto Sans',
@@ -428,7 +432,7 @@ class _ResetPasswordFlowScreenState extends State<ResetPasswordFlowScreen> {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Text(
-                'Didn\'t receive the code? ',
+                l10n.didntReceiveCode,
                 style: TextStyle(
                   fontFamily: 'Noto Sans',
                   fontSize: 14.sp,
@@ -439,7 +443,7 @@ class _ResetPasswordFlowScreenState extends State<ResetPasswordFlowScreen> {
               GestureDetector(
                 onTap: _canResend ? _resendOtp : null,
                 child: Text(
-                  'Resend',
+                  l10n.resend,
                   style: TextStyle(
                     fontFamily: 'Noto Sans',
                     fontSize: 14.sp,
@@ -484,7 +488,7 @@ class _ResetPasswordFlowScreenState extends State<ResetPasswordFlowScreen> {
                 ),
               ),
               child: Text(
-                'Submit',
+                l10n.submit,
                 style: TextStyle(
                   fontFamily: 'Noto Sans',
                   fontSize: 16.sp,
@@ -499,6 +503,7 @@ class _ResetPasswordFlowScreenState extends State<ResetPasswordFlowScreen> {
   }
 
   Widget _buildPasswordStep() {
+    final l10n = AppLocalizations.of(context)!;
     return Padding(
       padding: EdgeInsets.all(20.r),
       child: Column(
@@ -513,7 +518,7 @@ class _ResetPasswordFlowScreenState extends State<ResetPasswordFlowScreen> {
 
           // Title
           Text(
-            'Set Password',
+            l10n.setPassword,
             style: TextStyle(
               fontFamily: 'Noto Sans',
               fontSize: 24.sp,
@@ -526,7 +531,7 @@ class _ResetPasswordFlowScreenState extends State<ResetPasswordFlowScreen> {
 
           // Subtitle
           Text(
-            'Enter new password',
+            l10n.enterNewPassword,
             style: TextStyle(
               fontFamily: 'Noto Sans',
               fontSize: 16.sp,
@@ -539,7 +544,7 @@ class _ResetPasswordFlowScreenState extends State<ResetPasswordFlowScreen> {
 
           // New password input
           _buildPasswordField(
-            label: 'Enter new password',
+            label: l10n.enterNewPassword,
             controller: _newPasswordController,
             isVisible: _isNewPasswordVisible,
             onToggleVisibility: () {
@@ -553,7 +558,7 @@ class _ResetPasswordFlowScreenState extends State<ResetPasswordFlowScreen> {
 
           // Confirm password input
           _buildPasswordField(
-            label: 'Confirm password',
+            label: l10n.confirmPassword,
             controller: _confirmPasswordController,
             isVisible: _isConfirmPasswordVisible,
             onToggleVisibility: () {
@@ -603,7 +608,7 @@ class _ResetPasswordFlowScreenState extends State<ResetPasswordFlowScreen> {
                 ),
               ),
               child: Text(
-                'Set new password',
+                l10n.setNewPassword,
                 style: TextStyle(
                   fontFamily: 'Noto Sans',
                   fontSize: 16.sp,

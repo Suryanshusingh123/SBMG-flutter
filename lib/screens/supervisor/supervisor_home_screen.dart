@@ -7,8 +7,11 @@ import '../../models/event_model.dart';
 import '../../services/api_services.dart';
 import '../../services/bookmark_service.dart';
 import '../../services/complaints_service.dart';
+import '../../services/auth_services.dart';
 import '../../widgets/common/banner_carousel.dart';
 import '../../widgets/common/custom_bottom_navigation.dart';
+import '../citizen/language_screen.dart';
+import '../citizen/notifications_screen.dart';
 
 class SupervisorHomeScreen extends StatefulWidget {
   const SupervisorHomeScreen({super.key});
@@ -40,8 +43,9 @@ class _SupervisorHomeScreenState extends State<SupervisorHomeScreen> {
   // Today's complaints data
   List<dynamic> _todaysComplaints = [];
 
-  // Village name from API (currently unused)
-  // final String _villageName = 'Gram Panchayat';
+  // GP/Village name
+  String? _gpName;
+  bool _isLoadingGpName = false;
 
   @override
   void initState() {
@@ -49,6 +53,7 @@ class _SupervisorHomeScreenState extends State<SupervisorHomeScreen> {
     _loadSchemes();
     _loadEvents();
     _loadComplaintsAnalytics();
+    _loadGpName();
   }
 
   Future<void> _loadSchemes() async {
@@ -98,6 +103,31 @@ class _SupervisorHomeScreenState extends State<SupervisorHomeScreen> {
     } catch (e) {
       setState(() => _isComplaintsLoading = false);
       print('Error loading complaints analytics: $e');
+    }
+  }
+
+  Future<void> _loadGpName() async {
+    try {
+      setState(() => _isLoadingGpName = true);
+      final authService = AuthService();
+      final villageId = await authService.getVillageId();
+
+      if (villageId != null) {
+        final gp = await ApiService().getGramPanchayatById(villageId);
+        setState(() {
+          _gpName = gp.name;
+          _isLoadingGpName = false;
+        });
+        print('✅ GP Name loaded: ${gp.name}');
+      } else {
+        print('⚠️ No village ID found');
+        setState(() => _isLoadingGpName = false);
+      }
+    } catch (e) {
+      print('❌ Error loading GP name: $e');
+      setState(() => _isLoadingGpName = false);
+      // Set a default placeholder if loading fails
+      _gpName = 'Gram Panchayat';
     }
   }
 
@@ -219,7 +249,9 @@ class _SupervisorHomeScreenState extends State<SupervisorHomeScreen> {
               ),
               SizedBox(height: 2.h),
               Text(
-                'Gram Panchayat Name',
+                _isLoadingGpName
+                    ? 'Loading...'
+                    : (_gpName ?? 'Gram Panchayat Name'),
                 style: TextStyle(
                   fontFamily: 'Noto Sans',
                   fontSize: 12.sp,
@@ -233,7 +265,14 @@ class _SupervisorHomeScreenState extends State<SupervisorHomeScreen> {
           Row(
             children: [
               IconButton(
-                onPressed: () {},
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const NotificationsScreen(),
+                    ),
+                  );
+                },
                 icon: Image.asset(
                   'assets/icons/Vector.png',
                   width: 24,
@@ -243,7 +282,12 @@ class _SupervisorHomeScreenState extends State<SupervisorHomeScreen> {
               ),
               IconButton(
                 onPressed: () {
-                  // Language selection
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const LanguageScreen(),
+                    ),
+                  );
                 },
                 icon: Image.asset(
                   'assets/icons/Translate.png',
