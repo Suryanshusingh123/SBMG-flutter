@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:provider/provider.dart';
 import 'package:geolocator/geolocator.dart';
@@ -399,124 +400,132 @@ class _CitizenHomeScreenState extends State<CitizenHomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.white,
-      body: SafeArea(
-        child: Column(
-          children: [
-            // Top Header
-            _buildTopHeader(),
-
-            // Main Content
-            Expanded(
-              child: SingleChildScrollView(
-                child: Column(
-                  children: [
-                    // Banner Carousel
-                    const BannerCarousel(),
-
-                    Image.asset('assets/images/Group.png'),
-
-                    SizedBox(height: 8.h),
-
-                    // Call Us Banner
-                    _buildCallUsBanner(),
-
-                    SizedBox(height: 20.h),
-
-                    // Featured Schemes Section
-                    _buildFeaturedSchemesSection(),
-
-                    SizedBox(height: 20.h),
-
-                    // Action Cards Section
-                    _buildActionCardsSection(),
-
-                    SizedBox(height: 20.h),
-
-                    // Events Section
-                    _buildEventsSection(),
-                  ],
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-
-      // Floating Action Button
-      floatingActionButton: Container(
-        margin: EdgeInsets.symmetric(horizontal: 5.w),
-        child: FloatingActionButton.extended(
-          onPressed: () {
-            // Check if user is logged in before navigating
-            _checkAuthAndNavigate(context);
-          },
-          backgroundColor: const Color(0xFF009B56),
-          foregroundColor: Colors.white,
-          elevation: 8,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(30.r),
-          ),
-          label: Row(
-            mainAxisSize: MainAxisSize.min,
+    return PopScope(
+      canPop: false,
+      onPopInvoked: (didPop) {
+        if (didPop) return;
+        // Prevent back navigation - user should logout instead
+        _showExitDialog();
+      },
+      child: Scaffold(
+        backgroundColor: Colors.white,
+        body: SafeArea(
+          child: Column(
             children: [
-              Text(
-                AppLocalizations.of(context)!.raiseComplaint,
-                style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
+              // Top Header
+              _buildTopHeader(),
+
+              // Main Content
+              Expanded(
+                child: SingleChildScrollView(
+                  child: Column(
+                    children: [
+                      // Banner Carousel
+                      const BannerCarousel(),
+
+                      Image.asset('assets/images/Group.png'),
+
+                      SizedBox(height: 8.h),
+
+                      // Call Us Banner
+                      _buildCallUsBanner(),
+
+                      SizedBox(height: 20.h),
+
+                      // Featured Schemes Section
+                      _buildFeaturedSchemesSection(),
+
+                      SizedBox(height: 20.h),
+
+                      // Action Cards Section
+                      _buildActionCardsSection(),
+
+                      SizedBox(height: 20.h),
+
+                      // Events Section
+                      _buildEventsSection(),
+                    ],
+                  ),
                 ),
               ),
-              SizedBox(width: 8.w),
-              Icon(Icons.arrow_forward, size: 20.sp),
             ],
           ),
         ),
-      ),
 
-      // Bottom Navigation Bar
-      bottomNavigationBar: CustomBottomNavigationBar(
-        currentIndex: _selectedIndex,
-        onTap: (index) {
-          setState(() {
-            _selectedIndex = index;
-          });
+        // Floating Action Button
+        floatingActionButton: Container(
+          margin: EdgeInsets.symmetric(horizontal: 5.w),
+          child: FloatingActionButton.extended(
+            onPressed: () {
+              // Check if user is logged in before navigating
+              _checkAuthAndNavigate(context);
+            },
+            backgroundColor: const Color(0xFF009B56),
+            foregroundColor: Colors.white,
+            elevation: 8,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(30.r),
+            ),
+            label: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  AppLocalizations.of(context)!.raiseComplaint,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                SizedBox(width: 8.w),
+                Icon(Icons.arrow_forward, size: 20.sp),
+              ],
+            ),
+          ),
+        ),
 
-          // Navigate to different screens based on selection
-          switch (index) {
-            case 0:
-              // Already on home
-              break;
-            case 1:
-              _checkAuthAndNavigateToComplaints(context);
-              break;
-            case 2:
-              Navigator.pushReplacementNamed(context, '/schemes');
-              break;
-            case 3:
-              Navigator.pushReplacementNamed(context, '/settings');
-              break;
-          }
-        },
-        items: [
-          BottomNavItem(
-            icon: Icons.home,
-            label: AppLocalizations.of(context)!.home,
-          ),
-          BottomNavItem(
-            icon: Icons.list_alt,
-            label: AppLocalizations.of(context)!.myComplaint,
-          ),
-          BottomNavItem(
-            icon: Icons.account_balance,
-            label: AppLocalizations.of(context)!.schemes,
-          ),
-          BottomNavItem(
-            icon: Icons.settings,
-            label: AppLocalizations.of(context)!.settings,
-          ),
-        ],
+        // Bottom Navigation Bar
+        bottomNavigationBar: CustomBottomNavigationBar(
+          currentIndex: _selectedIndex,
+          onTap: (index) {
+            setState(() {
+              _selectedIndex = index;
+            });
+
+            // Navigate to different screens based on selection
+            switch (index) {
+              case 0:
+                // Already on home
+                break;
+              case 1:
+                _checkAuthAndNavigateToComplaints(context);
+                break;
+              case 2:
+                Navigator.pushReplacementNamed(context, '/schemes');
+                break;
+              case 3:
+                Navigator.pushReplacementNamed(context, '/settings');
+                break;
+            }
+          },
+          items: [
+            BottomNavItem(
+              icon: Icons.home,
+              label: AppLocalizations.of(context)!.home,
+            ),
+            BottomNavItem(
+              icon: Icons.list_alt,
+              label: AppLocalizations.of(context)!.myComplaint,
+            ),
+            BottomNavItem(
+              icon: Icons.account_balance,
+              label: AppLocalizations.of(context)!.schemes,
+            ),
+            BottomNavItem(
+              icon: Icons.settings,
+              label: AppLocalizations.of(context)!.settings,
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -1123,6 +1132,73 @@ class _CitizenHomeScreenState extends State<CitizenHomeScreen> {
           ),
         ],
       ),
+    );
+  }
+
+  void _showExitDialog() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          backgroundColor: Colors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12.r),
+          ),
+          title: Text(
+            'Exit App',
+            style: TextStyle(
+              fontFamily: 'Noto Sans',
+              fontSize: 18.sp,
+              fontWeight: FontWeight.w600,
+              color: const Color(0xFF111827),
+            ),
+          ),
+          content: Text(
+            'Are you sure you want to exit the app?',
+            style: TextStyle(
+              fontFamily: 'Noto Sans',
+              fontSize: 14.sp,
+              color: const Color(0xFF6B7280),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+              child: Text(
+                'Cancel',
+                style: TextStyle(
+                  fontFamily: 'Noto Sans',
+                  color: const Color(0xFF6B7280),
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+                // Exit the app
+                SystemNavigator.pop();
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF009B56),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8.r),
+                ),
+              ),
+              child: Text(
+                'Exit',
+                style: TextStyle(
+                  fontFamily: 'Noto Sans',
+                  fontWeight: FontWeight.w600,
+                  color: Colors.white,
+                ),
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 }

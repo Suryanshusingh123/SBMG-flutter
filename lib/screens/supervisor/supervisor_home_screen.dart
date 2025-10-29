@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 // import 'package:sbmg/screens/citizen/scheme_details_screen.dart';
 import '../../config/connstants.dart';
@@ -10,6 +11,7 @@ import '../../services/complaints_service.dart';
 import '../../services/auth_services.dart';
 import '../../widgets/common/banner_carousel.dart';
 import '../../widgets/common/custom_bottom_navigation.dart';
+import '../../l10n/app_localizations.dart';
 import '../citizen/language_screen.dart';
 import '../citizen/notifications_screen.dart';
 
@@ -169,66 +171,76 @@ class _SupervisorHomeScreenState extends State<SupervisorHomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.white,
-      body: SafeArea(
-        child: Column(
-          children: [
-            // Top Header
-            _buildTopHeader(),
+    return PopScope(
+      canPop: false,
+      onPopInvoked: (didPop) {
+        if (didPop) return;
+        // Prevent back navigation - user should logout instead
+        _showExitDialog();
+      },
+      child: Scaffold(
+        backgroundColor: Colors.white,
+        body: SafeArea(
+          child: Column(
+            children: [
+              // Top Header
+              _buildTopHeader(),
 
-            // Main Content
-            Expanded(
-              child: RefreshIndicator(
-                onRefresh: () async {
-                  await _loadComplaintsAnalytics();
-                },
-                child: SingleChildScrollView(
-                  child: Column(
-                    children: [
-                      const BannerCarousel(),
-                      Image.asset('assets/images/Group.png'),
+              // Main Content
+              Expanded(
+                child: RefreshIndicator(
+                  onRefresh: () async {
+                    await _loadComplaintsAnalytics();
+                  },
+                  child: SingleChildScrollView(
+                    child: Column(
+                      children: [
+                        const BannerCarousel(),
+                        Image.asset('assets/images/Group.png'),
 
-                      SizedBox(height: 24.h),
+                        SizedBox(height: 24.h),
 
-                      // Overview Section
-                      _buildOverviewSection(),
+                        // Overview Section
+                        _buildOverviewSection(),
 
-                      SizedBox(height: 24.h),
+                        SizedBox(height: 24.h),
 
-                      // Today's Complaints Section
-                      _buildTodaysComplaintsSection(),
+                        // Today's Complaints Section
+                        _buildTodaysComplaintsSection(),
 
-                      SizedBox(height: 24.h),
+                        SizedBox(height: 24.h),
 
-                      // Featured Schemes Section
-                      _buildFeaturedSchemesSection(),
+                        // Featured Schemes Section
+                        _buildFeaturedSchemesSection(),
 
-                      SizedBox(height: 24.h),
+                        SizedBox(height: 24.h),
 
-                      // Events Section
-                      _buildEventsSection(),
+                        // Events Section
+                        _buildEventsSection(),
 
-                      SizedBox(height: 24.h),
+                        SizedBox(height: 24.h),
 
-                      // Social Media Icons
-                      _buildSocialMediaSection(),
+                        // Social Media Icons
+                        _buildSocialMediaSection(),
 
-                      SizedBox(height: 20.h),
-                    ],
+                        SizedBox(height: 20.h),
+                      ],
+                    ),
                   ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
+        // Bottom Navigation Bar
+        bottomNavigationBar: _buildBottomNavigationBar(),
       ),
-      // Bottom Navigation Bar
-      bottomNavigationBar: _buildBottomNavigationBar(),
     );
   }
 
   Widget _buildTopHeader() {
+    final l10n = AppLocalizations.of(context)!;
+
     return Container(
       padding: EdgeInsets.all(16.r),
       child: Row(
@@ -238,7 +250,7 @@ class _SupervisorHomeScreenState extends State<SupervisorHomeScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Supervisor',
+                l10n.supervisor,
                 style: TextStyle(
                   fontFamily: 'Noto Sans',
                   fontSize: 18.sp,
@@ -250,7 +262,7 @@ class _SupervisorHomeScreenState extends State<SupervisorHomeScreen> {
               SizedBox(height: 2.h),
               Text(
                 _isLoadingGpName
-                    ? 'Loading...'
+                    ? l10n.loading
                     : (_gpName ?? 'Gram Panchayat Name'),
                 style: TextStyle(
                   fontFamily: 'Noto Sans',
@@ -306,13 +318,15 @@ class _SupervisorHomeScreenState extends State<SupervisorHomeScreen> {
   // Removed unused _buildSwachhBharatBanner method
 
   Widget _buildOverviewSection() {
+    final l10n = AppLocalizations.of(context)!;
+
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: 16.w),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Overview',
+            l10n.overview,
             style: TextStyle(
               fontFamily: 'Noto Sans',
               fontSize: 18.sp,
@@ -348,7 +362,7 @@ class _SupervisorHomeScreenState extends State<SupervisorHomeScreen> {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text(
-                          'Total Reported Complaint',
+                          l10n.totalReportedComplaint,
                           style: TextStyle(
                             fontFamily: 'Noto Sans',
                             fontSize: 14.sp,
@@ -387,7 +401,7 @@ class _SupervisorHomeScreenState extends State<SupervisorHomeScreen> {
             children: [
               Expanded(
                 child: _buildOverviewCard(
-                  'Open Complaint',
+                  l10n.openComplaint,
                   _isComplaintsLoading
                       ? '...'
                       : _analytics['openComplaints'].toString(),
@@ -398,7 +412,7 @@ class _SupervisorHomeScreenState extends State<SupervisorHomeScreen> {
               SizedBox(width: 12.w),
               Expanded(
                 child: _buildOverviewCard(
-                  'Disposed complaints',
+                  l10n.disposedComplaints,
                   _isComplaintsLoading
                       ? '...'
                       : (_analytics['resolvedComplaints'] +
@@ -439,7 +453,7 @@ class _SupervisorHomeScreenState extends State<SupervisorHomeScreen> {
                       Row(
                         children: [
                           Text(
-                            "Today's Complaints",
+                            l10n.todayComplaints,
                             style: TextStyle(
                               fontFamily: 'Noto Sans',
                               fontSize: 12.sp,
@@ -553,13 +567,15 @@ class _SupervisorHomeScreenState extends State<SupervisorHomeScreen> {
   }
 
   Widget _buildTodaysComplaintsSection() {
+    final l10n = AppLocalizations.of(context)!;
+
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: 16.w),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            "Today's Complaints",
+            l10n.todayComplaints,
             style: TextStyle(
               fontFamily: 'Noto Sans',
               fontSize: 18.sp,
@@ -588,7 +604,7 @@ class _SupervisorHomeScreenState extends State<SupervisorHomeScreen> {
               ),
               child: Center(
                 child: Text(
-                  'No complaints for today',
+                  l10n.noComplaintsForToday,
                   style: TextStyle(
                     fontFamily: 'Noto Sans',
                     fontSize: 16.sp,
@@ -807,6 +823,8 @@ class _SupervisorHomeScreenState extends State<SupervisorHomeScreen> {
   }
 
   Widget _buildFeaturedSchemesSection() {
+    final l10n = AppLocalizations.of(context)!;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -817,7 +835,7 @@ class _SupervisorHomeScreenState extends State<SupervisorHomeScreen> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                'Featured Scheme',
+                l10n.featuredScheme,
                 style: TextStyle(
                   fontFamily: 'Noto Sans',
                   fontSize: 18.sp,
@@ -830,9 +848,9 @@ class _SupervisorHomeScreenState extends State<SupervisorHomeScreen> {
                 onPressed: () {
                   Navigator.pushNamed(context, '/schemes');
                 },
-                child: const Text(
-                  'View all',
-                  style: TextStyle(
+                child: Text(
+                  l10n.viewAll,
+                  style: const TextStyle(
                     color: Color(0xFF009B56),
                     fontWeight: FontWeight.w600,
                   ),
@@ -854,10 +872,10 @@ class _SupervisorHomeScreenState extends State<SupervisorHomeScreen> {
                   ),
                 )
               : _schemes.isEmpty
-              ? const Center(
+              ? Center(
                   child: Text(
-                    'No schemes available',
-                    style: TextStyle(color: Color(0xFF9CA3AF)),
+                    l10n.noSchemesAvailable,
+                    style: const TextStyle(color: Color(0xFF9CA3AF)),
                   ),
                 )
               : ListView.builder(
@@ -880,8 +898,14 @@ class _SupervisorHomeScreenState extends State<SupervisorHomeScreen> {
           context,
           MaterialPageRoute(
             builder: (context) => Scaffold(
-              appBar: AppBar(title: Text('Scheme Details')),
-              body: Center(child: Text('Viewing ${scheme.name}')),
+              appBar: AppBar(
+                title: Text(AppLocalizations.of(context)!.schemeDetails),
+              ),
+              body: Center(
+                child: Text(
+                  '${AppLocalizations.of(context)!.viewing} ${scheme.name}',
+                ),
+              ),
             ),
           ),
         );
@@ -959,13 +983,15 @@ class _SupervisorHomeScreenState extends State<SupervisorHomeScreen> {
   }
 
   Widget _buildEventsSection() {
+    final l10n = AppLocalizations.of(context)!;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
           padding: EdgeInsets.symmetric(horizontal: 16.w),
           child: Text(
-            '${_events.length} Event${_events.length != 1 ? 's' : ''}',
+            '${_events.length} ${_events.length != 1 ? l10n.eventsPlural : l10n.events}',
             style: TextStyle(
               fontFamily: 'Noto Sans',
               fontSize: 18.sp,
@@ -995,9 +1021,9 @@ class _SupervisorHomeScreenState extends State<SupervisorHomeScreen> {
             ? Center(
                 child: Padding(
                   padding: EdgeInsets.all(20.r),
-                  child: const Text(
-                    'No events available',
-                    style: TextStyle(color: Color(0xFF9CA3AF)),
+                  child: Text(
+                    l10n.noEventsAvailable,
+                    style: const TextStyle(color: Color(0xFF9CA3AF)),
                   ),
                 ),
               )
@@ -1247,11 +1273,23 @@ class _SupervisorHomeScreenState extends State<SupervisorHomeScreen> {
             break;
         }
       },
-      items: const [
-        BottomNavItem(icon: Icons.home, label: 'Home'),
-        BottomNavItem(icon: Icons.list_alt, label: 'Complaints'),
-        BottomNavItem(icon: Icons.people, label: 'Attendance'),
-        BottomNavItem(icon: Icons.settings, label: 'Settings'),
+      items: [
+        BottomNavItem(
+          icon: Icons.home,
+          label: AppLocalizations.of(context)!.home,
+        ),
+        BottomNavItem(
+          icon: Icons.list_alt,
+          label: AppLocalizations.of(context)!.complaints,
+        ),
+        BottomNavItem(
+          icon: Icons.people,
+          label: AppLocalizations.of(context)!.attendance,
+        ),
+        BottomNavItem(
+          icon: Icons.settings,
+          label: AppLocalizations.of(context)!.settings,
+        ),
       ],
     );
   }
@@ -1262,5 +1300,72 @@ class _SupervisorHomeScreenState extends State<SupervisorHomeScreen> {
     } else {
       return '${date.day}/${date.month}';
     }
+  }
+
+  void _showExitDialog() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          backgroundColor: Colors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12.r),
+          ),
+          title: Text(
+            'Exit App',
+            style: TextStyle(
+              fontFamily: 'Noto Sans',
+              fontSize: 18.sp,
+              fontWeight: FontWeight.w600,
+              color: const Color(0xFF111827),
+            ),
+          ),
+          content: Text(
+            'Are you sure you want to exit the app?',
+            style: TextStyle(
+              fontFamily: 'Noto Sans',
+              fontSize: 14.sp,
+              color: const Color(0xFF6B7280),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+              child: Text(
+                'Cancel',
+                style: TextStyle(
+                  fontFamily: 'Noto Sans',
+                  color: const Color(0xFF6B7280),
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+                // Exit the app
+                SystemNavigator.pop();
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF009B56),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8.r),
+                ),
+              ),
+              child: Text(
+                'Exit',
+                style: TextStyle(
+                  fontFamily: 'Noto Sans',
+                  fontWeight: FontWeight.w600,
+                  color: Colors.white,
+                ),
+              ),
+            ),
+          ],
+        );
+      },
+    );
   }
 }

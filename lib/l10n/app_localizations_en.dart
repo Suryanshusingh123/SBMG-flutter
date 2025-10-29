@@ -146,7 +146,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get seeResolution => 'See resolution';
 
   @override
-  String get uploadImage => 'Upload Image';
+  String get uploadImage => 'Upload image';
 
   @override
   String get selectTypeOfComplaint => 'Select Type of Complaint';
@@ -507,10 +507,10 @@ class AppLocalizationsEn extends AppLocalizations {
       'Your Complaint has\nbeen submitted successfully';
 
   @override
-  String get enterFeedback => 'Enter feedback';
+  String get enterFeedback => 'Enter Feedback';
 
   @override
-  String get howWasYourExperience => 'How was your experience with the app?';
+  String get howWasYourExperience => 'How was your experience?';
 
   @override
   String get chooseYourExperience => 'Choose your experience';
@@ -719,4 +719,221 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get formSubmittedSuccessfully => 'Form submitted successfully!';
+
+  @override
+  String get supervisor => 'Supervisor';
+
+  @override
+  String get complaints => 'Complaints';
+
+  @override
+  String get attendance => 'Attendance';
+
+  @override
+  String get totalReportedComplaint => 'Total Reported Complaint';
+
+  @override
+  String get openComplaint => 'Open Complaint';
+
+  @override
+  String get disposedComplaints => 'Disposed complaints';
+
+  @override
+  String get todayComplaints => 'Today\'s Complaints';
+
+  @override
+  String get overview => 'Overview';
+
+  @override
+  String get noComplaintsForToday => 'No complaints for today';
+
+  @override
+  String get featuredSchemes => 'Featured Schemes';
+
+  @override
+  String get complaintDetails => 'Complaint Details';
+
+  @override
+  String get resolution => 'Resolution';
+
+  @override
+  String get writeYourCommentHere => 'Write your comment here...';
+
+  @override
+  String get complaintResolvedSuccessfully => 'Complaint resolved successfully';
+
+  @override
+  String get failedToResolveComplaint => 'Failed to resolve complaint';
+
+  @override
+  String get getDirections => 'Get directions';
+
+  @override
+  String get locationNotAvailable => 'Location not available';
+
+  @override
+  String get attendanceMarked => 'Attendance Marked';
+
+  @override
+  String get attendanceMarkedDescription =>
+      'Your attendance has been successfully marked.';
+
+  @override
+  String get attendanceEnded => 'Attendance Ended';
+
+  @override
+  String get attendanceEndedDescription =>
+      'Your attendance has been successfully ended.';
+
+  @override
+  String get error => 'Error';
+
+  @override
+  String get present => 'Present';
+
+  @override
+  String get incomplete => 'Incomplete';
+
+  @override
+  String get totalDays => 'Total days';
+
+  @override
+  String get loginAsCitizen => 'Login as Citizen';
+
+  @override
+  String get areYouSureLogout => 'Are you sure you want to log out?';
+
+  @override
+  String get logoutDescription =>
+      'You\'ll need to sign in again to access your account.';
+
+  @override
+  String get scanQRCodeForAttendance => 'Scan QR code for attendance';
+
+  @override
+  String get scanError => 'Scan Error';
+
+  @override
+  String get invalidQRCodeFormat =>
+      'Invalid QR code format. Expected: lat,long or JSON with lat and long keys.';
+
+  @override
+  String get tryAgain => 'Try Again';
+
+  @override
+  String get resolutionComment => 'Resolution Comment';
+
+  @override
+  String get comment => 'Comment';
+
+  @override
+  String get noAttendanceRecordsFound => 'No attendance records found';
+
+  @override
+  String get selectMonth => 'Select Month';
+
+  @override
+  String get endAttendance => 'End Attendance';
+
+  @override
+  String get markAttendance => 'Mark Attendance';
+
+  @override
+  String get attendanceLog => 'Attendance log';
+
+  @override
+  String get presentDaysOfTotal => 'Present days of total';
+
+  @override
+  String get okButton => 'OK';
+
+  @override
+  String get attendanceSummary => 'Attendance log';
+
+  @override
+  String get totalWorkingDays => 'Total days';
+
+  @override
+  String get absent => 'Absent';
+
+  @override
+  String get noActiveAttendanceSession => 'No active attendance session found';
+
+  @override
+  String get attendanceDescription =>
+      'Your attendance has been successfully marked.';
+
+  @override
+  String get pending => 'Pending';
+
+  @override
+  String get waitingVerificationFromVdo => 'Waiting verification from VDO';
+
+  @override
+  String get commentSection => 'Comment';
+
+  @override
+  String get schemeDetails => 'Scheme Details';
+
+  @override
+  String get viewing => 'Viewing';
+
+  @override
+  String get couldNotOpenGoogleMaps => 'Could not open Google Maps';
+
+  @override
+  String get pleaseEnterCompleteOtp => 'Please enter complete OTP';
+
+  @override
+  String get passwordResetSuccessfully => 'Password reset successfully';
+
+  @override
+  String get scanQrCodeForAttendance => 'Scan QR code for attendance';
+
+  @override
+  String get logout => 'Logout';
+
+  @override
+  String get confirm => 'Confirm';
+
+  @override
+  String get areYouSureYouWantToLogOut => 'Are you sure you want to log out?';
+
+  @override
+  String get youllNeedToSignInAgainToAccessTheApp =>
+      'You\'ll need to sign in again to access your account.';
+
+  @override
+  String get complaintVerified => 'Complaint verified';
+
+  @override
+  String get vdo => 'VDO';
+
+  @override
+  String get inspection => 'Inspection';
+
+  @override
+  String get thisMonth => 'This month';
+
+  @override
+  String get total => 'Total';
+
+  @override
+  String get checkVendorSupervisorAttendance =>
+      'Check Vender / Supervisor attendance';
+
+  @override
+  String get updateContractorDetails => 'Update Contractor details';
+
+  @override
+  String get startVillageMasterData => 'Start the Village Master data';
+
+  @override
+  String get export => 'Export';
+
+  @override
+  String get supportedBy => 'Supported by';
+
+  @override
+  String get noComplaintsAvailable => 'No complaints available';
 }

@@ -11,6 +11,15 @@ import '../models/inspection_model.dart';
 import '../models/contractor_model.dart';
 import 'auth_services.dart';
 
+/// Custom exception for when survey is already filled
+class SurveyAlreadyFilledException implements Exception {
+  final String message;
+  SurveyAlreadyFilledException(this.message);
+  
+  @override
+  String toString() => message;
+}
+
 class ApiService {
   static final ApiService _instance = ApiService._internal();
   factory ApiService() => _instance;
@@ -834,6 +843,86 @@ class ApiService {
     }
   }
 
+  /// Update contractor details
+  Future<ContractorDetails> updateContractor({
+    required int contractorId,
+    required int agencyId,
+    required String personName,
+    required String personPhone,
+    required int gpId,
+    required String contractStartDate,
+    required String contractEndDate,
+  }) async {
+    try {
+      final endpoint = '/api/v1/contractors/contractors/$contractorId';
+
+      print('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+      print('🔵 CONTRACTOR API REQUEST: UPDATE');
+      print('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+      print('📍 URL: ${ApiConstants.baseUrl}$endpoint');
+      print('🏘️ Contractor ID: $contractorId');
+      print('📋 Update Data:');
+      print('   - Agency ID: $agencyId');
+      print('   - Person Name: $personName');
+      print('   - Person Phone: $personPhone');
+      print('   - GP ID: $gpId');
+      print('   - Contract Start Date: $contractStartDate');
+      print('   - Contract End Date: $contractEndDate');
+      print('🔑 Headers: ${await AuthService().getAuthHeaders()}');
+      print('⏰ Timestamp: ${DateTime.now()}');
+      print('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+
+      final body = {
+        'agency_id': agencyId,
+        'person_name': personName,
+        'person_phone': personPhone,
+        'gp_id': gpId,
+        'contract_start_date': contractStartDate,
+        'contract_end_date': contractEndDate,
+      };
+
+      final response = await _makeRequest(
+        endpoint: endpoint,
+        method: 'PUT',
+        headers: await AuthService().getAuthHeaders(),
+        body: body,
+      );
+
+      print('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+      print('🟢 CONTRACTOR API RESPONSE: UPDATE');
+      print('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+      print('📊 Status Code: ${response.statusCode}');
+      print('📦 Response Body: ${response.body}');
+      print('⏰ Timestamp: ${DateTime.now()}');
+      print('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        final data = _handleResponse(response);
+        final contractor = ContractorDetails.fromJson(data);
+
+        print('✅ SUCCESS: Contractor updated');
+        print('📋 Updated Contractor ID: ${contractor.id}');
+        print('📋 Updated Person Name: ${contractor.personName}');
+
+        return contractor;
+      } else {
+        final error = _handleResponse(response);
+        throw Exception(error['message'] ?? 'Failed to update contractor');
+      }
+    } catch (e) {
+      print('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+      print('❌ CONTRACTOR API ERROR: UPDATE');
+      print('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+      print('🏘️ Contractor ID: $contractorId');
+      print('🔍 Error Details:');
+      print('   - Error Message: $e');
+      print('   - Error Type: ${e.runtimeType}');
+      print('⏰ Timestamp: ${DateTime.now()}');
+      print('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+      throw Exception('Failed to update contractor: $e');
+    }
+  }
+
   // Annual Survey APIs
 
   /// Submit village master data form
@@ -1344,6 +1433,119 @@ class ApiService {
     } catch (e) {
       print('❌ Error resolving complaint: $e');
       throw Exception('Failed to resolve complaint: $e');
+    }
+  }
+
+  /// Get active FY (Financial Year) for annual surveys
+  Future<int> getActiveFyId() async {
+    try {
+      final endpoint = ApiConstants.annualSurveyActiveFyEndpoint;
+      final url = Uri.parse('${ApiConstants.baseUrl}$endpoint');
+
+      print('🔵 API Request: GET $url');
+      print('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+
+      final response = await _makeRequest(
+        endpoint: endpoint,
+        method: 'GET',
+        headers: ApiConstants.publicHeaders,
+      );
+
+      print('🟢 API Response: Status ${response.statusCode}');
+      print('📦 Response Body: ${response.body}');
+      print('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+
+      final data = _handleResponse(response);
+      
+      if (data is List && data.isNotEmpty) {
+        final fyId = data[0]['id'] as int;
+        print('✅ Active FY ID retrieved: $fyId');
+        return fyId;
+      } else {
+        throw Exception('No active FY found');
+      }
+    } catch (e) {
+      print('❌ Error getting active FY: $e');
+      throw Exception('Failed to get active FY: $e');
+    }
+  }
+
+  /// Submit annual survey form
+  Future<Map<String, dynamic>> submitAnnualSurvey({
+    required int fyId,
+    required int gpId,
+    required int vdoId,
+    required Map<String, dynamic> surveyData,
+  }) async {
+    try {
+      final token = await _getAuthToken();
+      final endpoint = ApiConstants.annualSurveyFillEndpoint;
+      final url = Uri.parse('${ApiConstants.baseUrl}$endpoint');
+
+      print('🔵 API Request: POST $url');
+      print('📋 Survey Data: ${json.encode(surveyData)}');
+      print('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+
+      final headers = {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'Authorization': 'Bearer $token',
+      };
+
+      final response = await http.post(
+        url,
+        headers: headers,
+        body: json.encode(surveyData),
+      );
+
+      print('🟢 API Response: Status ${response.statusCode}');
+      print('📦 Response Body: ${response.body}');
+      print('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        final data = json.decode(response.body) as Map<String, dynamic>;
+        print('✅ Annual survey submitted successfully');
+        return data;
+      } else if (response.statusCode == 500) {
+        // Form already filled - 500 error indicates survey already submitted
+        print('⚠️  Survey already filled for this GP');
+        throw SurveyAlreadyFilledException(
+          'This survey has already been submitted for this Gram Panchayat for the current financial year. You can only submit the survey once per year.'
+        );
+      } else if (response.statusCode == 422) {
+        // Validation error
+        print('❌ Validation Error: Status ${response.statusCode}');
+        final errorData = response.body.isNotEmpty
+            ? json.decode(response.body)
+            : {'detail': []};
+        
+        // Extract validation errors
+        List<String> errors = [];
+        if (errorData['detail'] is List) {
+          for (var error in errorData['detail']) {
+            if (error['msg'] != null) {
+              final field = error['loc'] != null && (error['loc'] as List).isNotEmpty
+                  ? (error['loc'] as List).last
+                  : 'field';
+              errors.add('$field: ${error['msg']}');
+            }
+          }
+        }
+        
+        final errorMessage = errors.isNotEmpty
+            ? errors.join('\n')
+            : 'Validation failed. Please check your input.';
+        throw Exception(errorMessage);
+      } else {
+        print('❌ ERROR: Status ${response.statusCode} - ${response.body}');
+        final errorData = response.body.isNotEmpty
+            ? json.decode(response.body)
+            : {'message': 'Failed to submit survey'};
+        throw Exception(errorData['message'] ?? 'Failed to submit survey');
+      }
+    } catch (e) {
+      print('❌ Error submitting annual survey: $e');
+      throw e;
     }
   }
 }

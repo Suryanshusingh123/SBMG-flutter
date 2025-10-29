@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter/services.dart';
+import '../../l10n/app_localizations.dart';
 
 class ResetPasswordFlowScreen extends StatefulWidget {
   const ResetPasswordFlowScreen({super.key});
@@ -718,9 +719,9 @@ class _ResetPasswordFlowScreenState extends State<ResetPasswordFlowScreen> {
     _startResendTimer();
     // Show success message
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('OTP sent successfully'),
-        backgroundColor: Color(0xFF009B56),
+      SnackBar(
+        content: Text(AppLocalizations.of(context)!.otpSentSuccessfully),
+        backgroundColor: const Color(0xFF009B56),
       ),
     );
   }
@@ -729,9 +730,9 @@ class _ResetPasswordFlowScreenState extends State<ResetPasswordFlowScreen> {
     String otp = _otpControllers.map((controller) => controller.text).join();
     if (otp.length != 6) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please enter complete OTP'),
-          backgroundColor: Color(0xFFEF4444),
+        SnackBar(
+          content: Text(AppLocalizations.of(context)!.pleaseEnterCompleteOtp),
+          backgroundColor: const Color(0xFFEF4444),
         ),
       );
       return;
@@ -779,9 +780,9 @@ class _ResetPasswordFlowScreenState extends State<ResetPasswordFlowScreen> {
     });
 
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Password reset successfully'),
-        backgroundColor: Color(0xFF009B56),
+      SnackBar(
+        content: Text(AppLocalizations.of(context)!.passwordResetSuccessfully),
+        backgroundColor: const Color(0xFF009B56),
       ),
     );
 

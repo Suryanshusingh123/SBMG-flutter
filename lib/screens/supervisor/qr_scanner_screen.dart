@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
+import '../../l10n/app_localizations.dart';
 
 class QRScannerScreen extends StatefulWidget {
   const QRScannerScreen({super.key});
@@ -86,7 +87,7 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
                     borderRadius: BorderRadius.circular(8.r),
                   ),
                   child: Text(
-                    'Scan QR code for attendance',
+                    AppLocalizations.of(context)!.scanQrCodeForAttendance,
                     style: TextStyle(
                       color: Colors.white,
                       fontSize: 16.sp,
@@ -169,17 +170,17 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
     } else {
       // Show error dialog
       _cameraController.stop();
-      _showErrorDialog(
-        'Invalid QR code format. Expected: lat,long or {"lat": "...", "long": "..."}',
-      );
+      _showErrorDialog(AppLocalizations.of(context)!.invalidQRCodeFormat);
     }
   }
 
   void _showErrorDialog(String message) {
+    final l10n = AppLocalizations.of(context)!;
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Scan Error'),
+        title: Text(l10n.scanError),
         content: Text(message),
         actions: [
           TextButton(
@@ -190,11 +191,11 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
               });
               _cameraController.start(); // Restart scanner
             },
-            child: const Text('Try Again'),
+            child: Text(l10n.tryAgain),
           ),
           TextButton(
             onPressed: () => Navigator.pop(context), // Close scanner
-            child: const Text('Cancel'),
+            child: Text(l10n.cancel),
           ),
         ],
       ),

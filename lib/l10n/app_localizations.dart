@@ -371,7 +371,7 @@ abstract class AppLocalizations {
   /// No description provided for @uploadImage.
   ///
   /// In en, this message translates to:
-  /// **'Upload Image'**
+  /// **'Upload image'**
   String get uploadImage;
 
   /// No description provided for @selectTypeOfComplaint.
@@ -1079,13 +1079,13 @@ abstract class AppLocalizations {
   /// No description provided for @enterFeedback.
   ///
   /// In en, this message translates to:
-  /// **'Enter feedback'**
+  /// **'Enter Feedback'**
   String get enterFeedback;
 
   /// No description provided for @howWasYourExperience.
   ///
   /// In en, this message translates to:
-  /// **'How was your experience with the app?'**
+  /// **'How was your experience?'**
   String get howWasYourExperience;
 
   /// No description provided for @chooseYourExperience.
@@ -1489,6 +1489,426 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Form submitted successfully!'**
   String get formSubmittedSuccessfully;
+
+  /// No description provided for @supervisor.
+  ///
+  /// In en, this message translates to:
+  /// **'Supervisor'**
+  String get supervisor;
+
+  /// No description provided for @complaints.
+  ///
+  /// In en, this message translates to:
+  /// **'Complaints'**
+  String get complaints;
+
+  /// No description provided for @attendance.
+  ///
+  /// In en, this message translates to:
+  /// **'Attendance'**
+  String get attendance;
+
+  /// No description provided for @totalReportedComplaint.
+  ///
+  /// In en, this message translates to:
+  /// **'Total Reported Complaint'**
+  String get totalReportedComplaint;
+
+  /// No description provided for @openComplaint.
+  ///
+  /// In en, this message translates to:
+  /// **'Open Complaint'**
+  String get openComplaint;
+
+  /// No description provided for @disposedComplaints.
+  ///
+  /// In en, this message translates to:
+  /// **'Disposed complaints'**
+  String get disposedComplaints;
+
+  /// No description provided for @todayComplaints.
+  ///
+  /// In en, this message translates to:
+  /// **'Today\'s Complaints'**
+  String get todayComplaints;
+
+  /// No description provided for @overview.
+  ///
+  /// In en, this message translates to:
+  /// **'Overview'**
+  String get overview;
+
+  /// No description provided for @noComplaintsForToday.
+  ///
+  /// In en, this message translates to:
+  /// **'No complaints for today'**
+  String get noComplaintsForToday;
+
+  /// No description provided for @featuredSchemes.
+  ///
+  /// In en, this message translates to:
+  /// **'Featured Schemes'**
+  String get featuredSchemes;
+
+  /// No description provided for @complaintDetails.
+  ///
+  /// In en, this message translates to:
+  /// **'Complaint Details'**
+  String get complaintDetails;
+
+  /// No description provided for @resolution.
+  ///
+  /// In en, this message translates to:
+  /// **'Resolution'**
+  String get resolution;
+
+  /// No description provided for @writeYourCommentHere.
+  ///
+  /// In en, this message translates to:
+  /// **'Write your comment here...'**
+  String get writeYourCommentHere;
+
+  /// No description provided for @complaintResolvedSuccessfully.
+  ///
+  /// In en, this message translates to:
+  /// **'Complaint resolved successfully'**
+  String get complaintResolvedSuccessfully;
+
+  /// No description provided for @failedToResolveComplaint.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to resolve complaint'**
+  String get failedToResolveComplaint;
+
+  /// No description provided for @getDirections.
+  ///
+  /// In en, this message translates to:
+  /// **'Get directions'**
+  String get getDirections;
+
+  /// No description provided for @locationNotAvailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Location not available'**
+  String get locationNotAvailable;
+
+  /// No description provided for @attendanceMarked.
+  ///
+  /// In en, this message translates to:
+  /// **'Attendance Marked'**
+  String get attendanceMarked;
+
+  /// No description provided for @attendanceMarkedDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Your attendance has been successfully marked.'**
+  String get attendanceMarkedDescription;
+
+  /// No description provided for @attendanceEnded.
+  ///
+  /// In en, this message translates to:
+  /// **'Attendance Ended'**
+  String get attendanceEnded;
+
+  /// No description provided for @attendanceEndedDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Your attendance has been successfully ended.'**
+  String get attendanceEndedDescription;
+
+  /// No description provided for @error.
+  ///
+  /// In en, this message translates to:
+  /// **'Error'**
+  String get error;
+
+  /// No description provided for @present.
+  ///
+  /// In en, this message translates to:
+  /// **'Present'**
+  String get present;
+
+  /// No description provided for @incomplete.
+  ///
+  /// In en, this message translates to:
+  /// **'Incomplete'**
+  String get incomplete;
+
+  /// No description provided for @totalDays.
+  ///
+  /// In en, this message translates to:
+  /// **'Total days'**
+  String get totalDays;
+
+  /// No description provided for @loginAsCitizen.
+  ///
+  /// In en, this message translates to:
+  /// **'Login as Citizen'**
+  String get loginAsCitizen;
+
+  /// No description provided for @areYouSureLogout.
+  ///
+  /// In en, this message translates to:
+  /// **'Are you sure you want to log out?'**
+  String get areYouSureLogout;
+
+  /// No description provided for @logoutDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'You\'ll need to sign in again to access your account.'**
+  String get logoutDescription;
+
+  /// No description provided for @scanQRCodeForAttendance.
+  ///
+  /// In en, this message translates to:
+  /// **'Scan QR code for attendance'**
+  String get scanQRCodeForAttendance;
+
+  /// No description provided for @scanError.
+  ///
+  /// In en, this message translates to:
+  /// **'Scan Error'**
+  String get scanError;
+
+  /// No description provided for @invalidQRCodeFormat.
+  ///
+  /// In en, this message translates to:
+  /// **'Invalid QR code format. Expected: lat,long or JSON with lat and long keys.'**
+  String get invalidQRCodeFormat;
+
+  /// No description provided for @tryAgain.
+  ///
+  /// In en, this message translates to:
+  /// **'Try Again'**
+  String get tryAgain;
+
+  /// No description provided for @resolutionComment.
+  ///
+  /// In en, this message translates to:
+  /// **'Resolution Comment'**
+  String get resolutionComment;
+
+  /// No description provided for @comment.
+  ///
+  /// In en, this message translates to:
+  /// **'Comment'**
+  String get comment;
+
+  /// No description provided for @noAttendanceRecordsFound.
+  ///
+  /// In en, this message translates to:
+  /// **'No attendance records found'**
+  String get noAttendanceRecordsFound;
+
+  /// No description provided for @selectMonth.
+  ///
+  /// In en, this message translates to:
+  /// **'Select Month'**
+  String get selectMonth;
+
+  /// No description provided for @endAttendance.
+  ///
+  /// In en, this message translates to:
+  /// **'End Attendance'**
+  String get endAttendance;
+
+  /// No description provided for @markAttendance.
+  ///
+  /// In en, this message translates to:
+  /// **'Mark Attendance'**
+  String get markAttendance;
+
+  /// No description provided for @attendanceLog.
+  ///
+  /// In en, this message translates to:
+  /// **'Attendance log'**
+  String get attendanceLog;
+
+  /// No description provided for @presentDaysOfTotal.
+  ///
+  /// In en, this message translates to:
+  /// **'Present days of total'**
+  String get presentDaysOfTotal;
+
+  /// No description provided for @okButton.
+  ///
+  /// In en, this message translates to:
+  /// **'OK'**
+  String get okButton;
+
+  /// No description provided for @attendanceSummary.
+  ///
+  /// In en, this message translates to:
+  /// **'Attendance log'**
+  String get attendanceSummary;
+
+  /// No description provided for @totalWorkingDays.
+  ///
+  /// In en, this message translates to:
+  /// **'Total days'**
+  String get totalWorkingDays;
+
+  /// No description provided for @absent.
+  ///
+  /// In en, this message translates to:
+  /// **'Absent'**
+  String get absent;
+
+  /// No description provided for @noActiveAttendanceSession.
+  ///
+  /// In en, this message translates to:
+  /// **'No active attendance session found'**
+  String get noActiveAttendanceSession;
+
+  /// No description provided for @attendanceDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Your attendance has been successfully marked.'**
+  String get attendanceDescription;
+
+  /// No description provided for @pending.
+  ///
+  /// In en, this message translates to:
+  /// **'Pending'**
+  String get pending;
+
+  /// No description provided for @waitingVerificationFromVdo.
+  ///
+  /// In en, this message translates to:
+  /// **'Waiting verification from VDO'**
+  String get waitingVerificationFromVdo;
+
+  /// No description provided for @commentSection.
+  ///
+  /// In en, this message translates to:
+  /// **'Comment'**
+  String get commentSection;
+
+  /// No description provided for @schemeDetails.
+  ///
+  /// In en, this message translates to:
+  /// **'Scheme Details'**
+  String get schemeDetails;
+
+  /// No description provided for @viewing.
+  ///
+  /// In en, this message translates to:
+  /// **'Viewing'**
+  String get viewing;
+
+  /// No description provided for @couldNotOpenGoogleMaps.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not open Google Maps'**
+  String get couldNotOpenGoogleMaps;
+
+  /// No description provided for @pleaseEnterCompleteOtp.
+  ///
+  /// In en, this message translates to:
+  /// **'Please enter complete OTP'**
+  String get pleaseEnterCompleteOtp;
+
+  /// No description provided for @passwordResetSuccessfully.
+  ///
+  /// In en, this message translates to:
+  /// **'Password reset successfully'**
+  String get passwordResetSuccessfully;
+
+  /// No description provided for @scanQrCodeForAttendance.
+  ///
+  /// In en, this message translates to:
+  /// **'Scan QR code for attendance'**
+  String get scanQrCodeForAttendance;
+
+  /// No description provided for @logout.
+  ///
+  /// In en, this message translates to:
+  /// **'Logout'**
+  String get logout;
+
+  /// No description provided for @confirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirm'**
+  String get confirm;
+
+  /// No description provided for @areYouSureYouWantToLogOut.
+  ///
+  /// In en, this message translates to:
+  /// **'Are you sure you want to log out?'**
+  String get areYouSureYouWantToLogOut;
+
+  /// No description provided for @youllNeedToSignInAgainToAccessTheApp.
+  ///
+  /// In en, this message translates to:
+  /// **'You\'ll need to sign in again to access your account.'**
+  String get youllNeedToSignInAgainToAccessTheApp;
+
+  /// No description provided for @complaintVerified.
+  ///
+  /// In en, this message translates to:
+  /// **'Complaint verified'**
+  String get complaintVerified;
+
+  /// No description provided for @vdo.
+  ///
+  /// In en, this message translates to:
+  /// **'VDO'**
+  String get vdo;
+
+  /// No description provided for @inspection.
+  ///
+  /// In en, this message translates to:
+  /// **'Inspection'**
+  String get inspection;
+
+  /// No description provided for @thisMonth.
+  ///
+  /// In en, this message translates to:
+  /// **'This month'**
+  String get thisMonth;
+
+  /// No description provided for @total.
+  ///
+  /// In en, this message translates to:
+  /// **'Total'**
+  String get total;
+
+  /// No description provided for @checkVendorSupervisorAttendance.
+  ///
+  /// In en, this message translates to:
+  /// **'Check Vender / Supervisor attendance'**
+  String get checkVendorSupervisorAttendance;
+
+  /// No description provided for @updateContractorDetails.
+  ///
+  /// In en, this message translates to:
+  /// **'Update Contractor details'**
+  String get updateContractorDetails;
+
+  /// No description provided for @startVillageMasterData.
+  ///
+  /// In en, this message translates to:
+  /// **'Start the Village Master data'**
+  String get startVillageMasterData;
+
+  /// No description provided for @export.
+  ///
+  /// In en, this message translates to:
+  /// **'Export'**
+  String get export;
+
+  /// No description provided for @supportedBy.
+  ///
+  /// In en, this message translates to:
+  /// **'Supported by'**
+  String get supportedBy;
+
+  /// No description provided for @noComplaintsAvailable.
+  ///
+  /// In en, this message translates to:
+  /// **'No complaints available'**
+  String get noComplaintsAvailable;
 }
 
 class _AppLocalizationsDelegate

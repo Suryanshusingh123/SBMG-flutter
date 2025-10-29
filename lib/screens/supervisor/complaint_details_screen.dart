@@ -6,6 +6,7 @@ import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 import '../../services/api_services.dart';
 import '../../config/connstants.dart';
+import '../../l10n/app_localizations.dart';
 
 class SupervisorComplaintDetailsScreen extends StatefulWidget {
   final int complaintId;
@@ -79,23 +80,25 @@ class _SupervisorComplaintDetailsScreenState
     print('🔍 Status Check: verified_at = $verifiedAt');
     print('🔍 Status Check: closed_at = $closedAt');
 
+    final l10n = AppLocalizations.of(context)!;
+
     // First check if closed
     if (status == 4 || closedAt != null) {
-      return 'Complaint resolved';
+      return l10n.complaintResolved;
     }
 
     // Then check if verified but not closed
     if (status == 3 || (verifiedAt != null && closedAt == null)) {
-      return 'Complaint verified';
+      return l10n.complaintVerified;
     }
 
     // Then check if resolved
     if (status == 2 || resolvedAt != null) {
-      return 'Waiting verification from VDO';
+      return l10n.waitingVerificationFromVdo;
     }
 
     // Open status
-    return 'Waiting for supervisor to resolve';
+    return l10n.waitingForSupervisorToResolve;
   }
 
   String get _dynamicStatusSubtext {
@@ -105,12 +108,14 @@ class _SupervisorComplaintDetailsScreenState
     final resolvedAt = _complaintData?['resolved_at'];
     final createdAt = _complaintData?['created_at'];
 
+    final l10n = AppLocalizations.of(context)!;
+
     // If closed, show "Closed at" date
     if (status == 4 || closedAt != null) {
       if (closedAt != null) {
         return _formatDate(closedAt);
       }
-      return 'Closed';
+      return l10n.closed;
     }
 
     // If verified but not closed, show "Verified at" date
@@ -118,7 +123,7 @@ class _SupervisorComplaintDetailsScreenState
       if (verifiedAt != null) {
         return _formatDate(verifiedAt);
       }
-      return 'Verified';
+      return l10n.verified;
     }
 
     // If resolved, show "Resolved at" date
@@ -126,7 +131,7 @@ class _SupervisorComplaintDetailsScreenState
       if (resolvedAt != null) {
         return _formatDate(resolvedAt);
       }
-      return 'Resolved';
+      return l10n.resolved;
     }
 
     // Open status - show "Created at" date
@@ -134,7 +139,7 @@ class _SupervisorComplaintDetailsScreenState
       return _formatDate(createdAt);
     }
 
-    return 'Created';
+    return l10n.complaintCreated;
   }
 
   Color get _dynamicStatusColor {
@@ -227,7 +232,7 @@ class _SupervisorComplaintDetailsScreenState
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Complaint ID #${_complaintData!['id']}',
+              '${AppLocalizations.of(context)!.complaintDetails} #${_complaintData!['id']}',
               style: TextStyle(
                 fontSize: 16.sp,
                 fontWeight: FontWeight.w600,
@@ -602,7 +607,7 @@ class _SupervisorComplaintDetailsScreenState
                     ),
                     SizedBox(width: 12.w),
                     Text(
-                      'Get directions',
+                      AppLocalizations.of(context)!.getDirections,
                       style: TextStyle(
                         fontSize: 14.sp,
                         fontWeight: FontWeight.w500,
@@ -633,7 +638,7 @@ class _SupervisorComplaintDetailsScreenState
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Timeline',
+            AppLocalizations.of(context)!.timeline,
             style: TextStyle(
               fontSize: 18.sp,
               fontWeight: FontWeight.w600,
@@ -673,9 +678,11 @@ class _SupervisorComplaintDetailsScreenState
           comment['comment'].toString().toUpperCase().contains('[VERIFIED]'),
     );
 
+    final l10n = AppLocalizations.of(context)!;
+
     // Always add complaint created
     items.add({
-      'title': 'Complaint created',
+      'title': l10n.complaintCreated,
       'subtitle': _formatTimelineSubtitle('Citizen', createdAt),
       'isCompleted': true,
       'showLine':
@@ -689,7 +696,7 @@ class _SupervisorComplaintDetailsScreenState
     // Add resolved if present
     if (resolvedAt != null || hasResolutionComment) {
       items.add({
-        'title': 'Resolved',
+        'title': l10n.resolved,
         'subtitle': _formatTimelineSubtitle('Vendor / Supervisor', resolvedAt),
         'isCompleted': true,
         'showLine':
@@ -700,7 +707,7 @@ class _SupervisorComplaintDetailsScreenState
     // Add verified if present
     if (verifiedAt != null || hasVerificationComment) {
       items.add({
-        'title': 'Verified',
+        'title': l10n.verified,
         'subtitle': _formatTimelineSubtitle('VDO', verifiedAt),
         'isCompleted': true,
         'showLine': closedAt != null,
@@ -710,7 +717,7 @@ class _SupervisorComplaintDetailsScreenState
     // Add closed if present
     if (closedAt != null) {
       items.add({
-        'title': 'Closed',
+        'title': l10n.closed,
         'subtitle': _formatTimelineSubtitle('Citizen', closedAt),
         'isCompleted': true,
         'showLine': false,
@@ -811,9 +818,11 @@ class _SupervisorComplaintDetailsScreenState
   Future<void> _openGoogleMaps(double? lat, double? long) async {
     if (lat == null || long == null) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('Location not available')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(AppLocalizations.of(context)!.locationNotAvailable),
+          ),
+        );
       }
       return;
     }
@@ -829,15 +838,19 @@ class _SupervisorComplaintDetailsScreenState
       } else {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Could not open Google Maps')),
+            SnackBar(
+              content: Text(
+                AppLocalizations.of(context)!.couldNotOpenGoogleMaps,
+              ),
+            ),
           );
         }
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Error: $e')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('${AppLocalizations.of(context)!.error}: $e')),
+        );
       }
     }
   }
@@ -877,7 +890,7 @@ class _SupervisorComplaintDetailsScreenState
             const Icon(Icons.check_circle_outline, color: Colors.white),
             const SizedBox(width: 8),
             Text(
-              'Mark Completed',
+              AppLocalizations.of(context)!.markCompleted,
               style: TextStyle(
                 fontFamily: 'Noto Sans',
                 fontSize: 14.sp,
@@ -953,7 +966,11 @@ class _SupervisorComplaintDetailsScreenState
 
         // Show success message
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Complaint resolved successfully')),
+          SnackBar(
+            content: Text(
+              AppLocalizations.of(context)!.complaintResolvedSuccessfully,
+            ),
+          ),
         );
 
         // Pop the details screen to return to complaints list
@@ -964,7 +981,11 @@ class _SupervisorComplaintDetailsScreenState
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to resolve complaint: $e')),
+          SnackBar(
+            content: Text(
+              '${AppLocalizations.of(context)!.failedToResolveComplaint}: $e',
+            ),
+          ),
         );
       }
     }
@@ -1022,7 +1043,7 @@ class _ResolutionBottomSheet extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    'Resolution',
+                    AppLocalizations.of(context)!.resolution,
                     style: TextStyle(
                       fontFamily: 'Noto Sans',
                       fontSize: 20.sp,
@@ -1071,7 +1092,7 @@ class _ResolutionBottomSheet extends StatelessWidget {
                             ),
                             SizedBox(height: 8.h),
                             Text(
-                              'Upload image',
+                              AppLocalizations.of(context)!.uploadImage,
                               style: TextStyle(
                                 fontFamily: 'Noto Sans',
                                 fontSize: 14.sp,
@@ -1091,7 +1112,7 @@ class _ResolutionBottomSheet extends StatelessWidget {
 
               // Comment section
               Text(
-                'Comment',
+                AppLocalizations.of(context)!.comment,
                 style: TextStyle(
                   fontFamily: 'Noto Sans',
                   fontSize: 14.sp,
@@ -1110,7 +1131,9 @@ class _ResolutionBottomSheet extends StatelessWidget {
                   maxLines: 4,
                   maxLength: 100,
                   decoration: InputDecoration(
-                    hintText: 'Write your comment here...',
+                    hintText: AppLocalizations.of(
+                      context,
+                    )!.writeYourCommentHere,
                     hintStyle: TextStyle(
                       color: Colors.grey.shade400,
                       fontSize: 14.sp,
@@ -1140,7 +1163,7 @@ class _ResolutionBottomSheet extends StatelessWidget {
                     ),
                   ),
                   child: Text(
-                    'Submit',
+                    AppLocalizations.of(context)!.submit,
                     style: TextStyle(
                       fontFamily: 'Noto Sans',
                       fontSize: 14.sp,

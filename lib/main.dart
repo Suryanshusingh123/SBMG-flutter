@@ -24,6 +24,11 @@ import 'screens/bdo/bdo_settings_screen.dart';
 import 'screens/bdo/inspection_log_screen.dart';
 import 'screens/ceo/ceo_home_screen.dart';
 import 'screens/ceo/ceo_complaints_screen.dart';
+import 'screens/vdo/vdo_home_screen.dart';
+import 'screens/vdo/vdo_complaints_screen.dart';
+import 'screens/vdo/vdo_inspection_screen.dart';
+import 'screens/vdo/new_inspection_screen.dart';
+import 'screens/vdo/vdo_settings_screen.dart';
 import 'screens/smd/smd_home_screen.dart';
 import 'screens/smd/smd_complaints_screen.dart';
 import 'screens/smd/smd_district_selection_screen.dart';
@@ -184,14 +189,14 @@ class MyApp extends StatelessWidget {
                   const SupervisorAttendanceScreen(),
               '/supervisor-settings': (context) =>
                   const SupervisorSettingsScreen(),
-              '/vdo-dashboard': (context) =>
-                  Scaffold(body: Center(child: Text('VDO Dashboard'))),
+              '/vdo-dashboard': (context) => const VdoHomeScreen(),
               '/vdo-inspection': (context) =>
-                  Scaffold(body: Center(child: Text('VDO Inspection'))),
+                  const VdoInspectionScreen(),
+              '/vdo-new-inspection': (context) =>
+                  const NewInspectionScreen(),
               '/vdo-complaints': (context) =>
-                  Scaffold(body: Center(child: Text('VDO Complaints'))),
-              '/vdo-settings': (context) =>
-                  Scaffold(body: Center(child: Text('VDO Settings'))),
+                  const VdoComplaintsScreen(),
+              '/vdo-settings': (context) => const VdoSettingsScreen(),
               '/bdo-dashboard': (context) =>
                   Scaffold(body: Center(child: Text('BDO Dashboard'))),
               '/bdo-complaints': (context) => const BdoComplaintsScreen(),

@@ -1,4 +1,6 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:path_provider/path_provider.dart';
 import '../models/scheme_model.dart';
 import '../models/event_model.dart';
 import '../models/contractor_model.dart';
@@ -310,5 +312,68 @@ class VdoProvider with ChangeNotifier {
       'Dec',
     ];
     return months[month - 1];
+  }
+
+  // Export analytics to CSV
+  Future<String?> exportAnalyticsToCsv() async {
+    try {
+      print('📊 Starting CSV export...');
+
+      // Get the documents directory for storing the file
+      final Directory? directory = await getExternalStorageDirectory();
+      if (directory == null) {
+        print('❌ Could not access external storage');
+        return null;
+      }
+
+      // Create filename with timestamp
+      final timestamp = DateTime.now()
+          .toIso8601String()
+          .replaceAll(':', '-')
+          .split('.')[0];
+      final fileName = 'vdo_complaints_export_$timestamp.csv';
+      final file = File('${directory.path}/$fileName');
+
+      // Create CSV content
+      final csvContent = _generateCsvContent();
+
+      // Write to file
+      await file.writeAsString(csvContent);
+
+      print('✅ CSV file created at: ${file.path}');
+      return file.path;
+    } catch (e) {
+      print('❌ Error exporting CSV: $e');
+      return null;
+    }
+  }
+
+  String _generateCsvContent() {
+    final buffer = StringBuffer();
+
+    // CSV Header
+    buffer.writeln('Metric,Count');
+
+    // CSV Data
+    buffer.writeln('Total Complaints,${_analytics['totalComplaints']}');
+    buffer.writeln('Open Complaints,${_analytics['openComplaints']}');
+    buffer.writeln('Resolved Complaints,${_analytics['resolvedComplaints']}');
+    buffer.writeln('Verified Complaints,${_analytics['verifiedComplaints']}');
+    buffer.writeln('Closed Complaints,${_analytics['closedComplaints']}');
+    buffer.writeln('Total Inspections,$_totalInspections');
+    buffer.writeln('This Month Inspections,$_thisMonthInspections');
+
+    // Add date range info if available
+    if (_fromDate != null && _toDate != null) {
+      buffer.writeln('');
+      buffer.writeln('Date Range from,${_formatDateForCsv(_fromDate!)}');
+      buffer.writeln('Date Range to,${_formatDateForCsv(_toDate!)}');
+    }
+
+    return buffer.toString();
+  }
+
+  String _formatDateForCsv(DateTime date) {
+    return '${date.day}/${date.month}/${date.year}';
   }
 }

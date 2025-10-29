@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 import 'qr_scanner_screen.dart';
 import '../../widgets/common/date_filter_bottom_sheet.dart';
 import '../../providers/supervisor_attendance_provider.dart';
+import '../../l10n/app_localizations.dart';
 
 class SupervisorAttendanceScreen extends StatefulWidget {
   const SupervisorAttendanceScreen({super.key});
@@ -163,9 +164,9 @@ class _SupervisorAttendanceScreenState
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          const Text(
-            'Attendance',
-            style: TextStyle(
+          Text(
+            AppLocalizations.of(context)!.attendance,
+            style: const TextStyle(
               fontFamily: 'Noto Sans',
               fontSize: 20,
               fontWeight: FontWeight.w600,
@@ -261,8 +262,8 @@ class _SupervisorAttendanceScreenState
                         SizedBox(width: 8.w),
                         Text(
                           provider.isAttendanceActive
-                              ? 'End Attendance'
-                              : 'Mark Attendance',
+                              ? AppLocalizations.of(context)!.endAttendance
+                              : AppLocalizations.of(context)!.markAttendance,
                           style: const TextStyle(
                             fontFamily: 'Noto Sans',
                             fontSize: 16,
@@ -316,21 +317,21 @@ class _SupervisorAttendanceScreenState
             children: [
               Expanded(
                 child: _buildSummaryCard(
-                  'Total days',
+                  AppLocalizations.of(context)!.totalWorkingDays,
                   provider.totalWorkingDays.toString(),
                 ),
               ),
               SizedBox(width: 12.w),
               Expanded(
                 child: _buildSummaryCard(
-                  'Present',
+                  AppLocalizations.of(context)!.present,
                   provider.presentDays.toString(),
                 ),
               ),
               SizedBox(width: 12.w),
               Expanded(
                 child: _buildSummaryCard(
-                  'Absent',
+                  AppLocalizations.of(context)!.absent,
                   provider.absentDays.toString(),
                 ),
               ),
@@ -400,7 +401,7 @@ class _SupervisorAttendanceScreenState
                   : provider.filteredAttendanceLog.isEmpty
                   ? Center(
                       child: Text(
-                        'No attendance records found',
+                        AppLocalizations.of(context)!.noAttendanceRecordsFound,
                         style: TextStyle(
                           fontFamily: 'Noto Sans',
                           fontSize: 16.sp,
@@ -442,7 +443,9 @@ class _SupervisorAttendanceScreenState
     // Determine status
     final endTime = attendance['end_time'];
     final isPresent = endTime != null;
-    final status = isPresent ? 'Present' : 'Incomplete';
+    final status = isPresent
+        ? AppLocalizations.of(context)!.present
+        : AppLocalizations.of(context)!.incomplete;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
@@ -557,10 +560,23 @@ class _SupervisorAttendanceScreenState
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
-          _buildNavItem(Icons.home, 'Home', 0),
-          _buildNavItem(Icons.list_alt, 'Complaint', 1),
-          _buildNavItem(Icons.grid_view, 'Attendance', 2, isActive: true),
-          _buildNavItem(Icons.settings, 'Settings', 3),
+          _buildNavItem(Icons.home, AppLocalizations.of(context)!.home, 0),
+          _buildNavItem(
+            Icons.list_alt,
+            AppLocalizations.of(context)!.complaints,
+            1,
+          ),
+          _buildNavItem(
+            Icons.grid_view,
+            AppLocalizations.of(context)!.attendance,
+            2,
+            isActive: true,
+          ),
+          _buildNavItem(
+            Icons.settings,
+            AppLocalizations.of(context)!.settings,
+            3,
+          ),
         ],
       ),
     );

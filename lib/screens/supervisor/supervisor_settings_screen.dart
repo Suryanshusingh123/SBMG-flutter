@@ -5,6 +5,7 @@ import '../../config/connstants.dart';
 import '../../providers/locale_provider.dart';
 import '../../providers/theme_provider.dart';
 import '../../services/auth_services.dart';
+import '../../l10n/app_localizations.dart';
 import 'reset_password_flow_screen.dart';
 import '../citizen/language_screen.dart';
 
@@ -33,7 +34,7 @@ class _SupervisorSettingsScreenState extends State<SupervisorSettingsScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Settings',
+                    AppLocalizations.of(context)!.settings,
                     style: TextStyle(
                       fontSize: 20.sp,
                       fontWeight: FontWeight.w700,
@@ -52,7 +53,7 @@ class _SupervisorSettingsScreenState extends State<SupervisorSettingsScreen> {
                     // Change Password
                     _buildSettingItem(
                       icon: Icons.lock_outline,
-                      title: 'Change Password',
+                      title: AppLocalizations.of(context)!.changePassword,
                       onTap: () {
                         Navigator.push(
                           context,
@@ -68,7 +69,7 @@ class _SupervisorSettingsScreenState extends State<SupervisorSettingsScreen> {
                     // Notifications with toggle
                     _buildSettingItemWithToggle(
                       icon: Icons.notifications_outlined,
-                      title: 'Notifications',
+                      title: AppLocalizations.of(context)!.notifications,
                       value: _notificationsEnabled,
                       onChanged: (value) {
                         setState(() {
@@ -81,7 +82,7 @@ class _SupervisorSettingsScreenState extends State<SupervisorSettingsScreen> {
                     // Theme
                     _buildSettingItem(
                       icon: Icons.palette_outlined,
-                      title: 'Theme',
+                      title: AppLocalizations.of(context)!.theme,
                       onTap: () {
                         _showThemeBottomSheet(context);
                       },
@@ -91,7 +92,7 @@ class _SupervisorSettingsScreenState extends State<SupervisorSettingsScreen> {
                     // FAQs
                     _buildSettingItem(
                       icon: Icons.help_outline,
-                      title: 'FAQs',
+                      title: AppLocalizations.of(context)!.faqs,
                       onTap: () {
                         // TODO: Navigate to FAQs screen
                       },
@@ -101,7 +102,7 @@ class _SupervisorSettingsScreenState extends State<SupervisorSettingsScreen> {
                     // Give us Feedback
                     _buildSettingItem(
                       icon: Icons.thumb_up_outlined,
-                      title: 'Give us Feedback',
+                      title: AppLocalizations.of(context)!.giveUsFeedback,
                       onTap: () {
                         _showFeedbackBottomSheet(context);
                       },
@@ -113,10 +114,10 @@ class _SupervisorSettingsScreenState extends State<SupervisorSettingsScreen> {
                       builder: (context, localeProvider, child) {
                         return _buildSettingItemWithLabel(
                           icon: Icons.language_outlined,
-                          title: 'Language',
+                          title: AppLocalizations.of(context)!.language,
                           label: localeProvider.locale.languageCode == 'hi'
-                              ? 'Hindi'
-                              : 'English',
+                              ? AppLocalizations.of(context)!.hindi
+                              : AppLocalizations.of(context)!.english,
                           onTap: () async {
                             await Navigator.push(
                               context,
@@ -137,7 +138,7 @@ class _SupervisorSettingsScreenState extends State<SupervisorSettingsScreen> {
 
                     // Login as Citizen
                     _buildActionTile(
-                      title: 'Login as Citizen',
+                      title: AppLocalizations.of(context)!.loginAsCitizen,
                       onTap: () {
                         _handleLoginAsCitizen(context);
                       },
@@ -147,7 +148,7 @@ class _SupervisorSettingsScreenState extends State<SupervisorSettingsScreen> {
 
                     // Logout
                     _buildActionTile(
-                      title: 'Logout',
+                      title: AppLocalizations.of(context)!.logout,
                       icon: Icons.logout,
                       iconColor: const Color(0xFFEF4444),
                       textColor: const Color(0xFFEF4444),
@@ -311,10 +312,23 @@ class _SupervisorSettingsScreenState extends State<SupervisorSettingsScreen> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
-          _buildNavItem(Icons.home, 'Home', 0),
-          _buildNavItem(Icons.list_alt, 'Complaint', 1),
-          _buildNavItem(Icons.grid_view, 'Attendance', 2),
-          _buildNavItem(Icons.settings, 'Settings', 3, isActive: true),
+          _buildNavItem(Icons.home, AppLocalizations.of(context)!.home, 0),
+          _buildNavItem(
+            Icons.list_alt,
+            AppLocalizations.of(context)!.complaints,
+            1,
+          ),
+          _buildNavItem(
+            Icons.grid_view,
+            AppLocalizations.of(context)!.attendance,
+            2,
+          ),
+          _buildNavItem(
+            Icons.settings,
+            AppLocalizations.of(context)!.settings,
+            3,
+            isActive: true,
+          ),
         ],
       ),
     );
@@ -404,7 +418,7 @@ class _SupervisorSettingsScreenState extends State<SupervisorSettingsScreen> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  'Theme',
+                  AppLocalizations.of(context)!.theme,
                   style: TextStyle(
                     fontSize: 20.sp,
                     fontWeight: FontWeight.w600,
@@ -428,7 +442,7 @@ class _SupervisorSettingsScreenState extends State<SupervisorSettingsScreen> {
                     Navigator.pop(context);
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
-                        content: const Text('Dark Mode'),
+                        content: Text(AppLocalizations.of(context)!.darkMode),
                         backgroundColor: const Color(0xFF009B56),
                       ),
                     );
@@ -447,7 +461,7 @@ class _SupervisorSettingsScreenState extends State<SupervisorSettingsScreen> {
                         SizedBox(width: 16.w),
                         Expanded(
                           child: Text(
-                            'Dark Mode',
+                            AppLocalizations.of(context)!.darkMode,
                             style: TextStyle(
                               fontSize: 16.sp,
                               color: const Color(0xFF111827),
@@ -478,7 +492,7 @@ class _SupervisorSettingsScreenState extends State<SupervisorSettingsScreen> {
                     Navigator.pop(context);
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
-                        content: const Text('Light Mode'),
+                        content: Text(AppLocalizations.of(context)!.lightMode),
                         backgroundColor: const Color(0xFF009B56),
                       ),
                     );
@@ -497,7 +511,7 @@ class _SupervisorSettingsScreenState extends State<SupervisorSettingsScreen> {
                         SizedBox(width: 16.w),
                         Expanded(
                           child: Text(
-                            'Light Mode',
+                            AppLocalizations.of(context)!.lightMode,
                             style: TextStyle(
                               fontSize: 16.sp,
                               color: const Color(0xFF111827),
@@ -554,7 +568,7 @@ class _SupervisorSettingsScreenState extends State<SupervisorSettingsScreen> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
-                      'Give us Feedback',
+                      AppLocalizations.of(context)!.giveUsFeedback,
                       style: TextStyle(
                         fontSize: 20.sp,
                         fontWeight: FontWeight.w600,
@@ -570,7 +584,7 @@ class _SupervisorSettingsScreenState extends State<SupervisorSettingsScreen> {
 
                 // Question
                 Text(
-                  'How was your experience?',
+                  AppLocalizations.of(context)!.howWasYourExperience,
                   style: TextStyle(
                     fontSize: 16.sp,
                     fontWeight: FontWeight.w500,
@@ -612,7 +626,7 @@ class _SupervisorSettingsScreenState extends State<SupervisorSettingsScreen> {
                 // Instruction text
                 if (selectedRating == -1)
                   Text(
-                    'Choose your experience',
+                    AppLocalizations.of(context)!.chooseYourExperience,
                     style: TextStyle(
                       fontSize: 14.sp,
                       color: const Color(0xFF9CA3AF),
@@ -622,7 +636,7 @@ class _SupervisorSettingsScreenState extends State<SupervisorSettingsScreen> {
 
                 // Feedback label
                 Text(
-                  'Enter Feedback',
+                  AppLocalizations.of(context)!.enterFeedback,
                   style: TextStyle(
                     fontSize: 14.sp,
                     fontWeight: FontWeight.w500,
@@ -642,7 +656,7 @@ class _SupervisorSettingsScreenState extends State<SupervisorSettingsScreen> {
                     maxLines: 4,
                     maxLength: 100,
                     decoration: InputDecoration(
-                      hintText: 'Enter Feedback',
+                      hintText: AppLocalizations.of(context)!.enterFeedback,
                       hintStyle: TextStyle(
                         fontSize: 14.sp,
                         color: const Color(0xFF9CA3AF),
@@ -668,7 +682,11 @@ class _SupervisorSettingsScreenState extends State<SupervisorSettingsScreen> {
                       if (selectedRating == -1) {
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
-                            content: const Text('Please rate your experience'),
+                            content: Text(
+                              AppLocalizations.of(
+                                context,
+                              )!.pleaseRateYourExperience,
+                            ),
                             backgroundColor: Colors.red,
                           ),
                         );
@@ -691,7 +709,7 @@ class _SupervisorSettingsScreenState extends State<SupervisorSettingsScreen> {
                       elevation: 0,
                     ),
                     child: Text(
-                      'Submit',
+                      AppLocalizations.of(context)!.submit,
                       style: TextStyle(
                         fontSize: 16.sp,
                         fontWeight: FontWeight.w600,
@@ -735,7 +753,9 @@ class _SupervisorSettingsScreenState extends State<SupervisorSettingsScreen> {
 
               // Success message
               Text(
-                'Your feedback is successfully submitted',
+                AppLocalizations.of(
+                  context,
+                )!.yourFeedbackIsSuccessfullySubmitted,
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontSize: 18.sp,
@@ -762,7 +782,7 @@ class _SupervisorSettingsScreenState extends State<SupervisorSettingsScreen> {
                     elevation: 0,
                   ),
                   child: Text(
-                    'Close',
+                    AppLocalizations.of(context)!.close,
                     style: TextStyle(
                       fontSize: 16.sp,
                       fontWeight: FontWeight.w600,
@@ -863,7 +883,7 @@ class _SupervisorSettingsScreenState extends State<SupervisorSettingsScreen> {
             children: [
               // Title
               Text(
-                'Are you sure you want to log out?',
+                AppLocalizations.of(context)!.areYouSureYouWantToLogOut,
                 style: TextStyle(
                   fontSize: 18.sp,
                   fontWeight: FontWeight.w600,
@@ -875,7 +895,9 @@ class _SupervisorSettingsScreenState extends State<SupervisorSettingsScreen> {
 
               // Subtitle
               Text(
-                'You\'ll need to sign in again to access your account.',
+                AppLocalizations.of(
+                  context,
+                )!.youllNeedToSignInAgainToAccessTheApp,
                 style: TextStyle(
                   fontSize: 14.sp,
                   fontWeight: FontWeight.w400,
@@ -902,7 +924,7 @@ class _SupervisorSettingsScreenState extends State<SupervisorSettingsScreen> {
                         elevation: 0,
                       ),
                       child: Text(
-                        'Close',
+                        AppLocalizations.of(context)!.close,
                         style: TextStyle(
                           fontSize: 16.sp,
                           fontWeight: FontWeight.w600,
@@ -938,7 +960,7 @@ class _SupervisorSettingsScreenState extends State<SupervisorSettingsScreen> {
                         elevation: 0,
                       ),
                       child: Text(
-                        'Confirm',
+                        AppLocalizations.of(context)!.confirm,
                         style: TextStyle(
                           fontSize: 16.sp,
                           fontWeight: FontWeight.w600,

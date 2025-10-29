@@ -8,6 +8,7 @@ import '../../services/auth_services.dart';
 import '../../services/api_services.dart';
 import '../../widgets/common/custom_bottom_navigation.dart';
 import '../../widgets/common/date_filter_bottom_sheet.dart';
+import '../../l10n/app_localizations.dart';
 import 'complaint_details_screen.dart';
 
 class SupervisorComplaintsScreen extends StatefulWidget {
@@ -170,11 +171,23 @@ class _SupervisorComplaintsScreenState
               break;
           }
         },
-        items: const [
-          BottomNavItem(icon: Icons.home, label: 'Home'),
-          BottomNavItem(icon: Icons.list_alt, label: 'Complaints'),
-          BottomNavItem(icon: Icons.people, label: 'Attendance'),
-          BottomNavItem(icon: Icons.settings, label: 'Settings'),
+        items: [
+          BottomNavItem(
+            icon: Icons.home,
+            label: AppLocalizations.of(context)!.home,
+          ),
+          BottomNavItem(
+            icon: Icons.list_alt,
+            label: AppLocalizations.of(context)!.complaints,
+          ),
+          BottomNavItem(
+            icon: Icons.people,
+            label: AppLocalizations.of(context)!.attendance,
+          ),
+          BottomNavItem(
+            icon: Icons.settings,
+            label: AppLocalizations.of(context)!.settings,
+          ),
         ],
       ),
     );
@@ -183,6 +196,7 @@ class _SupervisorComplaintsScreenState
   Widget _buildHeader(BuildContext context) {
     final provider = context.watch<SupervisorComplaintsProvider>();
     final totalComplaints = provider.complaints.length;
+    final l10n = AppLocalizations.of(context)!;
 
     return Container(
       padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
@@ -193,7 +207,7 @@ class _SupervisorComplaintsScreenState
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                'Complaint ($totalComplaints)',
+                '${l10n.complaints} ($totalComplaints)',
                 style: TextStyle(
                   fontSize: 20.sp,
                   fontWeight: FontWeight.w700,
@@ -246,7 +260,7 @@ class _SupervisorComplaintsScreenState
         children: [
           _buildTab(
             context,
-            'Open',
+            AppLocalizations.of(context)!.open,
             provider.openComplaints.length,
             _selectedStatus == 'Open',
             0,
@@ -254,7 +268,7 @@ class _SupervisorComplaintsScreenState
           SizedBox(width: 12.w),
           _buildTab(
             context,
-            'Resolved',
+            AppLocalizations.of(context)!.resolved,
             provider.resolvedComplaints.length,
             _selectedStatus == 'Resolved',
             1,
@@ -262,7 +276,7 @@ class _SupervisorComplaintsScreenState
           SizedBox(width: 12.w),
           _buildTab(
             context,
-            'Verified',
+            AppLocalizations.of(context)!.verified,
             provider.verifiedComplaints.length,
             _selectedStatus == 'Verified',
             2,
@@ -270,7 +284,7 @@ class _SupervisorComplaintsScreenState
           SizedBox(width: 12.w),
           _buildTab(
             context,
-            'Closed',
+            AppLocalizations.of(context)!.complaintClosed,
             provider.closedComplaints.length,
             _selectedStatus == 'Closed',
             3,
@@ -369,7 +383,7 @@ class _SupervisorComplaintsScreenState
             SizedBox(height: 16.h),
             ElevatedButton(
               onPressed: _refreshComplaints,
-              child: const Text('Retry'),
+              child: Text(AppLocalizations.of(context)!.retry),
             ),
           ],
         ),
@@ -687,7 +701,10 @@ class _SupervisorComplaintsScreenState
 
   String _formatDate(String dateString) {
     try {
+      // Parse the UTC date
       final date = DateTime.parse(dateString);
+      // Convert to IST (UTC+5:30)
+      final istDate = date.add(const Duration(hours: 5, minutes: 30));
       final months = [
         'Jan',
         'Feb',
@@ -702,7 +719,7 @@ class _SupervisorComplaintsScreenState
         'Nov',
         'Dec',
       ];
-      return '${months[date.month - 1]} ${date.day}, ${date.year}';
+      return '${months[istDate.month - 1]} ${istDate.day}, ${istDate.year}';
     } catch (e) {
       return 'Recent';
     }

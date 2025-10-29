@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import '../models/inspection_model.dart';
 import '../services/api_services.dart';
+import '../services/auth_services.dart';
 
 class VdoInspectionProvider with ChangeNotifier {
   final ApiService _apiService = ApiService();
+  final AuthService _authService = AuthService();
 
   // State
   List<Inspection> _inspections = [];
@@ -18,21 +20,40 @@ class VdoInspectionProvider with ChangeNotifier {
   // Load inspections
   Future<void> loadInspections() async {
     try {
-      print('🔄 Starting to load inspections...');
+      print('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+      print('🔵 VDO INSPECTIONS: Loading Inspections');
+      print('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
       _isInspectionsLoading = true;
       notifyListeners();
 
-      // For now, using village_id = 1 as per the API example
-      print('📡 Calling API service to fetch inspections for village_id: 1');
+      // Get village_id from auth service
+      final villageId = await _authService.getVillageId();
+      print('🏘️ Village ID: $villageId');
+
+      if (villageId == null) {
+        print('❌ Village ID not found');
+        _isInspectionsLoading = false;
+        notifyListeners();
+        return;
+      }
+
+      print('📡 Calling API service to fetch inspections');
       final inspectionResponse = await _apiService.getInspections(
-        villageId: 1,
+        villageId: villageId,
         page: 1,
-        pageSize: 100,
+        pageSize: 20,
       );
 
+      print('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+      print('🟢 VDO INSPECTIONS: Success');
+      print('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
       print('📊 Processing inspection data...');
-      print('   - Total inspections received: ${inspectionResponse.total}');
-      print('   - Items in response: ${inspectionResponse.items.length}');
+      print('   - Total inspections: ${inspectionResponse.total}');
+      print('   - Items received: ${inspectionResponse.items.length}');
+      print('   - Page: ${inspectionResponse.page}');
+      print('   - Page Size: ${inspectionResponse.pageSize}');
+      print('   - Total Pages: ${inspectionResponse.totalPages}');
+      print('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
 
       _inspections = inspectionResponse.items;
       _totalInspections = inspectionResponse.total;
@@ -41,7 +62,13 @@ class VdoInspectionProvider with ChangeNotifier {
 
       print('✅ Inspection data loaded successfully!');
     } catch (e) {
-      print('❌ Error loading inspections: $e');
+      print('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+      print('❌ VDO INSPECTIONS: Error');
+      print('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+      print('💥 Error: $e');
+      print('💥 Error Type: ${e.runtimeType}');
+      print('⏰ Timestamp: ${DateTime.now()}');
+      print('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
       _isInspectionsLoading = false;
       notifyListeners();
     }

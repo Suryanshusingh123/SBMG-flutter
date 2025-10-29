@@ -143,7 +143,7 @@ class AppLocalizationsHi extends AppLocalizations {
   String get notSatisfied => 'संतुष्ट नहीं';
 
   @override
-  String get markCompleted => 'पूर्ण के रूप में चिह्नित करें';
+  String get markCompleted => 'पूर्ण चिह्नित करें';
 
   @override
   String get seeResolution => 'समाधान देखें';
@@ -514,7 +514,7 @@ class AppLocalizationsHi extends AppLocalizations {
   String get enterFeedback => 'प्रतिक्रिया दर्ज करें';
 
   @override
-  String get howWasYourExperience => 'ऐप के साथ आपका अनुभव कैसा था?';
+  String get howWasYourExperience => 'आपका अनुभव कैसा रहा?';
 
   @override
   String get chooseYourExperience => 'अपना अनुभव चुनें';
@@ -599,7 +599,7 @@ class AppLocalizationsHi extends AppLocalizations {
       'अपनी शिकायतें देखने के लिए, आपको पहले लॉगिन करना होगा।';
 
   @override
-  String get pleaseRateYourExperience => 'कृपया अपना अनुभव दर्ज करें';
+  String get pleaseRateYourExperience => 'कृपया अपना अनुभव रेट करें';
 
   @override
   String get workOrderDate => 'कार्य आदेश तिथि';
@@ -704,7 +704,8 @@ class AppLocalizationsHi extends AppLocalizations {
   String get complaintClosed => 'बंद';
 
   @override
-  String get waitingForSupervisorToResolve => 'निरीक्षक के समाधान की प्रतीक्षा';
+  String get waitingForSupervisorToResolve =>
+      'पर्यवेक्षक के समाधान की प्रतीक्षा';
 
   @override
   String get verificationPending => 'सत्यापन लंबित';
@@ -723,4 +724,223 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String get formSubmittedSuccessfully => 'फॉर्म सफलतापूर्वक सबमिट किया गया!';
+
+  @override
+  String get supervisor => 'पर्यवेक्षक';
+
+  @override
+  String get complaints => 'शिकायतें';
+
+  @override
+  String get attendance => 'उपस्थिति';
+
+  @override
+  String get totalReportedComplaint => 'कुल रिपोर्ट की गई शिकायत';
+
+  @override
+  String get openComplaint => 'खुली शिकायत';
+
+  @override
+  String get disposedComplaints => 'निपटाई गई शिकायतें';
+
+  @override
+  String get todayComplaints => 'आज की शिकायतें';
+
+  @override
+  String get overview => 'अवलोकन';
+
+  @override
+  String get noComplaintsForToday => 'आज के लिए कोई शिकायत नहीं';
+
+  @override
+  String get featuredSchemes => 'विशेष योजनाएं';
+
+  @override
+  String get complaintDetails => 'शिकायत विवरण';
+
+  @override
+  String get resolution => 'समाधान';
+
+  @override
+  String get writeYourCommentHere => 'अपनी टिप्पणी यहाँ लिखें...';
+
+  @override
+  String get complaintResolvedSuccessfully => 'शिकायत सफलतापूर्वक हल हो गई';
+
+  @override
+  String get failedToResolveComplaint => 'शिकायत हल करने में विफल';
+
+  @override
+  String get getDirections => 'दिशा-निर्देश प्राप्त करें';
+
+  @override
+  String get locationNotAvailable => 'स्थान उपलब्ध नहीं';
+
+  @override
+  String get attendanceMarked => 'उपस्थिति अंकित की गई';
+
+  @override
+  String get attendanceMarkedDescription =>
+      'आपकी उपस्थिति सफलतापूर्वक अंकित की गई है।';
+
+  @override
+  String get attendanceEnded => 'उपस्थिति समाप्त हुई';
+
+  @override
+  String get attendanceEndedDescription =>
+      'आपकी उपस्थिति सफलतापूर्वक समाप्त की गई है।';
+
+  @override
+  String get error => 'त्रुटि';
+
+  @override
+  String get present => 'उपस्थित';
+
+  @override
+  String get incomplete => 'अपूर्ण';
+
+  @override
+  String get totalDays => 'कुल दिन';
+
+  @override
+  String get loginAsCitizen => 'नागरिक के रूप में लॉगिन करें';
+
+  @override
+  String get areYouSureLogout => 'क्या आप वाकई लॉगआउट करना चाहते हैं?';
+
+  @override
+  String get logoutDescription =>
+      'अपने अकाउंट तक पहुंचने के लिए आपको फिर से साइन इन करना होगा।';
+
+  @override
+  String get scanQRCodeForAttendance => 'उपस्थिति के लिए QR कोड स्कैन करें';
+
+  @override
+  String get scanError => 'स्कैन त्रुटि';
+
+  @override
+  String get invalidQRCodeFormat =>
+      'अमान्य QR कोड प्रारूप। अपेक्षित: lat,long या JSON में lat और long कुंजी।';
+
+  @override
+  String get tryAgain => 'पुनः प्रयास करें';
+
+  @override
+  String get resolutionComment => 'समाधान टिप्पणी';
+
+  @override
+  String get comment => 'टिप्पणी';
+
+  @override
+  String get noAttendanceRecordsFound => 'कोई उपस्थिति रिकॉर्ड नहीं मिला';
+
+  @override
+  String get selectMonth => 'महीना चुनें';
+
+  @override
+  String get endAttendance => 'उपस्थिति समाप्त करें';
+
+  @override
+  String get markAttendance => 'उपस्थिति अंकित करें';
+
+  @override
+  String get attendanceLog => 'उपस्थिति लॉग';
+
+  @override
+  String get presentDaysOfTotal => 'कुल में से उपस्थित दिन';
+
+  @override
+  String get okButton => 'ठीक है';
+
+  @override
+  String get attendanceSummary => 'उपस्थिति लॉग';
+
+  @override
+  String get totalWorkingDays => 'कुल दिन';
+
+  @override
+  String get absent => 'अनुपस्थित';
+
+  @override
+  String get noActiveAttendanceSession => 'कोई सक्रिय उपस्थिति सत्र नहीं मिला';
+
+  @override
+  String get attendanceDescription =>
+      'आपकी उपस्थिति सफलतापूर्वक अंकित की गई है।';
+
+  @override
+  String get pending => 'लंबित';
+
+  @override
+  String get waitingVerificationFromVdo => 'VDO से सत्यापन की प्रतीक्षा';
+
+  @override
+  String get commentSection => 'टिप्पणी';
+
+  @override
+  String get schemeDetails => 'योजना विवरण';
+
+  @override
+  String get viewing => 'देख रहे हैं';
+
+  @override
+  String get couldNotOpenGoogleMaps => 'Google Maps नहीं खोल सके';
+
+  @override
+  String get pleaseEnterCompleteOtp => 'कृपया पूर्ण OTP दर्ज करें';
+
+  @override
+  String get passwordResetSuccessfully =>
+      'पासवर्ड सफलतापूर्वक रीसेट कर दिया गया';
+
+  @override
+  String get scanQrCodeForAttendance => 'उपस्थिति के लिए QR कोड स्कैन करें';
+
+  @override
+  String get logout => 'लॉगआउट';
+
+  @override
+  String get confirm => 'पुष्टि करें';
+
+  @override
+  String get areYouSureYouWantToLogOut =>
+      'क्या आप वाकई लॉग आउट करना चाहते हैं?';
+
+  @override
+  String get youllNeedToSignInAgainToAccessTheApp =>
+      'आपको फिर से साइन इन करना होगा अपने खाते तक पहुंचने के लिए।';
+
+  @override
+  String get complaintVerified => 'शिकायत सत्यापित';
+
+  @override
+  String get vdo => 'वीडीओ';
+
+  @override
+  String get inspection => 'निरीक्षण';
+
+  @override
+  String get thisMonth => 'इस महीने';
+
+  @override
+  String get total => 'कुल';
+
+  @override
+  String get checkVendorSupervisorAttendance =>
+      'वेंडर / सुपरवाइज़र उपस्थिति जांचें';
+
+  @override
+  String get updateContractorDetails => 'ठेकेदार विवरण अपडेट करें';
+
+  @override
+  String get startVillageMasterData => 'गांव मास्टर डेटा शुरू करें';
+
+  @override
+  String get export => 'निर्यात';
+
+  @override
+  String get supportedBy => 'समर्थित द्वारा';
+
+  @override
+  String get noComplaintsAvailable => 'कोई शिकायत उपलब्ध नहीं';
 }
