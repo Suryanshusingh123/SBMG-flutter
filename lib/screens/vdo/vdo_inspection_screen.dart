@@ -143,11 +143,8 @@ class _VdoInspectionScreenState extends State<VdoInspectionScreen> {
       bottomNavigationBar: CustomBottomNavigationBar(
         currentIndex: _selectedIndex,
         onTap: (index) {
-          setState(() {
-            _selectedIndex = index;
-          });
+          if (index == _selectedIndex) return;
 
-          // Navigate to different screens based on selection
           switch (index) {
             case 0:
               Navigator.pushReplacementNamed(context, '/vdo-dashboard');
@@ -165,19 +162,19 @@ class _VdoInspectionScreenState extends State<VdoInspectionScreen> {
         },
         items: [
           BottomNavItem(
-            icon: Icons.home,
+            iconPath: 'assets/icons/bottombar/home.png',
             label: AppLocalizations.of(context)!.home,
           ),
           BottomNavItem(
-            icon: Icons.list_alt,
+            iconPath: 'assets/icons/bottombar/complaints.png',
             label: AppLocalizations.of(context)!.complaints,
           ),
           BottomNavItem(
-            icon: Icons.assignment,
+            iconPath: 'assets/icons/bottombar/inspection.png',
             label: AppLocalizations.of(context)!.inspection,
           ),
           BottomNavItem(
-            icon: Icons.settings,
+            iconPath: 'assets/icons/bottombar/settings.png',
             label: AppLocalizations.of(context)!.settings,
           ),
         ],
@@ -496,12 +493,12 @@ class _VdoInspectionScreenState extends State<VdoInspectionScreen> {
       }).toList();
     }
 
-    // Sort by date (newest first)
+    // Sort by date and time (newest first, including time)
     filteredInspections.sort((a, b) {
       try {
-        final dateA = DateTime.parse(a.date);
-        final dateB = DateTime.parse(b.date);
-        return dateB.compareTo(dateA);
+        final dateA = DateTime.parse(a.date).toUtc();
+        final dateB = DateTime.parse(b.date).toUtc();
+        return dateB.compareTo(dateA); // Newest first (descending)
       } catch (e) {
         return 0;
       }

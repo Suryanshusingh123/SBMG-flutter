@@ -1,7 +1,15 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 class BannerCarousel extends StatefulWidget {
-  const BannerCarousel({super.key});
+  const BannerCarousel({
+    super.key,
+    required this.imagePaths,
+    this.height = 230,
+  });
+
+  final List<String> imagePaths;
+  final double height;
 
   @override
   State<BannerCarousel> createState() => _BannerCarouselState();
@@ -10,18 +18,24 @@ class BannerCarousel extends StatefulWidget {
 class _BannerCarouselState extends State<BannerCarousel> {
   final PageController _pageController = PageController();
   int _currentIndex = 0;
+  late List<String> _imagePaths;
 
-  final List<BannerData> _banners = [
-    BannerData(imagePath: "assets/images/Banner.png"),
-    BannerData(
-      imagePath:
-          "assets/images/Banner.png", // No image, will use gradient background
-    ),
-    BannerData(
-      imagePath:
-          "assets/images/Banner.png", // No image, will use gradient background
-    ),
-  ];
+  @override
+  void initState() {
+    super.initState();
+    _imagePaths = widget.imagePaths;
+  }
+
+  @override
+  void didUpdateWidget(covariant BannerCarousel oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (!listEquals(oldWidget.imagePaths, widget.imagePaths)) {
+      setState(() {
+        _imagePaths = widget.imagePaths;
+        _currentIndex = 0;
+      });
+    }
+  }
 
   @override
   void dispose() {
@@ -31,8 +45,12 @@ class _BannerCarouselState extends State<BannerCarousel> {
 
   @override
   Widget build(BuildContext context) {
+    if (_imagePaths.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
     return SizedBox(
-      height: 200,
+      height: widget.height,
       child: PageView.builder(
         controller: _pageController,
         onPageChanged: (index) {
@@ -40,15 +58,15 @@ class _BannerCarouselState extends State<BannerCarousel> {
             _currentIndex = index;
           });
         },
-        itemCount: _banners.length,
+        itemCount: _imagePaths.length,
         itemBuilder: (context, index) {
-          return _buildBannerCard(_banners[index]);
+          return _buildBannerCard(_imagePaths[index]);
         },
       ),
     );
   }
 
-  Widget _buildBannerCard(BannerData banner) {
+  Widget _buildBannerCard(String imagePath) {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 0),
       decoration: BoxDecoration(
@@ -66,10 +84,8 @@ class _BannerCarouselState extends State<BannerCarousel> {
         child: Stack(
           children: [
             // Background Image or Gradient
-            if (banner.imagePath.isNotEmpty)
-              Positioned.fill(
-                child: Image.asset(banner.imagePath, fit: BoxFit.cover),
-              )
+            if (imagePath.isNotEmpty)
+              Positioned.fill(child: Image.asset(imagePath, fit: BoxFit.cover))
             else
               Positioned.fill(
                 child: Container(
@@ -139,7 +155,7 @@ class _BannerCarouselState extends State<BannerCarousel> {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: List.generate(
-                  _banners.length,
+                  _imagePaths.length,
                   (index) => _buildDotIndicator(index),
                 ),
               ),
@@ -170,10 +186,4 @@ class _BannerCarouselState extends State<BannerCarousel> {
       ),
     );
   }
-}
-
-class BannerData {
-  final String imagePath;
-
-  BannerData({required this.imagePath});
 }

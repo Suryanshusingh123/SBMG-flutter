@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:url_launcher/url_launcher.dart';
 // import 'package:sbmg/screens/citizen/scheme_details_screen.dart';
 import '../../config/connstants.dart';
 import '../../models/scheme_model.dart';
@@ -195,7 +196,15 @@ class _SupervisorHomeScreenState extends State<SupervisorHomeScreen> {
                   child: SingleChildScrollView(
                     child: Column(
                       children: [
-                        const BannerCarousel(),
+                        const BannerCarousel(
+                          imagePaths: [
+                            'assets/images/dash1.jpeg',
+                            'assets/images/dash2.jpeg',
+                            'assets/images/dash3.jpeg',
+                            'assets/images/dash4.jpeg',
+                            'assets/images/dash5.jpeg',
+                          ],
+                        ),
                         Image.asset('assets/images/Group.png'),
 
                         SizedBox(height: 24.h),
@@ -1217,36 +1226,105 @@ class _SupervisorHomeScreenState extends State<SupervisorHomeScreen> {
   Widget _buildSocialMediaSection() {
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: 16.w),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          _buildSocialIcon(Icons.camera_alt, 'Instagram'),
-          SizedBox(width: 20.w),
-          _buildSocialIcon(Icons.close, 'X'),
-          SizedBox(width: 20.w),
-          _buildSocialIcon(Icons.facebook, 'Facebook'),
-          SizedBox(width: 20.w),
-          _buildSocialIcon(Icons.play_circle, 'YouTube'),
-        ],
+      child: Container(
+        padding: EdgeInsets.symmetric(vertical: 16.h, horizontal: 20.w),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12.r),
+          border: Border.all(color: Colors.grey.shade200),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.03),
+              blurRadius: 6,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              'Connect with Swachh Rajasthan',
+              style: TextStyle(
+                fontSize: 16.sp,
+                fontWeight: FontWeight.w600,
+                color: const Color(0xFF111827),
+              ),
+            ),
+            SizedBox(height: 12.h),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                _buildSocialIcon(
+                  assetPath: 'assets/images/InstagramLogo.png',
+                  platform: 'Instagram',
+                  url: 'https://instagram.com/SwachhRajasthan_',
+                ),
+                SizedBox(width: 20.w),
+                _buildSocialIcon(
+                  assetPath: 'assets/images/XLogo.png',
+                  platform: 'X',
+                  url: 'https://x.com/SwachRajasthan',
+                ),
+                SizedBox(width: 20.w),
+                _buildSocialIcon(
+                  assetPath: 'assets/images/FacebookLogo.png',
+                  platform: 'Facebook',
+                  url: 'https://www.facebook.com/share/16UZeZDuvF/',
+                ),
+                SizedBox(width: 20.w),
+                _buildSocialIcon(
+                  assetPath: 'assets/images/YoutubeLogo.png',
+                  platform: 'YouTube',
+                  url: 'https://youtube.com/@swachhrajasthan',
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
 
-  Widget _buildSocialIcon(IconData icon, String platform) {
+  Widget _buildSocialIcon({
+    required String assetPath,
+    required String platform,
+    required String url,
+  }) {
     return GestureDetector(
-      onTap: () {
-        // Handle social media navigation
-      },
-      child: Container(
-        width: 40,
-        height: 40,
-        decoration: BoxDecoration(
-          color: Colors.grey.shade100,
-          borderRadius: BorderRadius.circular(20.r),
-        ),
-        child: Icon(icon, color: const Color(0xFF6B7280), size: 20.sp),
-      ),
+      onTap: () => _launchSocialLink(url, platform),
+      child: SizedBox(width: 40, height: 40, child: Image.asset(assetPath)),
     );
+  }
+
+  Future<void> _launchSocialLink(String url, String platform) async {
+    final uri = Uri.parse(url);
+
+    try {
+      final launched = await launchUrl(
+        uri,
+        mode: LaunchMode.externalApplication,
+      );
+      if (!launched && mounted) {
+        _showLinkError(platform);
+      }
+    } catch (_) {
+      if (mounted) {
+        _showLinkError(platform);
+      }
+    }
+  }
+
+  void _showLinkError(String platform) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: Text('Could not open $platform link.'),
+          backgroundColor: Colors.red,
+        ),
+      );
   }
 
   Widget _buildBottomNavigationBar() {
@@ -1275,19 +1353,19 @@ class _SupervisorHomeScreenState extends State<SupervisorHomeScreen> {
       },
       items: [
         BottomNavItem(
-          icon: Icons.home,
+          iconPath: 'assets/icons/bottombar/home.png',
           label: AppLocalizations.of(context)!.home,
         ),
         BottomNavItem(
-          icon: Icons.list_alt,
+          iconPath: 'assets/icons/bottombar/complaints.png',
           label: AppLocalizations.of(context)!.complaints,
         ),
         BottomNavItem(
-          icon: Icons.people,
+          iconPath: 'assets/icons/bottombar/attendance.png',
           label: AppLocalizations.of(context)!.attendance,
         ),
         BottomNavItem(
-          icon: Icons.settings,
+          iconPath: 'assets/icons/bottombar/settings.png',
           label: AppLocalizations.of(context)!.settings,
         ),
       ],

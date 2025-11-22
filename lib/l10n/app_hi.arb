@@ -29,6 +29,8 @@
   "english": "English (अंग्रेज़ी)",
   "hindi": "हिंदी",
   "languageChanged": "भाषा सफलतापूर्वक बदल दी गई",
+  "gpMasterDataNotFilled": "जीपी मास्टर डेटा संबंधित वीडीओ द्वारा अभी भरा नहीं गया है। कृपया अधिक सहायता के लिए वीडीओ या हेल्पलाइन नंबर से संपर्क करें।",
+  "contractorDetailsNotAvailable": "इस ग्राम पंचायत के लिए ठेकेदार विवरण अभी उपलब्ध नहीं है। कृपया अधिक सहायता के लिए वीडीओ या हेल्पलाइन नंबर से संपर्क करें।",
   
   "bookmarks": "बुकमार्क",
   "noBookmarkedSchemes": "कोई बुकमार्क की गई योजना नहीं",
@@ -47,6 +49,7 @@
   "timeline": "समयरेखा",
   "notSatisfied": "संतुष्ट नहीं",
   "markCompleted": "पूर्ण के रूप में चिह्नित करें",
+  "resolveNow": "अभी हल करें",
   "seeResolution": "समाधान देखें",
   
   "uploadImage": "छवि अपलोड करें",
@@ -188,7 +191,7 @@
   "masterDataDetails": "मास्टर डेटा विवरण",
   "continueButton": "जारी रखें",
   "pleaseSelectAllFieldsForMasterData": "कृपया सभी फ़ील्ड चुनें",
-  "villageMasterDataForm": "गाँव मास्टर डेटा फॉर्म",
+  "villageMasterDataForm": "जीपी मास्टर डेटा फॉर्म",
   "sentOTP": "OTP भेजें",
   "verifyOTP": "OTP सत्यापित करें",
   "didntReceiveCode": "कोड प्राप्त नहीं हुआ?",
@@ -279,7 +282,7 @@
   "complaintCreated": "शिकायत बनाई गई",
   "resolved": "हल हो गई",
   "verified": "सत्यापित",
-  "complaintClosed": "बंद",
+  "complaintClosed": "निपटाई गई शिकायतें",
   "underProcess": "प्रसंस्करणाधीन",
   "waitingForSupervisorToResolve": "निरीक्षक के समाधान की प्रतीक्षा",
   "verificationPending": "सत्यापन लंबित",
@@ -402,7 +405,7 @@
   "total": "कुल",
   "checkVendorSupervisorAttendance": "वेंडर / सुपरवाइज़र उपस्थिति जांचें",
   "updateContractorDetails": "ठेकेदार विवरण अपडेट करें",
-  "startVillageMasterData": "गांव मास्टर डेटा शुरू करें",
+  "startVillageMasterData": "जीपी मास्टर डेटा शुरू करें",
   "export": "निर्यात",
   "supportedBy": "समर्थित द्वारा",
   "noComplaintsAvailable": "कोई शिकायत उपलब्ध नहीं"

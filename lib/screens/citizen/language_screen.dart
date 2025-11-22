@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../../config/connstants.dart';
 import '../../providers/locale_provider.dart';
 import '../../l10n/app_localizations.dart';
+import '../../theme/citizen_colors.dart';
 
 class LanguageScreen extends StatefulWidget {
   const LanguageScreen({super.key});
@@ -45,6 +46,8 @@ class _LanguageScreenState extends State<LanguageScreen> {
 
   Widget _buildLanguageOption(String language, String code) {
     final isSelected = _selectedLanguage == code;
+    final surfaceColor = CitizenColors.surface(context);
+    final primaryTextColor = CitizenColors.textPrimary(context);
 
     return GestureDetector(
       onTap: () {
@@ -56,7 +59,9 @@ class _LanguageScreenState extends State<LanguageScreen> {
         margin: EdgeInsets.only(bottom: 12.h),
         padding: EdgeInsets.all(10.w),
         decoration: BoxDecoration(
-          color: isSelected ? const Color(0xFFD1FAE5) : Colors.white,
+          color: isSelected
+              ? const Color(0xFFD1FAE5)
+              : surfaceColor,
           borderRadius: BorderRadius.circular(8.r),
           border: Border.all(
             color: isSelected
@@ -79,7 +84,7 @@ class _LanguageScreenState extends State<LanguageScreen> {
                       : const Color(0xFF9CA3AF),
                   width: 2,
                 ),
-                color: Colors.white,
+              color: CitizenColors.light,
               ),
               child: isSelected
                   ? Center(
@@ -100,7 +105,7 @@ class _LanguageScreenState extends State<LanguageScreen> {
               style: TextStyle(
                 fontSize: 14.sp,
                 fontWeight: FontWeight.w400,
-                color: const Color(0xFF111827),
+                color: primaryTextColor,
               ),
             ),
           ],
@@ -112,10 +117,12 @@ class _LanguageScreenState extends State<LanguageScreen> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
+    final primaryTextColor = CitizenColors.textPrimary(context);
+    final secondaryTextColor = CitizenColors.textSecondary(context);
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: CitizenColors.background(context),
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: CitizenColors.surface(context),
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.black),
@@ -123,7 +130,11 @@ class _LanguageScreenState extends State<LanguageScreen> {
         ),
         title: Text(
           l10n.language,
-          style: TextStyle(fontSize: 18.sp, fontWeight: FontWeight.w600),
+          style: TextStyle(
+            fontSize: 18.sp,
+            fontWeight: FontWeight.w600,
+            color: primaryTextColor,
+          ),
         ),
       ),
       body: SingleChildScrollView(
@@ -148,7 +159,7 @@ class _LanguageScreenState extends State<LanguageScreen> {
       bottomNavigationBar: Container(
         padding: EdgeInsets.all(16.w),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: CitizenColors.surface(context),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withOpacity(0.05),
@@ -164,7 +175,7 @@ class _LanguageScreenState extends State<LanguageScreen> {
             onPressed: _saveLanguage,
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.primaryColor,
-              foregroundColor: Colors.white,
+              foregroundColor: CitizenColors.light,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(8.r),
               ),
@@ -172,7 +183,11 @@ class _LanguageScreenState extends State<LanguageScreen> {
             ),
             child: Text(
               l10n.save,
-              style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.w600),
+              style: TextStyle(
+                fontSize: 16.sp,
+                fontWeight: FontWeight.w600,
+                color: CitizenColors.light,
+              ),
             ),
           ),
         ),

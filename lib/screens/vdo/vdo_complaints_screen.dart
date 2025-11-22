@@ -4,8 +4,10 @@ import 'package:provider/provider.dart';
 import '../../config/connstants.dart';
 import '../../models/api_complaint_model.dart';
 import '../../providers/vdo_complaints_provider.dart';
+import '../../providers/vdo_provider.dart';
 import '../../services/auth_services.dart';
 import '../../services/api_services.dart';
+import '../../utils/location_display_helper.dart';
 import '../../widgets/common/custom_bottom_navigation.dart';
 import '../../widgets/common/date_filter_bottom_sheet.dart';
 import '../../l10n/app_localizations.dart';
@@ -19,7 +21,8 @@ class VdoComplaintsScreen extends StatefulWidget {
 }
 
 class _VdoComplaintsScreenState extends State<VdoComplaintsScreen> {
-  String _selectedStatus = 'Open'; // Default to Open tab
+  final List<String> _statusKeys = ['Open', 'Resolved', 'Verified', 'Disposed complaints'];
+  int _selectedTabIndex = 0; // Default to Open tab
   String _sortOrder = 'newest'; // 'newest' or 'oldest'
   int _selectedIndex = 1; // Complaints tab is selected
   bool _hasLoadedComplaints = false;
@@ -32,6 +35,13 @@ class _VdoComplaintsScreenState extends State<VdoComplaintsScreen> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      final provider = context.read<VdoProvider>();
+      final tabIndex = provider.selectedComplaintsTabIndex;
+      if (tabIndex >= 0 && tabIndex < _statusKeys.length) {
+        setState(() {
+          _selectedTabIndex = tabIndex;
+        });
+      }
       _loadComplaints();
     });
   }
@@ -124,8 +134,8 @@ class _VdoComplaintsScreenState extends State<VdoComplaintsScreen> {
     return _getCurrentMonth();
   }
 
-  void _refreshComplaints() {
-    context.read<VdoComplaintsProvider>().refresh();
+  Future<void> _refreshComplaints() async {
+    await context.read<VdoComplaintsProvider>().refresh();
   }
 
   @override
@@ -149,11 +159,8 @@ class _VdoComplaintsScreenState extends State<VdoComplaintsScreen> {
       bottomNavigationBar: CustomBottomNavigationBar(
         currentIndex: _selectedIndex,
         onTap: (index) {
-          setState(() {
-            _selectedIndex = index;
-          });
+          if (index == _selectedIndex) return;
 
-          // Navigate to different screens based on selection
           switch (index) {
             case 0:
               Navigator.pushReplacementNamed(context, '/vdo-dashboard');
@@ -171,19 +178,19 @@ class _VdoComplaintsScreenState extends State<VdoComplaintsScreen> {
         },
         items: [
           BottomNavItem(
-            icon: Icons.home,
+            iconPath: 'assets/icons/bottombar/home.png',
             label: AppLocalizations.of(context)!.home,
           ),
           BottomNavItem(
-            icon: Icons.list_alt,
+            iconPath: 'assets/icons/bottombar/complaints.png',
             label: AppLocalizations.of(context)!.complaints,
           ),
           BottomNavItem(
-            icon: Icons.assignment,
+            iconPath: 'assets/icons/bottombar/inspection.png',
             label: AppLocalizations.of(context)!.inspection,
           ),
           BottomNavItem(
-            icon: Icons.settings,
+            iconPath: 'assets/icons/bottombar/settings.png',
             label: AppLocalizations.of(context)!.settings,
           ),
         ],
@@ -249,6 +256,7 @@ class _VdoComplaintsScreenState extends State<VdoComplaintsScreen> {
 
   Widget _buildStatusTabs(BuildContext context) {
     final provider = context.watch<VdoComplaintsProvider>();
+    final l10n = AppLocalizations.of(context)!;
 
     return SizedBox(
       height: 40.h,
@@ -258,33 +266,29 @@ class _VdoComplaintsScreenState extends State<VdoComplaintsScreen> {
         children: [
           _buildTab(
             context,
-            AppLocalizations.of(context)!.open,
+            l10n.open,
             provider.openComplaints.length,
-            _selectedStatus == 'Open',
             0,
           ),
           SizedBox(width: 12.w),
           _buildTab(
             context,
-            AppLocalizations.of(context)!.resolved,
+            l10n.resolved,
             provider.resolvedComplaints.length,
-            _selectedStatus == 'Resolved',
             1,
           ),
           SizedBox(width: 12.w),
           _buildTab(
             context,
-            AppLocalizations.of(context)!.verified,
+            l10n.verified,
             provider.verifiedComplaints.length,
-            _selectedStatus == 'Verified',
             2,
           ),
           SizedBox(width: 12.w),
           _buildTab(
             context,
-            AppLocalizations.of(context)!.complaintClosed,
+            l10n.complaintClosed,
             provider.closedComplaints.length,
-            _selectedStatus == 'Closed',
             3,
           ),
         ],
@@ -294,16 +298,17 @@ class _VdoComplaintsScreenState extends State<VdoComplaintsScreen> {
 
   Widget _buildTab(
     BuildContext context,
-    String status,
+    String statusLabel,
     int count,
-    bool isSelected,
     int index,
   ) {
+    final isSelected = _selectedTabIndex == index;
     return GestureDetector(
       onTap: () {
         setState(() {
-          _selectedStatus = status;
+          _selectedTabIndex = index;
         });
+        context.read<VdoProvider>().setComplaintsTab(index);
       },
       child: Container(
         padding: EdgeInsets.symmetric(horizontal: 12.w),
@@ -319,7 +324,6 @@ class _VdoComplaintsScreenState extends State<VdoComplaintsScreen> {
           mainAxisAlignment: MainAxisAlignment.center,
           mainAxisSize: MainAxisSize.min,
           children: [
-            // Green dot indicator for active tab
             if (isSelected) ...[
               Container(
                 width: 6.w,
@@ -332,7 +336,7 @@ class _VdoComplaintsScreenState extends State<VdoComplaintsScreen> {
               SizedBox(width: 6.w),
             ],
             Text(
-              status,
+              statusLabel,
               style: TextStyle(
                 fontSize: 14.sp,
                 fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
@@ -390,19 +394,21 @@ class _VdoComplaintsScreenState extends State<VdoComplaintsScreen> {
 
     List<ApiComplaintModel> filteredComplaints = [];
 
-    switch (_selectedStatus) {
-      case 'Open':
+    switch (_selectedTabIndex) {
+      case 0:
         filteredComplaints = provider.openComplaints;
         break;
-      case 'Resolved':
+      case 1:
         filteredComplaints = provider.resolvedComplaints;
         break;
-      case 'Verified':
+      case 2:
         filteredComplaints = provider.verifiedComplaints;
         break;
-      case 'Closed':
+      case 3:
         filteredComplaints = provider.closedComplaints;
         break;
+      default:
+        filteredComplaints = provider.openComplaints;
     }
 
     // Remove duplicate complaints based on ID
@@ -418,10 +424,11 @@ class _VdoComplaintsScreenState extends State<VdoComplaintsScreen> {
     if (_filterDate != null) {
       filteredComplaints = filteredComplaints.where((complaint) {
         try {
-          final complaintDate = DateTime.parse(complaint.createdAt);
-          return complaintDate.year == _filterDate!.year &&
-              complaintDate.month == _filterDate!.month &&
-              complaintDate.day == _filterDate!.day;
+          final complaintDate = DateTime.parse(complaint.createdAt).toUtc();
+          final filterDate = _filterDate!.toUtc();
+          return complaintDate.year == filterDate.year &&
+              complaintDate.month == filterDate.month &&
+              complaintDate.day == filterDate.day;
         } catch (e) {
           return false;
         }
@@ -431,27 +438,55 @@ class _VdoComplaintsScreenState extends State<VdoComplaintsScreen> {
     if (_filterStartDate != null && _filterEndDate != null) {
       filteredComplaints = filteredComplaints.where((complaint) {
         try {
-          final complaintDate = DateTime.parse(complaint.createdAt);
-          return complaintDate.isAfter(
-                _filterStartDate!.subtract(const Duration(days: 1)),
-              ) &&
-              complaintDate.isBefore(
-                _filterEndDate!.add(const Duration(days: 1)),
-              );
+          final complaintDate = DateTime.parse(complaint.createdAt).toUtc();
+          final startDate = DateTime.utc(
+            _filterStartDate!.year,
+            _filterStartDate!.month,
+            _filterStartDate!.day,
+          );
+          final endDate = DateTime.utc(
+            _filterEndDate!.year,
+            _filterEndDate!.month,
+            _filterEndDate!.day,
+            23,
+            59,
+            59,
+          );
+          return (complaintDate.isAfter(startDate.subtract(const Duration(seconds: 1))) ||
+                  complaintDate.isAtSameMomentAs(startDate)) &&
+              (complaintDate.isBefore(endDate) ||
+                  complaintDate.isAtSameMomentAs(endDate));
         } catch (e) {
           return false;
         }
       }).toList();
     }
 
-    // Sort complaints based on sort order
+    // Sort complaints based on sort order (including time)
     if (_sortOrder == 'newest') {
-      filteredComplaints.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      filteredComplaints.sort((a, b) {
+        try {
+          final dateA = DateTime.parse(a.createdAt).toUtc();
+          final dateB = DateTime.parse(b.createdAt).toUtc();
+          return dateB.compareTo(dateA); // Newest first (descending)
+        } catch (e) {
+          return b.createdAt.compareTo(a.createdAt); // Fallback to string comparison
+        }
+      });
     } else {
-      filteredComplaints.sort((a, b) => a.createdAt.compareTo(b.createdAt));
+      filteredComplaints.sort((a, b) {
+        try {
+          final dateA = DateTime.parse(a.createdAt).toUtc();
+          final dateB = DateTime.parse(b.createdAt).toUtc();
+          return dateA.compareTo(dateB); // Oldest first (ascending)
+        } catch (e) {
+          return a.createdAt.compareTo(b.createdAt); // Fallback to string comparison
+        }
+      });
     }
 
     if (filteredComplaints.isEmpty) {
+      final statusLabel = _statusLabel(context, _selectedTabIndex);
       return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -459,7 +494,7 @@ class _VdoComplaintsScreenState extends State<VdoComplaintsScreen> {
             Icon(Icons.inbox_outlined, size: 64.w, color: Colors.grey),
             SizedBox(height: 16.h),
             Text(
-              'No ${_selectedStatus.toLowerCase()} complaints',
+              'No $statusLabel complaints',
               style: TextStyle(fontSize: 16.sp, color: Colors.grey),
             ),
           ],
@@ -468,9 +503,7 @@ class _VdoComplaintsScreenState extends State<VdoComplaintsScreen> {
     }
 
     return RefreshIndicator(
-      onRefresh: () async {
-        _refreshComplaints();
-      },
+      onRefresh: _refreshComplaints,
       color: const Color(0xFF009B56),
       child: ListView.builder(
         padding: EdgeInsets.all(16.r),
@@ -487,6 +520,21 @@ class _VdoComplaintsScreenState extends State<VdoComplaintsScreen> {
     final mediaUrl = firstMediaUrl != null
         ? ApiConstants.getMediaUrl(firstMediaUrl)
         : null;
+    final l10n = AppLocalizations.of(context)!;
+    final locationText = LocationDisplayHelper.buildDisplay(
+      cacheKey: 'vdo-${complaint.id}',
+      latitude: complaint.latitude,
+      longitude: complaint.longitude,
+      locationField: complaint.location,
+      district: complaint.districtName,
+      block: complaint.blockName,
+      village: complaint.villageName,
+      scheduleUpdate: () {
+        if (!mounted) return;
+        setState(() {});
+      },
+      unavailableLabel: l10n.locationNotAvailable,
+    );
 
     return GestureDetector(
       onTap: () {
@@ -624,15 +672,18 @@ class _VdoComplaintsScreenState extends State<VdoComplaintsScreen> {
                   // Complaint Type and Location Icon
                   Row(
                     children: [
-                      Container(
-                        width: 8.w,
-                        height: 8.h,
-                        decoration: const BoxDecoration(
-                          color: Color(0xFF009B56),
-                          shape: BoxShape.circle,
+                      // Green dot - only show for Verified and Disposed complaints (not Open/Resolved)
+                      if (_selectedTabIndex != 0 && _selectedTabIndex != 1) ...[
+                        Container(
+                          width: 8.w,
+                          height: 8.h,
+                          decoration: const BoxDecoration(
+                            color: Color(0xFF009B56),
+                            shape: BoxShape.circle,
+                          ),
                         ),
-                      ),
-                      SizedBox(width: 8.w),
+                        SizedBox(width: 8.w),
+                      ],
                       Expanded(
                         child: Text(
                           complaint.complaintType,
@@ -649,15 +700,15 @@ class _VdoComplaintsScreenState extends State<VdoComplaintsScreen> {
                   // Location with icon
                   Row(
                     children: [
-                      const Icon(
+                      Icon(
                         Icons.location_on,
                         size: 14,
-                        color: Color(0xFF6B7280),
+                        color: Colors.grey.shade600,
                       ),
                       SizedBox(width: 4.w),
                       Expanded(
                         child: Text(
-                          complaint.location ?? complaint.fullLocation,
+                          locationText,
                           style: TextStyle(
                             fontSize: 12.sp,
                             color: Colors.grey.shade600,
@@ -818,5 +869,21 @@ class _VdoComplaintsScreenState extends State<VdoComplaintsScreen> {
         });
       },
     );
+  }
+
+  String _statusLabel(BuildContext context, int index) {
+    final l10n = AppLocalizations.of(context)!;
+    switch (index) {
+      case 0:
+        return l10n.open;
+      case 1:
+        return l10n.resolved;
+      case 2:
+        return l10n.verified;
+      case 3:
+        return l10n.complaintClosed;
+      default:
+        return l10n.open;
+    }
   }
 }

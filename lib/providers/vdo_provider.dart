@@ -8,6 +8,7 @@ import '../services/api_services.dart';
 import '../services/complaints_service.dart';
 
 class VdoProvider with ChangeNotifier {
+  int _selectedComplaintsTabIndex = 0;
   // Loading states
   bool _isSchemesLoading = true;
   bool _isEventsLoading = true;
@@ -36,7 +37,7 @@ class VdoProvider with ChangeNotifier {
   DateTime? _toDate;
   String _dateRangeText = 'Select Date Range';
 
-  // Village Master data completion status
+  // GP Master Data completion status
   bool _isVillageMasterDataCompleted = false;
   String _completionDate = '';
 
@@ -62,6 +63,7 @@ class VdoProvider with ChangeNotifier {
   DateTime? get fromDate => _fromDate;
   DateTime? get toDate => _toDate;
   String get dateRangeText => _dateRangeText;
+  int get selectedComplaintsTabIndex => _selectedComplaintsTabIndex;
 
   bool get isVillageMasterDataCompleted => _isVillageMasterDataCompleted;
   String get completionDate => _completionDate;
@@ -81,6 +83,12 @@ class VdoProvider with ChangeNotifier {
   // Refresh all data
   Future<void> refresh() async {
     await Future.wait([loadComplaintsAnalytics(), loadInspections()]);
+  }
+
+  void setComplaintsTab(int index) {
+    if (index == _selectedComplaintsTabIndex) return;
+    _selectedComplaintsTabIndex = index;
+    notifyListeners();
   }
 
   // Load schemes
@@ -252,7 +260,7 @@ class VdoProvider with ChangeNotifier {
     }
   }
 
-  // Check village master data status
+  // Check GP Master Data status
   void checkVillageMasterDataStatus() {
     // This would typically come from API or local storage
     // For demo purposes, we'll simulate checking completion status
@@ -261,7 +269,7 @@ class VdoProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  // Update village master data completion
+  // Update GP Master Data completion
   void updateVillageMasterDataCompletion(String completionDate) {
     _isVillageMasterDataCompleted = true;
     _completionDate = completionDate;

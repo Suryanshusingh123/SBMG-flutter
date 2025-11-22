@@ -5,11 +5,12 @@ import '../../config/connstants.dart';
 import '../../widgets/common/custom_bottom_navigation.dart';
 import '../../l10n/app_localizations.dart';
 import '../../providers/locale_provider.dart';
-import '../../providers/theme_provider.dart';
+import '../../providers/auth_provider.dart';
+import '../../services/auth_services.dart';
 import '../../screens/auth/admin_login_screen.dart';
+import '../../theme/citizen_colors.dart';
 import 'citizen_reset_password_flow_screen.dart';
 import 'profile_screen.dart';
-import 'language_screen.dart';
 import 'bookmarks_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
@@ -26,8 +27,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
+    final primaryTextColor = CitizenColors.textPrimary(context);
     return Scaffold(
-      backgroundColor: const Color(0xFFF9FAFB),
+      backgroundColor: CitizenColors.background(context),
       body: SafeArea(
         child: Column(
           children: [
@@ -44,7 +46,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       style: TextStyle(
                         fontSize: 20.sp,
                         fontWeight: FontWeight.w700,
-                        color: const Color(0xFF111827),
+                        color: primaryTextColor,
                       ),
                     ),
                   ),
@@ -101,16 +103,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     ),
                     _buildDivider(),
 
-                    // Theme
-                    _buildSettingItem(
-                      icon: Icons.palette_outlined,
-                      title: l10n.theme,
-                      onTap: () {
-                        _showThemeBottomSheet(context);
-                      },
-                    ),
-                    _buildDivider(),
-
                     // FAQs
                     _buildSettingItem(
                       icon: Icons.help_outline,
@@ -141,16 +133,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               ? 'Hindi'
                               : 'English',
                           onTap: () async {
-                            await Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => const LanguageScreen(),
-                              ),
-                            );
-                            // Refresh the UI after returning from language screen
-                            if (mounted) {
-                              setState(() {});
-                            }
+                            _showLanguageBottomSheet(context);
                           },
                         );
                       },
@@ -175,11 +158,35 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
                     SizedBox(height: 16.h),
 
+                    // Logout
+                    Container(
+                      margin: EdgeInsets.symmetric(horizontal: 16.w),
+                      decoration: BoxDecoration(
+                        color: CitizenColors.surface(context),
+                        borderRadius: BorderRadius.circular(12.r),
+                        border: Border.all(
+                          color: Colors.red.withOpacity(0.3),
+                          width: 1,
+                        ),
+                      ),
+                      child: _buildSettingItem(
+                        icon: Icons.logout,
+                        title: l10n.logout,
+                        showDivider: false,
+                        iconColor: Colors.red,
+                        onTap: () {
+                          _showLogoutDialog(context);
+                        },
+                      ),
+                    ),
+
+                    SizedBox(height: 16.h),
+
                     // Login as Admin
                     Container(
                       margin: EdgeInsets.symmetric(horizontal: 16.w),
                       decoration: BoxDecoration(
-                        color: Colors.white,
+                        color: CitizenColors.surface(context),
                         borderRadius: BorderRadius.circular(12.r),
                         border: Border.all(
                           color: const Color(0xFFE5E7EB),
@@ -236,19 +243,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
         },
         items: [
           BottomNavItem(
-            icon: Icons.home,
+            iconPath: 'assets/icons/bottombar/home.png',
             label: AppLocalizations.of(context)!.home,
           ),
           BottomNavItem(
-            icon: Icons.list_alt,
+            iconPath: 'assets/icons/bottombar/complaints.png',
             label: AppLocalizations.of(context)!.myComplaint,
           ),
           BottomNavItem(
-            icon: Icons.account_balance,
+            iconPath: 'assets/icons/bottombar/schemes.png',
             label: AppLocalizations.of(context)!.schemes,
           ),
           BottomNavItem(
-            icon: Icons.settings,
+            iconPath: 'assets/icons/bottombar/settings.png',
             label: AppLocalizations.of(context)!.settings,
           ),
         ],
@@ -268,15 +275,20 @@ class _SettingsScreenState extends State<SettingsScreen> {
     required String title,
     required VoidCallback onTap,
     bool showDivider = true,
+    Color? iconColor,
   }) {
+    final primaryTextColor = CitizenColors.textPrimary(context);
+    final secondaryTextColor = CitizenColors.textSecondary(context);
+    final finalIconColor = iconColor ?? primaryTextColor;
+    final finalTextColor = iconColor ?? primaryTextColor;
     return InkWell(
       onTap: onTap,
       child: Container(
         padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 16.h),
-        color: Colors.white,
+        color: CitizenColors.surface(context),
         child: Row(
           children: [
-            Icon(icon, size: 24.sp, color: const Color(0xFF111827)),
+            Icon(icon, size: 24.sp, color: finalIconColor),
             SizedBox(width: 16.w),
             Expanded(
               child: Text(
@@ -284,15 +296,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 style: TextStyle(
                   fontSize: 16.sp,
                   fontWeight: FontWeight.w400,
-                  color: const Color(0xFF111827),
+                  color: finalTextColor,
                 ),
               ),
             ),
-            Icon(
-              Icons.chevron_right,
-              size: 24.sp,
-              color: const Color(0xFF6B7280),
-            ),
+            if (iconColor == null)
+              Icon(Icons.chevron_right, size: 24.sp, color: secondaryTextColor),
           ],
         ),
       ),
@@ -305,12 +314,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
     required bool value,
     required Function(bool) onChanged,
   }) {
+    final primaryTextColor = CitizenColors.textPrimary(context);
     return Container(
       padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
-      color: Colors.white,
+      color: CitizenColors.surface(context),
       child: Row(
         children: [
-          Icon(icon, size: 24.sp, color: const Color(0xFF111827)),
+          Icon(icon, size: 24.sp, color: primaryTextColor),
           SizedBox(width: 16.w),
           Expanded(
             child: Text(
@@ -318,16 +328,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
               style: TextStyle(
                 fontSize: 16.sp,
                 fontWeight: FontWeight.w400,
-                color: const Color(0xFF111827),
+                color: primaryTextColor,
               ),
             ),
           ),
           Switch(
             value: value,
             onChanged: onChanged,
-            activeColor: Colors.white,
+            activeThumbColor: CitizenColors.light,
             activeTrackColor: AppColors.primaryColor,
-            inactiveThumbColor: Colors.white,
+            inactiveThumbColor: CitizenColors.light,
             inactiveTrackColor: const Color(0xFFE5E7EB),
           ),
         ],
@@ -341,14 +351,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
     required String label,
     required VoidCallback onTap,
   }) {
+    final primaryTextColor = CitizenColors.textPrimary(context);
+    final secondaryTextColor = CitizenColors.textSecondary(context);
     return InkWell(
       onTap: onTap,
       child: Container(
         padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 16.h),
-        color: Colors.white,
+        color: CitizenColors.surface(context),
         child: Row(
           children: [
-            Icon(icon, size: 24.sp, color: const Color(0xFF111827)),
+            Icon(icon, size: 24.sp, color: primaryTextColor),
             SizedBox(width: 16.w),
             Expanded(
               child: Text(
@@ -356,7 +368,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 style: TextStyle(
                   fontSize: 16.sp,
                   fontWeight: FontWeight.w400,
-                  color: const Color(0xFF111827),
+                  color: primaryTextColor,
                 ),
               ),
             ),
@@ -371,16 +383,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 style: TextStyle(
                   fontSize: 12.sp,
                   fontWeight: FontWeight.w600,
-                  color: Colors.white,
+                  color: CitizenColors.light,
                 ),
               ),
             ),
             SizedBox(width: 8.w),
-            Icon(
-              Icons.chevron_right,
-              size: 24.sp,
-              color: const Color(0xFF6B7280),
-            ),
+            Icon(Icons.chevron_right, size: 24.sp, color: secondaryTextColor),
           ],
         ),
       ),
@@ -393,14 +401,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
     required String subtitle,
     required VoidCallback onTap,
   }) {
+    final primaryTextColor = CitizenColors.textPrimary(context);
+    final secondaryTextColor = CitizenColors.textSecondary(context);
     return InkWell(
       onTap: onTap,
       child: Container(
         padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 16.h),
-        color: Colors.white,
+        color: CitizenColors.surface(context),
         child: Row(
           children: [
-            Icon(icon, size: 24.sp, color: const Color(0xFF111827)),
+            Icon(icon, size: 24.sp, color: primaryTextColor),
             SizedBox(width: 16.w),
             Expanded(
               child: Column(
@@ -411,7 +421,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     style: TextStyle(
                       fontSize: 16.sp,
                       fontWeight: FontWeight.w400,
-                      color: const Color(0xFF111827),
+                      color: primaryTextColor,
                     ),
                   ),
                   SizedBox(height: 2.h),
@@ -420,24 +430,20 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     style: TextStyle(
                       fontSize: 13.sp,
                       fontWeight: FontWeight.w400,
-                      color: const Color(0xFF6B7280),
+                      color: secondaryTextColor,
                     ),
                   ),
                 ],
               ),
             ),
-            Icon(
-              Icons.chevron_right,
-              size: 24.sp,
-              color: const Color(0xFF6B7280),
-            ),
+            Icon(Icons.chevron_right, size: 24.sp, color: secondaryTextColor),
           ],
         ),
       ),
     );
   }
 
-  void _showThemeBottomSheet(BuildContext context) {
+  void _showLanguageBottomSheet(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     showModalBottomSheet(
       context: context,
@@ -447,134 +453,131 @@ class _SettingsScreenState extends State<SettingsScreen> {
           topRight: Radius.circular(20.r),
         ),
       ),
-      builder: (context) => Container(
-        color: Colors.white,
-        padding: EdgeInsets.all(20.w),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // Header
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  l10n.theme,
-                  style: TextStyle(
-                    fontSize: 20.sp,
-                    fontWeight: FontWeight.w600,
-                    color: const Color(0xFF111827),
-                  ),
-                ),
-                IconButton(
-                  icon: Icon(Icons.close, size: 24.sp),
-                  onPressed: () => Navigator.pop(context),
-                ),
-              ],
-            ),
-            SizedBox(height: 20.h),
+      builder: (bottomSheetContext) {
+        final primaryTextColor = CitizenColors.textPrimary(bottomSheetContext);
+        final secondaryTextColor = CitizenColors.textSecondary(
+          bottomSheetContext,
+        );
+        final surfaceColor = CitizenColors.surface(bottomSheetContext);
 
-            // Dark Mode option
-            Consumer<ThemeProvider>(
-              builder: (context, themeProvider, child) {
-                return InkWell(
-                  onTap: () {
-                    themeProvider.setThemeMode(ThemeMode.dark);
-                    Navigator.pop(context);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(l10n.darkMode),
-                        backgroundColor: const Color(0xFF009B56),
+        Widget languageOptionTile({
+          required String title,
+          required String languageCode,
+          required String currentLanguageCode,
+          required VoidCallback onSelect,
+        }) {
+          final isSelected = currentLanguageCode == languageCode;
+
+          return InkWell(
+            onTap: onSelect,
+            child: Container(
+              padding: EdgeInsets.symmetric(vertical: 16.h),
+              decoration: BoxDecoration(
+                color: isSelected
+                    ? AppColors.primaryColor.withOpacity(0.1)
+                    : Colors.transparent,
+                borderRadius: BorderRadius.circular(12.r),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    isSelected
+                        ? Icons.radio_button_checked
+                        : Icons.circle_outlined,
+                    color: isSelected
+                        ? AppColors.primaryColor
+                        : secondaryTextColor,
+                    size: 20.sp,
+                  ),
+                  SizedBox(width: 16.w),
+                  Expanded(
+                    child: Text(
+                      title,
+                      style: TextStyle(
+                        fontSize: 16.sp,
+                        fontWeight: FontWeight.w500,
+                        color: primaryTextColor,
                       ),
-                    );
-                  },
-                  child: Container(
-                    padding: EdgeInsets.symmetric(vertical: 16.h),
-                    child: Row(
-                      children: [
-                        Icon(
-                          Icons.dark_mode_outlined,
-                          size: 24.sp,
-                          color: themeProvider.isDarkMode
-                              ? AppColors.primaryColor
-                              : const Color(0xFF111827),
-                        ),
-                        SizedBox(width: 16.w),
-                        Expanded(
-                          child: Text(
-                            l10n.darkMode,
-                            style: TextStyle(
-                              fontSize: 16.sp,
-                              color: const Color(0xFF111827),
-                            ),
-                          ),
-                        ),
-                        if (themeProvider.isDarkMode)
-                          Icon(
-                            Icons.check,
-                            size: 20.sp,
-                            color: AppColors.primaryColor,
-                          ),
-                      ],
                     ),
                   ),
-                );
-              },
-            ),
-
-            SizedBox(height: 8.h),
-
-            // Light Mode option
-            Consumer<ThemeProvider>(
-              builder: (context, themeProvider, child) {
-                return InkWell(
-                  onTap: () {
-                    themeProvider.setThemeMode(ThemeMode.light);
-                    Navigator.pop(context);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(l10n.lightMode),
-                        backgroundColor: const Color(0xFF009B56),
-                      ),
-                    );
-                  },
-                  child: Container(
-                    padding: EdgeInsets.symmetric(vertical: 16.h),
-                    child: Row(
-                      children: [
-                        Icon(
-                          Icons.light_mode_outlined,
-                          size: 24.sp,
-                          color: !themeProvider.isDarkMode
-                              ? AppColors.primaryColor
-                              : const Color(0xFF111827),
-                        ),
-                        SizedBox(width: 16.w),
-                        Expanded(
-                          child: Text(
-                            l10n.lightMode,
-                            style: TextStyle(
-                              fontSize: 16.sp,
-                              color: const Color(0xFF111827),
-                            ),
-                          ),
-                        ),
-                        if (!themeProvider.isDarkMode)
-                          Icon(
-                            Icons.check,
-                            size: 20.sp,
-                            color: AppColors.primaryColor,
-                          ),
-                      ],
+                  if (isSelected)
+                    Icon(
+                      Icons.check,
+                      color: AppColors.primaryColor,
+                      size: 20.sp,
                     ),
-                  ),
-                );
-              },
+                ],
+              ),
             ),
+          );
+        }
 
-            SizedBox(height: 20.h),
-          ],
-        ),
-      ),
+        return Container(
+          color: surfaceColor,
+          padding: EdgeInsets.all(20.w),
+          child: Consumer<LocaleProvider>(
+            builder: (context, localeProvider, child) {
+              final currentLanguageCode = localeProvider.locale.languageCode;
+
+              Future<void> handleLanguageSelection(String code) async {
+                await localeProvider.setLocale(Locale(code));
+                if (mounted) {
+                  Navigator.pop(bottomSheetContext);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(l10n.languageChanged),
+                      duration: const Duration(seconds: 2),
+                    ),
+                  );
+                }
+              }
+
+              return Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        l10n.language,
+                        style: TextStyle(
+                          fontSize: 20.sp,
+                          fontWeight: FontWeight.w600,
+                          color: primaryTextColor,
+                        ),
+                      ),
+                      IconButton(
+                        icon: Icon(
+                          Icons.close,
+                          size: 24.sp,
+                          color: secondaryTextColor,
+                        ),
+                        onPressed: () => Navigator.pop(bottomSheetContext),
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: 20.h),
+                  languageOptionTile(
+                    title: l10n.english,
+                    languageCode: 'en',
+                    currentLanguageCode: currentLanguageCode,
+                    onSelect: () => handleLanguageSelection('en'),
+                  ),
+                  SizedBox(height: 12.h),
+                  languageOptionTile(
+                    title: l10n.hindi,
+                    languageCode: 'hi',
+                    currentLanguageCode: currentLanguageCode,
+                    onSelect: () => handleLanguageSelection('hi'),
+                  ),
+                  SizedBox(height: 20.h),
+                ],
+              );
+            },
+          ),
+        );
+      },
     );
   }
 
@@ -593,172 +596,185 @@ class _SettingsScreenState extends State<SettingsScreen> {
         ),
       ),
       builder: (context) => StatefulBuilder(
-        builder: (context, setState) => Padding(
-          padding: EdgeInsets.only(
-            bottom: MediaQuery.of(context).viewInsets.bottom,
-          ),
-          child: Container(
-            color: Colors.white,
-            padding: EdgeInsets.all(20.w),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Header with close button
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      l10n.giveUsFeedback,
-                      style: TextStyle(
-                        fontSize: 20.sp,
-                        fontWeight: FontWeight.w600,
+        builder: (context, setState) {
+          final primaryTextColor = CitizenColors.textPrimary(context);
+          final secondaryTextColor = CitizenColors.textSecondary(context);
+          return Padding(
+            padding: EdgeInsets.only(
+              bottom: MediaQuery.of(context).viewInsets.bottom,
+            ),
+            child: Container(
+              color: CitizenColors.surface(context),
+              padding: EdgeInsets.all(20.w),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Header with close button
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        l10n.giveUsFeedback,
+                        style: TextStyle(
+                          fontSize: 20.sp,
+                          fontWeight: FontWeight.w600,
+                          color: primaryTextColor,
+                        ),
                       ),
-                    ),
-                    IconButton(
-                      icon: Icon(Icons.close, size: 24.sp),
-                      onPressed: () => Navigator.pop(context),
-                    ),
-                  ],
-                ),
-                SizedBox(height: 20.h),
-
-                // Question
-                Text(
-                  l10n.howWasYourExperience,
-                  style: TextStyle(
-                    fontSize: 16.sp,
-                    fontWeight: FontWeight.w500,
-                    color: const Color(0xFF111827),
+                      IconButton(
+                        icon: Icon(
+                          Icons.close,
+                          size: 24.sp,
+                          color: secondaryTextColor,
+                        ),
+                        onPressed: () => Navigator.pop(context),
+                      ),
+                    ],
                   ),
-                ),
-                SizedBox(height: 16.h),
+                  SizedBox(height: 20.h),
 
-                // Emoji rating
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceAround,
-                  children: List.generate(5, (index) {
-                    final emojis = ['😢', '😞', '😐', '🙂', '😄'];
-                    final isSelected = selectedRating == index;
-                    return GestureDetector(
-                      onTap: () {
-                        setState(() {
-                          selectedRating = index;
-                        });
-                      },
-                      child: Container(
-                        padding: EdgeInsets.all(8.w),
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(12.r),
-                          color: isSelected
-                              ? const Color(0xFFD1FAE5)
-                              : Colors.transparent,
-                        ),
-                        child: Text(
-                          emojis[index],
-                          style: TextStyle(fontSize: 32.sp),
-                        ),
-                      ),
-                    );
-                  }),
-                ),
-                SizedBox(height: 8.h),
-
-                // Instruction text
-                if (selectedRating == -1)
+                  // Question
                   Text(
-                    l10n.chooseYourExperience,
+                    l10n.howWasYourExperience,
+                    style: TextStyle(
+                      fontSize: 16.sp,
+                      fontWeight: FontWeight.w500,
+                      color: primaryTextColor,
+                    ),
+                  ),
+                  SizedBox(height: 16.h),
+
+                  // Emoji rating
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceAround,
+                    children: List.generate(5, (index) {
+                      final emojis = ['😢', '😞', '😐', '🙂', '😄'];
+                      final isSelected = selectedRating == index;
+                      return GestureDetector(
+                        onTap: () {
+                          setState(() {
+                            selectedRating = index;
+                          });
+                        },
+                        child: Container(
+                          padding: EdgeInsets.all(8.w),
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(12.r),
+                            color: isSelected
+                                ? const Color(0xFFD1FAE5)
+                                : Colors.transparent,
+                          ),
+                          child: Text(
+                            emojis[index],
+                            style: TextStyle(fontSize: 32.sp),
+                          ),
+                        ),
+                      );
+                    }),
+                  ),
+                  SizedBox(height: 8.h),
+
+                  // Instruction text
+                  if (selectedRating == -1)
+                    Text(
+                      l10n.chooseYourExperience,
+                      style: TextStyle(
+                        fontSize: 14.sp,
+                        color: secondaryTextColor,
+                      ),
+                    ),
+                  SizedBox(height: 24.h),
+
+                  // Feedback label
+                  Text(
+                    l10n.enterFeedback,
                     style: TextStyle(
                       fontSize: 14.sp,
-                      color: const Color(0xFF9CA3AF),
+                      fontWeight: FontWeight.w500,
+                      color: primaryTextColor,
                     ),
                   ),
-                SizedBox(height: 24.h),
+                  SizedBox(height: 8.h),
 
-                // Feedback label
-                Text(
-                  l10n.enterFeedback,
-                  style: TextStyle(
-                    fontSize: 14.sp,
-                    fontWeight: FontWeight.w500,
-                    color: const Color(0xFF111827),
-                  ),
-                ),
-                SizedBox(height: 8.h),
-
-                // Feedback text area
-                Container(
-                  decoration: BoxDecoration(
-                    border: Border.all(color: const Color(0xFFE5E7EB)),
-                    borderRadius: BorderRadius.circular(8.r),
-                  ),
-                  child: TextField(
-                    controller: feedbackController,
-                    maxLines: 4,
-                    maxLength: 100,
-                    decoration: InputDecoration(
-                      hintText: l10n.enterFeedback,
-                      hintStyle: TextStyle(
-                        fontSize: 14.sp,
-                        color: const Color(0xFF9CA3AF),
+                  // Feedback text area
+                  Container(
+                    decoration: BoxDecoration(
+                      border: Border.all(color: const Color(0xFFE5E7EB)),
+                      borderRadius: BorderRadius.circular(8.r),
+                    ),
+                    child: TextField(
+                      controller: feedbackController,
+                      maxLines: 4,
+                      maxLength: 100,
+                      decoration: InputDecoration(
+                        hintText: l10n.enterFeedback,
+                        hintStyle: TextStyle(
+                          fontSize: 14.sp,
+                          color: secondaryTextColor,
+                        ),
+                        border: InputBorder.none,
+                        contentPadding: EdgeInsets.all(12.w),
+                        counterText: '${feedbackController.text.length}/100',
                       ),
-                      border: InputBorder.none,
-                      contentPadding: EdgeInsets.all(12.w),
-                      counterText: '${feedbackController.text.length}/100',
-                    ),
-                    onChanged: (value) {
-                      setState(() {});
-                    },
-                  ),
-                ),
-
-                SizedBox(height: 24.h),
-
-                // Submit button
-                SizedBox(
-                  width: double.infinity,
-                  height: 50.h,
-                  child: ElevatedButton(
-                    onPressed: () {
-                      if (selectedRating == -1) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text(l10n.pleaseRateYourExperience),
-                            backgroundColor: Colors.red,
-                          ),
-                        );
-                        return;
-                      }
-
-                      // Show success dialog
-                      Navigator.pop(context);
-                      _showFeedbackSuccessDialog(context);
-
-                      // Clear controllers
-                      feedbackController.clear();
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primaryColor,
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8.r),
-                      ),
-                      elevation: 0,
-                    ),
-                    child: Text(
-                      l10n.submit,
                       style: TextStyle(
-                        fontSize: 16.sp,
-                        fontWeight: FontWeight.w600,
+                        fontSize: 14.sp,
+                        color: primaryTextColor,
+                      ),
+                      onChanged: (value) {
+                        setState(() {});
+                      },
+                    ),
+                  ),
+
+                  SizedBox(height: 24.h),
+
+                  // Submit button
+                  SizedBox(
+                    width: double.infinity,
+                    height: 50.h,
+                    child: ElevatedButton(
+                      onPressed: () {
+                        if (selectedRating == -1) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(l10n.pleaseRateYourExperience),
+                              backgroundColor: Colors.red,
+                            ),
+                          );
+                          return;
+                        }
+
+                        // Show success dialog
+                        Navigator.pop(context);
+                        _showFeedbackSuccessDialog(context);
+
+                        // Clear controllers
+                        feedbackController.clear();
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primaryColor,
+                        foregroundColor: CitizenColors.light,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8.r),
+                        ),
+                        elevation: 0,
+                      ),
+                      child: Text(
+                        l10n.submit,
+                        style: TextStyle(
+                          fontSize: 16.sp,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                     ),
                   ),
-                ),
-                SizedBox(height: 16.h),
-              ],
+                  SizedBox(height: 16.h),
+                ],
+              ),
             ),
-          ),
-        ),
+          );
+        },
       ),
     );
   }
@@ -768,64 +784,195 @@ class _SettingsScreenState extends State<SettingsScreen> {
     showDialog(
       context: context,
       barrierDismissible: false,
+      builder: (context) {
+        final primaryTextColor = CitizenColors.textPrimary(context);
+        return Dialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16.r),
+          ),
+          child: Container(
+            padding: EdgeInsets.all(24.w),
+            decoration: BoxDecoration(
+              color: CitizenColors.surface(context),
+              borderRadius: BorderRadius.circular(16.r),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Star icon
+                Container(
+                  width: 60.w,
+                  height: 60.w,
+                  decoration: const BoxDecoration(
+                    color: Color(0xFFFFB800),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.star,
+                    color: CitizenColors.light,
+                    size: 32,
+                  ),
+                ),
+                SizedBox(height: 20.h),
+
+                // Success message
+                Text(
+                  l10n.yourFeedbackIsSuccessfullySubmitted,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w600,
+                    color: primaryTextColor,
+                  ),
+                ),
+                SizedBox(height: 24.h),
+
+                // Close button
+                SizedBox(
+                  width: double.infinity,
+                  height: 50.h,
+                  child: ElevatedButton(
+                    onPressed: () {
+                      Navigator.of(context).pop();
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primaryColor,
+                      foregroundColor: CitizenColors.light,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8.r),
+                      ),
+                      elevation: 0,
+                    ),
+                    child: Text(
+                      l10n.close,
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  void _showLogoutDialog(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final primaryTextColor = CitizenColors.textPrimary(context);
+    final secondaryTextColor = CitizenColors.textSecondary(context);
+    
+    showDialog(
+      context: context,
       builder: (context) => Dialog(
+        backgroundColor: CitizenColors.surface(context),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16.r),
         ),
         child: Container(
+          decoration: BoxDecoration(
+            color: CitizenColors.surface(context),
+            borderRadius: BorderRadius.circular(16.r),
+          ),
           padding: EdgeInsets.all(24.w),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              // Star icon
-              Container(
-                color: Colors.white,
-                width: 60.w,
-                height: 60.w,
-                decoration: const BoxDecoration(
-                  color: Color(0xFFFFB800),
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(Icons.star, color: Colors.white, size: 32),
-              ),
-              SizedBox(height: 20.h),
-
-              // Success message
+              // Title
               Text(
-                l10n.yourFeedbackIsSuccessfullySubmitted,
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                  fontSize: 18,
+                l10n.areYouSureYouWantToLogOut,
+                style: TextStyle(
+                  fontSize: 18.sp,
                   fontWeight: FontWeight.w600,
-                  color: Color(0xFF111827),
+                  color: primaryTextColor,
                 ),
+                textAlign: TextAlign.center,
+              ),
+              SizedBox(height: 8.h),
+
+              // Subtitle
+              Text(
+                l10n.youllNeedToSignInAgainToAccessTheApp,
+                style: TextStyle(
+                  fontSize: 14.sp,
+                  fontWeight: FontWeight.w400,
+                  color: secondaryTextColor,
+                ),
+                textAlign: TextAlign.center,
               ),
               SizedBox(height: 24.h),
 
-              // Close button
-              SizedBox(
-                width: double.infinity,
-                height: 50.h,
-                child: ElevatedButton(
-                  onPressed: () {
-                    Navigator.of(context).pop();
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primaryColor,
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8.r),
+              // Buttons
+              Row(
+                children: [
+                  // Close button
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: () => Navigator.pop(context),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFFF3F4F6),
+                        foregroundColor: const Color(0xFF374151),
+                        padding: EdgeInsets.symmetric(vertical: 14.h),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8.r),
+                        ),
+                        elevation: 0,
+                      ),
+                      child: Text(
+                        l10n.close,
+                        style: TextStyle(
+                          fontSize: 16.sp,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
                     ),
-                    elevation: 0,
                   ),
-                  child: Text(
-                    l10n.close,
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
+                  SizedBox(width: 12.w),
+
+                  // Confirm logout button
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: () async {
+                        final authService = AuthService();
+                        await authService.logout();
+                        
+                        // Clear auth provider state
+                        if (context.mounted) {
+                          final authProvider = context.read<AuthProvider>();
+                          await authProvider.logout();
+                        }
+
+                        if (context.mounted) {
+                          Navigator.pop(context); // Close dialog
+                          Navigator.pushNamedAndRemoveUntil(
+                            context,
+                            '/landing',
+                            (route) => false,
+                          );
+                        }
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.red,
+                        foregroundColor: CitizenColors.light,
+                        padding: EdgeInsets.symmetric(vertical: 14.h),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8.r),
+                        ),
+                        elevation: 0,
+                      ),
+                      child: Text(
+                        l10n.logout,
+                        style: TextStyle(
+                          fontSize: 16.sp,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
                     ),
                   ),
-                ),
+                ],
               ),
             ],
           ),

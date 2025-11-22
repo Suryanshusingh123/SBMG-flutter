@@ -4,6 +4,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:provider/provider.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:intl/intl.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:sbmg/screens/citizen/language_screen.dart';
 import '../../l10n/app_localizations.dart';
 import '../../config/connstants.dart';
@@ -16,6 +17,7 @@ import '../../providers/locale_provider.dart';
 import '../../widgets/common/banner_carousel.dart';
 import '../../widgets/common/custom_bottom_navigation.dart';
 import '../../services/auth_services.dart';
+import '../../theme/citizen_colors.dart';
 import 'vendor_details_screen.dart';
 import 'gp_master_data_details_screen.dart';
 import 'notifications_screen.dart';
@@ -128,7 +130,7 @@ class _CitizenHomeScreenState extends State<CitizenHomeScreen> {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          backgroundColor: Colors.white,
+          backgroundColor: CitizenColors.surface(context),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12.r),
           ),
@@ -174,7 +176,7 @@ class _CitizenHomeScreenState extends State<CitizenHomeScreen> {
                 style: TextStyle(
                   fontFamily: 'Noto Sans',
                   fontWeight: FontWeight.w600,
-                  color: Colors.white,
+                  color: CitizenColors.light,
                 ),
               ),
             ),
@@ -287,7 +289,7 @@ class _CitizenHomeScreenState extends State<CitizenHomeScreen> {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          backgroundColor: Colors.white,
+          backgroundColor: CitizenColors.surface(context),
           title: Text(l10n.selectLanguage),
           content: Column(
             mainAxisSize: MainAxisSize.min,
@@ -342,7 +344,7 @@ class _CitizenHomeScreenState extends State<CitizenHomeScreen> {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          backgroundColor: Colors.white,
+          backgroundColor: CitizenColors.surface(context),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12.r),
           ),
@@ -385,10 +387,10 @@ class _CitizenHomeScreenState extends State<CitizenHomeScreen> {
               ),
               child: Text(
                 l10n.login,
-                style: const TextStyle(
+                style: TextStyle(
                   fontFamily: 'Noto Sans',
                   fontWeight: FontWeight.w600,
-                  color: Colors.white,
+                  color: CitizenColors.light,
                 ),
               ),
             ),
@@ -408,7 +410,7 @@ class _CitizenHomeScreenState extends State<CitizenHomeScreen> {
         _showExitDialog();
       },
       child: Scaffold(
-        backgroundColor: Colors.white,
+        backgroundColor: CitizenColors.background(context),
         body: SafeArea(
           child: Column(
             children: [
@@ -421,7 +423,15 @@ class _CitizenHomeScreenState extends State<CitizenHomeScreen> {
                   child: Column(
                     children: [
                       // Banner Carousel
-                      const BannerCarousel(),
+                      const BannerCarousel(
+                        imagePaths: [
+                          'assets/images/dash1.jpeg',
+                          'assets/images/dash2.jpeg',
+                          'assets/images/dash3.jpeg',
+                          'assets/images/dash4.jpeg',
+                          'assets/images/dash5.jpeg',
+                        ],
+                      ),
 
                       Image.asset('assets/images/Group.png'),
 
@@ -444,6 +454,11 @@ class _CitizenHomeScreenState extends State<CitizenHomeScreen> {
 
                       // Events Section
                       _buildEventsSection(),
+
+                      SizedBox(height: 20.h),
+
+                      // Social Media Section
+                      _buildSocialMediaSection(),
                     ],
                   ),
                 ),
@@ -461,7 +476,7 @@ class _CitizenHomeScreenState extends State<CitizenHomeScreen> {
               _checkAuthAndNavigate(context);
             },
             backgroundColor: const Color(0xFF009B56),
-            foregroundColor: Colors.white,
+            foregroundColor: CitizenColors.light,
             elevation: 8,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(30.r),
@@ -509,19 +524,19 @@ class _CitizenHomeScreenState extends State<CitizenHomeScreen> {
           },
           items: [
             BottomNavItem(
-              icon: Icons.home,
+              iconPath: 'assets/icons/bottombar/home.png',
               label: AppLocalizations.of(context)!.home,
             ),
             BottomNavItem(
-              icon: Icons.list_alt,
+              iconPath: 'assets/icons/bottombar/complaints.png',
               label: AppLocalizations.of(context)!.myComplaint,
             ),
             BottomNavItem(
-              icon: Icons.account_balance,
+              iconPath: 'assets/icons/bottombar/schemes.png',
               label: AppLocalizations.of(context)!.schemes,
             ),
             BottomNavItem(
-              icon: Icons.settings,
+              iconPath: 'assets/icons/bottombar/settings.png',
               label: AppLocalizations.of(context)!.settings,
             ),
           ],
@@ -531,6 +546,8 @@ class _CitizenHomeScreenState extends State<CitizenHomeScreen> {
   }
 
   Widget _buildTopHeader() {
+    final primaryTextColor = CitizenColors.textPrimary(context);
+    final secondaryTextColor = CitizenColors.textSecondary(context);
     return Container(
       padding: EdgeInsets.all(16.r),
       child: Row(
@@ -545,19 +562,16 @@ class _CitizenHomeScreenState extends State<CitizenHomeScreen> {
                 children: [
                   Text(
                     _getGreeting(context),
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.w500,
-                      color: Color(0xFF111827),
+                      color: primaryTextColor,
                     ),
                   ),
                   SizedBox(height: 4.h),
                   Text(
                     _getCurrentDate(),
-                    style: const TextStyle(
-                      fontSize: 14,
-                      color: Color(0xFF6B7280),
-                    ),
+                    style: TextStyle(fontSize: 14, color: secondaryTextColor),
                   ),
                 ],
               ),
@@ -578,7 +592,7 @@ class _CitizenHomeScreenState extends State<CitizenHomeScreen> {
                   'assets/icons/Vector.png',
                   width: 24,
                   height: 24,
-                  color: const Color(0xFF2C3E50),
+                  color: secondaryTextColor,
                 ),
               ),
               IconButton(
@@ -594,7 +608,7 @@ class _CitizenHomeScreenState extends State<CitizenHomeScreen> {
                   'assets/icons/Translate.png',
                   width: 24,
                   height: 24,
-                  color: const Color(0xFF2C3E50),
+                  color: secondaryTextColor,
                 ),
               ),
             ],
@@ -629,6 +643,8 @@ class _CitizenHomeScreenState extends State<CitizenHomeScreen> {
 
   Widget _buildFeaturedSchemesSection() {
     final l10n = AppLocalizations.of(context)!;
+    final primaryTextColor = CitizenColors.textPrimary(context);
+    final secondaryTextColor = CitizenColors.textSecondary(context);
     return Consumer<SchemesProvider>(
       builder: (context, schemesProvider, child) {
         return Column(
@@ -642,11 +658,11 @@ class _CitizenHomeScreenState extends State<CitizenHomeScreen> {
                 children: [
                   Text(
                     l10n.featuredScheme,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontFamily: 'Noto Sans',
                       fontSize: 18,
                       fontWeight: FontWeight.w500,
-                      color: Color(0xFF111827),
+                      color: primaryTextColor,
                       letterSpacing: 0,
                       height: 1.0,
                     ),
@@ -682,7 +698,7 @@ class _CitizenHomeScreenState extends State<CitizenHomeScreen> {
                   ? Center(
                       child: Text(
                         l10n.noSchemesAvailable,
-                        style: const TextStyle(color: Color(0xFF9CA3AF)),
+                        style: TextStyle(color: secondaryTextColor),
                       ),
                     )
                   : ListView.builder(
@@ -767,8 +783,8 @@ class _CitizenHomeScreenState extends State<CitizenHomeScreen> {
                   ),
                   child: Text(
                     scheme.name,
-                    style: const TextStyle(
-                      color: Colors.white,
+                    style: TextStyle(
+                      color: CitizenColors.light,
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
                     ),
@@ -833,13 +849,14 @@ class _CitizenHomeScreenState extends State<CitizenHomeScreen> {
     required String title,
     required VoidCallback onTap,
   }) {
+    final primaryTextColor = CitizenColors.textPrimary(context);
     return GestureDetector(
       onTap: onTap,
       child: Container(
         height: 140, // Fixed height for both cards
         padding: EdgeInsets.all(16.r),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: CitizenColors.surface(context),
           borderRadius: BorderRadius.circular(12.r),
           border: Border.all(color: Colors.grey.shade300),
           boxShadow: [
@@ -869,11 +886,11 @@ class _CitizenHomeScreenState extends State<CitizenHomeScreen> {
               child: Center(
                 child: Text(
                   title,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontFamily: 'Noto Sans',
                     fontSize: 14,
                     fontWeight: FontWeight.w500,
-                    color: Color(0xFF111827),
+                    color: primaryTextColor,
                     letterSpacing: 0,
                     height: 1.0,
                   ),
@@ -898,6 +915,8 @@ class _CitizenHomeScreenState extends State<CitizenHomeScreen> {
 
   Widget _buildEventsSection() {
     final l10n = AppLocalizations.of(context)!;
+    final primaryTextColor = CitizenColors.textPrimary(context);
+    final secondaryTextColor = CitizenColors.textSecondary(context);
     return Consumer<EventsProvider>(
       builder: (context, eventsProvider, child) {
         return Column(
@@ -907,11 +926,11 @@ class _CitizenHomeScreenState extends State<CitizenHomeScreen> {
               padding: EdgeInsets.symmetric(horizontal: 16.w),
               child: Text(
                 '${eventsProvider.eventsCount} ${eventsProvider.eventsCount != 1 ? l10n.eventsPlural : l10n.events}',
-                style: const TextStyle(
+                style: TextStyle(
                   fontFamily: 'Noto Sans',
                   fontSize: 18,
                   fontWeight: FontWeight.w500,
-                  color: Color(0xFF111827),
+                  color: primaryTextColor,
                   letterSpacing: 0,
                   height: 1.0,
                 ),
@@ -938,7 +957,7 @@ class _CitizenHomeScreenState extends State<CitizenHomeScreen> {
                       padding: EdgeInsets.all(20.r),
                       child: Text(
                         l10n.noEventsAvailable,
-                        style: const TextStyle(color: Color(0xFF9CA3AF)),
+                        style: TextStyle(color: secondaryTextColor),
                       ),
                     ),
                   )
@@ -1036,7 +1055,7 @@ class _CitizenHomeScreenState extends State<CitizenHomeScreen> {
                             decoration: BoxDecoration(
                               color: isBookmarked
                                   ? const Color(0xFF009B56)
-                                  : Colors.white.withOpacity(0.9),
+                                  : CitizenColors.light.withOpacity(0.9),
                               borderRadius: BorderRadius.circular(8.r),
                               boxShadow: [
                                 BoxShadow(
@@ -1051,7 +1070,7 @@ class _CitizenHomeScreenState extends State<CitizenHomeScreen> {
                                   ? Icons.bookmark
                                   : Icons.bookmark_border,
                               color: isBookmarked
-                                  ? Colors.white
+                                  ? CitizenColors.light
                                   : const Color(0xFF4CAF50),
                               size: 20.sp,
                             ),
@@ -1069,7 +1088,7 @@ class _CitizenHomeScreenState extends State<CitizenHomeScreen> {
           Container(
             padding: EdgeInsets.all(12.r),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: CitizenColors.surface(context),
               borderRadius: const BorderRadius.only(
                 bottomLeft: Radius.circular(12),
                 bottomRight: Radius.circular(12),
@@ -1135,12 +1154,109 @@ class _CitizenHomeScreenState extends State<CitizenHomeScreen> {
     );
   }
 
+  Widget _buildSocialMediaSection() {
+    return Padding(
+      padding: EdgeInsets.symmetric(horizontal: 16.w),
+      child: Container(
+        padding: EdgeInsets.symmetric(vertical: 16.h, horizontal: 20.w),
+        decoration: BoxDecoration(
+          color: CitizenColors.surface(context),
+          borderRadius: BorderRadius.circular(12.r),
+          border: Border.all(color: Colors.grey.shade200),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              'Connect with Swachh Rajasthan',
+              style: TextStyle(
+                fontSize: 16.sp,
+                fontWeight: FontWeight.w600,
+                color: CitizenColors.textPrimary(context),
+              ),
+            ),
+            SizedBox(height: 12.h),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                _buildSocialIcon(
+                  assetPath: 'assets/images/InstagramLogo.png',
+                  platform: 'Instagram',
+                  url: 'https://instagram.com/SwachhRajasthan_',
+                ),
+                SizedBox(width: 20.w),
+                _buildSocialIcon(
+                  assetPath: 'assets/images/XLogo.png',
+                  platform: 'X',
+                  url: 'https://x.com/SwachRajasthan',
+                ),
+                SizedBox(width: 20.w),
+                _buildSocialIcon(
+                  assetPath: 'assets/images/FacebookLogo.png',
+                  platform: 'Facebook',
+                  url: 'https://www.facebook.com/share/16UZeZDuvF/',
+                ),
+                SizedBox(width: 20.w),
+                _buildSocialIcon(
+                  assetPath: 'assets/images/YoutubeLogo.png',
+                  platform: 'YouTube',
+                  url: 'https://youtube.com/@swachhrajasthan',
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSocialIcon({
+    required String assetPath,
+    required String platform,
+    required String url,
+  }) {
+    return GestureDetector(
+      onTap: () => _launchSocialLink(url, platform),
+      child: SizedBox(width: 40, height: 40, child: Image.asset(assetPath)),
+    );
+  }
+
+  Future<void> _launchSocialLink(String url, String platform) async {
+    final uri = Uri.parse(url);
+
+    try {
+      final launched = await launchUrl(
+        uri,
+        mode: LaunchMode.externalApplication,
+      );
+      if (!launched && mounted) {
+        _showLinkError(platform);
+      }
+    } catch (_) {
+      if (mounted) {
+        _showLinkError(platform);
+      }
+    }
+  }
+
+  void _showLinkError(String platform) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: Text('Could not open $platform link.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+  }
+
   void _showExitDialog() {
     showDialog(
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          backgroundColor: Colors.white,
+          backgroundColor: CitizenColors.surface(context),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12.r),
           ),
@@ -1150,7 +1266,7 @@ class _CitizenHomeScreenState extends State<CitizenHomeScreen> {
               fontFamily: 'Noto Sans',
               fontSize: 18.sp,
               fontWeight: FontWeight.w600,
-              color: const Color(0xFF111827),
+              color: CitizenColors.textPrimary(context),
             ),
           ),
           content: Text(
@@ -1158,7 +1274,7 @@ class _CitizenHomeScreenState extends State<CitizenHomeScreen> {
             style: TextStyle(
               fontFamily: 'Noto Sans',
               fontSize: 14.sp,
-              color: const Color(0xFF6B7280),
+              color: CitizenColors.textSecondary(context),
             ),
           ),
           actions: [
@@ -1170,7 +1286,7 @@ class _CitizenHomeScreenState extends State<CitizenHomeScreen> {
                 'Cancel',
                 style: TextStyle(
                   fontFamily: 'Noto Sans',
-                  color: const Color(0xFF6B7280),
+                  color: CitizenColors.textSecondary(context),
                   fontWeight: FontWeight.w500,
                 ),
               ),
@@ -1192,7 +1308,7 @@ class _CitizenHomeScreenState extends State<CitizenHomeScreen> {
                 style: TextStyle(
                   fontFamily: 'Noto Sans',
                   fontWeight: FontWeight.w600,
-                  color: Colors.white,
+                  color: CitizenColors.light,
                 ),
               ),
             ),

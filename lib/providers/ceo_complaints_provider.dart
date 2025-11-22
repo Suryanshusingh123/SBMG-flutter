@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import '../models/api_complaint_model.dart';
 import '../services/complaints_service.dart';
+import '../services/auth_services.dart';
 
 class CeoComplaintsProvider extends ChangeNotifier {
   final ComplaintsService _complaintsService = ComplaintsService();
+  final AuthService _authService = AuthService();
 
   List<ApiComplaintModel> _complaints = [];
   bool _isLoading = true;
@@ -36,29 +38,48 @@ class CeoComplaintsProvider extends ChangeNotifier {
       _errorMessage = null;
       notifyListeners();
 
-      final response = await _complaintsService.getComplaintsForSupervisor();
+      final districtId = await _authService.getDistrictId();
+
+      if (districtId == null) {
+        debugPrint('❌ [CEO Complaints] District ID not available. Aborting call.');
+        _errorMessage = 'District information not found';
+        _isLoading = false;
+        notifyListeners();
+        return;
+      }
+
+      debugPrint('📡 [CEO Complaints] Fetching complaints for districtId=$districtId');
+      final response = await _complaintsService.getComplaintsForBdo(
+        districtId: districtId,
+        blockId: null,
+      );
 
       if (response['success'] == true) {
         final complaints = response['complaints'] as List<ApiComplaintModel>;
 
-        String villageName = 'Gram Panchayat';
-        if (complaints.isNotEmpty) {
-          villageName = complaints[0].villageName;
-        }
-
         _complaints = complaints;
-        _villageName = villageName;
+        _villageName = 'District';
         _isLoading = false;
         notifyListeners();
+
+        debugPrint(
+          '✅ [CEO Complaints] Loaded ${complaints.length} complaints for districtId=$districtId',
+        );
       } else {
         _errorMessage = response['message'] ?? 'Failed to load complaints';
         _isLoading = false;
         notifyListeners();
+
+        debugPrint(
+          '❌ [CEO Complaints] API error for districtId=$districtId -> $_errorMessage',
+        );
       }
     } catch (e) {
       _errorMessage = 'Network error. Please try again.';
       _isLoading = false;
       notifyListeners();
+
+      debugPrint('💥 [CEO Complaints] Exception while fetching complaints: $e');
     }
   }
 

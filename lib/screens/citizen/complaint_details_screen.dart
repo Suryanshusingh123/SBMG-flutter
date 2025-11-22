@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:geocoding/geocoding.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
+import '../../theme/citizen_colors.dart';
 import '../../services/api_services.dart';
 import '../../config/connstants.dart';
 import '../../providers/citizen_auth_provider.dart';
@@ -24,9 +26,17 @@ class _ComplaintDetailsScreenState extends State<ComplaintDetailsScreen> {
   Map<String, dynamic>? _complaintData;
   bool _isLoading = true;
   String? _errorMessage;
+  double? _latitude;
+  double? _longitude;
+  String? _reverseGeocodedAddress;
+  bool _isReverseGeocoding = false;
+  bool _reverseGeocodeFailed = false;
 
   // Feedback controller
   final TextEditingController _feedbackController = TextEditingController();
+
+  Color get _primaryTextColor => CitizenColors.textPrimary(context);
+  Color get _secondaryTextColor => CitizenColors.textSecondary(context);
 
   @override
   void initState() {
@@ -48,10 +58,18 @@ class _ComplaintDetailsScreenState extends State<ComplaintDetailsScreen> {
         final data = await _apiService.getComplaintDetails(
           complaintId: complaintId,
         );
+        final coordinates = _extractCoordinates(data);
         setState(() {
           _complaintData = data;
+          _latitude = coordinates?.$1;
+          _longitude = coordinates?.$2;
+          _reverseGeocodedAddress = null;
+          _reverseGeocodeFailed = false;
           _isLoading = false;
         });
+        if (_hasValidCoordinates) {
+          _reverseGeocodeCoordinates();
+        }
       } else {
         setState(() {
           _isLoading = false;
@@ -65,6 +83,247 @@ class _ComplaintDetailsScreenState extends State<ComplaintDetailsScreen> {
         _errorMessage = 'Failed to load complaint details';
       });
     }
+  }
+
+  (double, double)? _extractCoordinates(Map<String, dynamic> data) {
+    double? parseCoordinate(dynamic value) {
+      if (value == null) return null;
+      if (value is double) return value;
+      if (value is int) return value.toDouble();
+      if (value is String) {
+        final trimmed = value.trim();
+        if (trimmed.isEmpty) return null;
+        return double.tryParse(trimmed);
+      }
+      return null;
+    }
+
+    double? lat;
+    double? long;
+
+    const latKeys = [
+      'lat',
+      'latitude',
+      'lat_value',
+      'latLongLat',
+      'location_latitude',
+    ];
+    const longKeys = [
+      'long',
+      'lng',
+      'longitude',
+      'latLongLong',
+      'location_longitude',
+    ];
+
+    for (final key in latKeys) {
+      lat = parseCoordinate(data[key]);
+      if (lat != null) break;
+    }
+    for (final key in longKeys) {
+      long = parseCoordinate(data[key]);
+      if (long != null) break;
+    }
+
+    if (lat == null || long == null) {
+      final latLongString = data['lat_long'] ?? data['coordinates'];
+      if (latLongString is String) {
+        final parts = latLongString.split(',');
+        if (parts.length == 2) {
+          lat = parseCoordinate(parts[0]);
+          long = parseCoordinate(parts[1]);
+        }
+      }
+    }
+
+    if (lat == null || long == null) {
+      final media = data['media'];
+      if (media is List && media.isNotEmpty) {
+        final first = media.first;
+        if (first is Map) {
+          for (final key in latKeys) {
+            lat = parseCoordinate(first[key]);
+            if (lat != null) break;
+          }
+          for (final key in longKeys) {
+            long = parseCoordinate(first[key]);
+            if (long != null) break;
+          }
+        }
+      }
+    }
+
+    if (lat == null || long == null) {
+      return null;
+    }
+
+    if (lat.isNaN ||
+        long.isNaN ||
+        lat == 0.0 ||
+        long == 0.0 ||
+        lat > 90 ||
+        lat < -90 ||
+        long > 180 ||
+        long < -180) {
+      return null;
+    }
+
+    return (lat, long);
+  }
+
+  bool get _hasValidCoordinates => _latitude != null && _longitude != null;
+
+  Future<void> _reverseGeocodeCoordinates() async {
+    if (!_hasValidCoordinates || _isReverseGeocoding || _reverseGeocodeFailed) {
+      return;
+    }
+
+    setState(() {
+      _isReverseGeocoding = true;
+    });
+
+    try {
+      final placemarks = await placemarkFromCoordinates(
+        _latitude!,
+        _longitude!,
+      );
+
+      if (!mounted) return;
+
+      if (placemarks.isEmpty) {
+        setState(() {
+          _reverseGeocodeFailed = true;
+          _isReverseGeocoding = false;
+        });
+        return;
+      }
+
+      final place = placemarks.first;
+      final parts = <String>[];
+
+      void addIfNotEmpty(String? value) {
+        if (value != null) {
+          final trimmed = value.trim();
+          if (trimmed.isNotEmpty && !parts.contains(trimmed)) {
+            parts.add(trimmed);
+          }
+        }
+      }
+
+      addIfNotEmpty(place.street);
+      addIfNotEmpty(place.subLocality);
+      addIfNotEmpty(place.locality);
+      addIfNotEmpty(place.subAdministrativeArea);
+      addIfNotEmpty(place.administrativeArea);
+      addIfNotEmpty(place.postalCode);
+      addIfNotEmpty(place.country);
+
+      setState(() {
+        _reverseGeocodedAddress = parts.isNotEmpty
+            ? parts.join(', ')
+            : '${_latitude!}, ${_longitude!}';
+        _isReverseGeocoding = false;
+        _reverseGeocodeFailed = false;
+      });
+    } catch (e) {
+      debugPrint(
+        '❌ Error reverse geocoding complaint ${_complaintData?['id']}: $e',
+      );
+      if (!mounted) return;
+      setState(() {
+        _isReverseGeocoding = false;
+        _reverseGeocodeFailed = true;
+      });
+    }
+  }
+
+  String _getLocationDisplay() {
+    debugPrint(
+      '📍 Complaint Details Screen location data for ID ${_complaintData?['id']}',
+    );
+    debugPrint('📍 Cached address: $_reverseGeocodedAddress');
+    debugPrint('📍 Raw location field: ${_complaintData?['location']}');
+    debugPrint('📍 District: ${_complaintData?['district_name']}');
+    debugPrint('📍 Block: ${_complaintData?['block_name']}');
+    debugPrint('📍 Village: ${_complaintData?['village_name']}');
+
+    if (_hasValidCoordinates) {
+      if (_reverseGeocodedAddress != null &&
+          _reverseGeocodedAddress!.isNotEmpty) {
+        debugPrint(
+          '✅ Using reverse-geocoded address: $_reverseGeocodedAddress',
+        );
+        return _reverseGeocodedAddress!;
+      }
+
+      if (!_isReverseGeocoding && !_reverseGeocodeFailed) {
+        _reverseGeocodeCoordinates();
+      }
+
+      if (_isReverseGeocoding) {
+        debugPrint('⏳ Reverse geocoding in progress for details page');
+        return 'Fetching address...';
+      }
+    }
+
+    final locationField = _complaintData?['location'];
+    if (locationField is String && locationField.trim().isNotEmpty) {
+      debugPrint('✅ Using location field: $locationField');
+      return locationField.trim();
+    }
+
+    final parts = <String>[];
+    void addPart(dynamic value) {
+      if (value is String) {
+        final trimmed = value.trim();
+        if (trimmed.isNotEmpty) {
+          parts.add(trimmed);
+        }
+      }
+    }
+
+    addPart(_complaintData?['district_name']);
+    addPart(_complaintData?['block_name']);
+    addPart(_complaintData?['village_name']);
+
+    if (parts.isNotEmpty) {
+      final fallback = parts.join(' | ');
+      debugPrint('✅ Using district|block|village: $fallback');
+      return fallback;
+    }
+
+    if (_hasValidCoordinates && !_reverseGeocodeFailed) {
+      debugPrint('⌛ Showing placeholder while waiting for reverse geocoding');
+      return 'Fetching address...';
+    }
+
+    debugPrint('❌ No location data available');
+    return 'Location not available';
+  }
+
+  String get _getStatusHeading {
+    final status = _complaintData?['status_id'];
+    final closedAt = _complaintData?['closed_at'];
+    final verifiedAt = _complaintData?['verified_at'];
+    final resolvedAt = _complaintData?['resolved_at'];
+
+    // First check if closed
+    if (status == 4 || closedAt != null) {
+      return 'Successfully disposed';
+    }
+
+    // Then check if verified but not closed
+    if (status == 3 || (verifiedAt != null && closedAt == null)) {
+      return 'Successfully resolved, waiting for user to close';
+    }
+
+    // Then check if resolved
+    if (status == 2 || resolvedAt != null) {
+      return 'Verification pending by VDO';
+    }
+
+    // Open status
+    return 'Waiting for supervisor to resolve';
   }
 
   String get _dynamicStatusText {
@@ -161,12 +420,12 @@ class _ComplaintDetailsScreenState extends State<ComplaintDetailsScreen> {
   Widget build(BuildContext context) {
     if (_isLoading) {
       return Scaffold(
-        backgroundColor: Colors.white,
+        backgroundColor: CitizenColors.background(context),
         appBar: AppBar(
-          backgroundColor: Colors.white,
+          backgroundColor: CitizenColors.surface(context),
           elevation: 0,
           leading: IconButton(
-            icon: const Icon(Icons.arrow_back, color: Color(0xFF111827)),
+            icon: Icon(Icons.arrow_back, color: _primaryTextColor),
             onPressed: () => Navigator.pop(context),
           ),
         ),
@@ -180,12 +439,12 @@ class _ComplaintDetailsScreenState extends State<ComplaintDetailsScreen> {
 
     if (_errorMessage != null || _complaintData == null) {
       return Scaffold(
-        backgroundColor: Colors.white,
+        backgroundColor: CitizenColors.background(context),
         appBar: AppBar(
-          backgroundColor: Colors.white,
+          backgroundColor: CitizenColors.surface(context),
           elevation: 0,
           leading: IconButton(
-            icon: const Icon(Icons.arrow_back, color: Color(0xFF111827)),
+            icon: Icon(Icons.arrow_back, color: _primaryTextColor),
             onPressed: () => Navigator.pop(context),
           ),
         ),
@@ -207,33 +466,33 @@ class _ComplaintDetailsScreenState extends State<ComplaintDetailsScreen> {
     }
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: CitizenColors.background(context),
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: CitizenColors.surface(context),
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Color(0xFF111827)),
+          icon: Icon(Icons.arrow_back, color: _primaryTextColor),
           onPressed: () => Navigator.pop(context),
         ),
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Complaint ID #${_complaintData!['id']}',
-              style: const TextStyle(
+              _getStatusHeading,
+              style: TextStyle(
                 fontFamily: 'Noto Sans',
                 fontSize: 18,
                 fontWeight: FontWeight.w600,
-                color: Color(0xFF111827),
+                color: _primaryTextColor,
               ),
             ),
             Text(
               '${_complaintData!['district_name'] ?? 'District'} | ${_complaintData!['block_name'] ?? 'Block'} | ${_complaintData!['village_name'] ?? 'GP'}',
-              style: const TextStyle(
+              style: TextStyle(
                 fontFamily: 'Noto Sans',
                 fontSize: 12,
                 fontWeight: FontWeight.w400,
-                color: Color(0xFF6B7280),
+                color: _secondaryTextColor,
               ),
             ),
           ],
@@ -316,7 +575,7 @@ class _ComplaintDetailsScreenState extends State<ComplaintDetailsScreen> {
             ),
             child: Icon(
               isClosed ? Icons.check : Icons.schedule,
-              color: Colors.white,
+              color: CitizenColors.light,
               size: 16.sp,
             ),
           ),
@@ -341,13 +600,13 @@ class _ComplaintDetailsScreenState extends State<ComplaintDetailsScreen> {
                     fontFamily: 'Noto Sans',
                     fontSize: 12.sp,
                     fontWeight: FontWeight.w400,
-                    color: const Color(0xFF6B7280),
+                    color: _secondaryTextColor,
                   ),
                 ),
               ],
             ),
           ),
-          const Icon(Icons.info_outline, color: Color(0xFF6B7280), size: 20),
+          Icon(Icons.info_outline, color: _secondaryTextColor, size: 20),
         ],
       ),
     );
@@ -371,7 +630,7 @@ class _ComplaintDetailsScreenState extends State<ComplaintDetailsScreen> {
             style: TextStyle(
               fontFamily: 'Noto Sans',
               fontSize: 14.sp,
-              color: const Color(0xFF6B7280),
+              color: _secondaryTextColor,
             ),
           ),
         ),
@@ -520,20 +779,20 @@ class _ComplaintDetailsScreenState extends State<ComplaintDetailsScreen> {
             children: [
               Text(
                 complaintTypeName,
-                style: const TextStyle(
+                style: TextStyle(
                   fontFamily: 'Noto Sans',
                   fontSize: 18,
                   fontWeight: FontWeight.w600,
-                  color: Color(0xFF111827),
+                  color: _primaryTextColor,
                 ),
               ),
               Text(
                 _formatDate(_complaintData?['created_at']),
-                style: const TextStyle(
+                style: TextStyle(
                   fontFamily: 'Noto Sans',
                   fontSize: 14,
                   fontWeight: FontWeight.w400,
-                  color: Color(0xFF6B7280),
+                  color: _secondaryTextColor,
                 ),
               ),
             ],
@@ -542,16 +801,16 @@ class _ComplaintDetailsScreenState extends State<ComplaintDetailsScreen> {
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Icon(Icons.location_on, color: Color(0xFF6B7280), size: 20),
+              Icon(Icons.location_on, color: _secondaryTextColor, size: 20),
               SizedBox(width: 8.w),
               Expanded(
                 child: Text(
-                  _complaintData?['location'] ?? 'Location not available',
-                  style: const TextStyle(
+                  _getLocationDisplay(),
+                  style: TextStyle(
                     fontFamily: 'Noto Sans',
                     fontSize: 14,
                     fontWeight: FontWeight.w500,
-                    color: Color(0xFF111827),
+                    color: _primaryTextColor,
                   ),
                 ),
               ),
@@ -560,11 +819,11 @@ class _ComplaintDetailsScreenState extends State<ComplaintDetailsScreen> {
           SizedBox(height: 12.h),
           Text(
             _complaintData?['description'] ?? 'No description available.',
-            style: const TextStyle(
+            style: TextStyle(
               fontFamily: 'Noto Sans',
               fontSize: 14,
               fontWeight: FontWeight.w400,
-              color: Color(0xFF6B7280),
+              color: _secondaryTextColor,
               height: 1.4,
             ),
           ),
@@ -583,11 +842,11 @@ class _ComplaintDetailsScreenState extends State<ComplaintDetailsScreen> {
         children: [
           Text(
             AppLocalizations.of(context)!.timeline,
-            style: const TextStyle(
+            style: TextStyle(
               fontFamily: 'Noto Sans',
               fontSize: 18,
               fontWeight: FontWeight.w600,
-              color: Color(0xFF111827),
+              color: _primaryTextColor,
             ),
           ),
           SizedBox(height: 16.h),
@@ -660,7 +919,7 @@ class _ComplaintDetailsScreenState extends State<ComplaintDetailsScreen> {
     // Add closed if present
     if (closedAt != null) {
       items.add({
-        'title': 'Closed',
+        'title': AppLocalizations.of(context)!.closed,
         'subtitle': _formatTimelineSubtitle('Citizen', closedAt),
         'isCompleted': true,
         'showLine': false,
@@ -724,21 +983,21 @@ class _ComplaintDetailsScreenState extends State<ComplaintDetailsScreen> {
             children: [
               Text(
                 title,
-                style: const TextStyle(
+                style: TextStyle(
                   fontFamily: 'Noto Sans',
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
-                  color: Color(0xFF111827),
+                  color: _primaryTextColor,
                 ),
               ),
               SizedBox(height: 4.h),
               Text(
                 subtitle,
-                style: const TextStyle(
+                style: TextStyle(
                   fontFamily: 'Noto Sans',
                   fontSize: 12,
                   fontWeight: FontWeight.w400,
-                  color: Color(0xFF6B7280),
+                  color: _secondaryTextColor,
                 ),
               ),
             ],
@@ -764,7 +1023,7 @@ class _ComplaintDetailsScreenState extends State<ComplaintDetailsScreen> {
     return Container(
       padding: EdgeInsets.all(16.r),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: CitizenColors.surface(context),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.05),
@@ -790,15 +1049,15 @@ class _ComplaintDetailsScreenState extends State<ComplaintDetailsScreen> {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.close, color: Colors.grey.shade600),
+                  Icon(Icons.close, color: _secondaryTextColor),
                   SizedBox(width: 8.w),
                   Text(
                     AppLocalizations.of(context)!.notSatisfied,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontFamily: 'Noto Sans',
                       fontSize: 14,
                       fontWeight: FontWeight.w600,
-                      color: Color(0xFF6B7280),
+                      color: _secondaryTextColor,
                     ),
                   ),
                 ],
@@ -819,7 +1078,7 @@ class _ComplaintDetailsScreenState extends State<ComplaintDetailsScreen> {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Icon(Icons.check, color: Colors.white),
+                  Icon(Icons.check, color: CitizenColors.light),
                   const SizedBox(width: 8),
                   Text(
                     AppLocalizations.of(context)!.markCompleted,
@@ -827,7 +1086,7 @@ class _ComplaintDetailsScreenState extends State<ComplaintDetailsScreen> {
                       fontFamily: 'Noto Sans',
                       fontSize: 14,
                       fontWeight: FontWeight.w600,
-                      color: Colors.white,
+                      color: CitizenColors.light,
                     ),
                   ),
                 ],
@@ -957,12 +1216,17 @@ class _FeedbackBottomSheet extends StatelessWidget {
     required this.onSubmitted,
   });
 
+  Color _primaryTextColor(BuildContext context) =>
+      CitizenColors.textPrimary(context);
+  Color _secondaryTextColor(BuildContext context) =>
+      CitizenColors.textSecondary(context);
+
   @override
   Widget build(BuildContext context) {
     return Container(
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.only(
+      decoration: BoxDecoration(
+        color: CitizenColors.surface(context),
+        borderRadius: const BorderRadius.only(
           topLeft: Radius.circular(20),
           topRight: Radius.circular(20),
         ),
@@ -997,14 +1261,16 @@ class _FeedbackBottomSheet extends StatelessWidget {
                   Text(
                     AppLocalizations.of(context)!.feedbackRequired,
                     style: TextStyle(
-                      fontFamily: 'Noto Sans',
                       fontSize: 20.sp,
                       fontWeight: FontWeight.w600,
-                      color: const Color(0xFF111827),
+                      color: _primaryTextColor(context),
                     ),
                   ),
                   IconButton(
-                    icon: const Icon(Icons.close, color: Color(0xFF6B7280)),
+                    icon: Icon(
+                      Icons.close,
+                      color: _secondaryTextColor(context),
+                    ),
                     onPressed: () => Navigator.pop(context),
                   ),
                 ],
@@ -1018,7 +1284,7 @@ class _FeedbackBottomSheet extends StatelessWidget {
                   fontFamily: 'Noto Sans',
                   fontSize: 14.sp,
                   fontWeight: FontWeight.w600,
-                  color: const Color(0xFF111827),
+                  color: _primaryTextColor(context),
                 ),
               ),
               SizedBox(height: 8.h),
@@ -1071,7 +1337,7 @@ class _FeedbackBottomSheet extends StatelessWidget {
                       fontFamily: 'Noto Sans',
                       fontSize: 14.sp,
                       fontWeight: FontWeight.w600,
-                      color: Colors.white,
+                      color: CitizenColors.light,
                     ),
                   ),
                 ),
@@ -1090,12 +1356,17 @@ class _SuccessBottomSheet extends StatelessWidget {
 
   const _SuccessBottomSheet({required this.onClose});
 
+  Color _primaryTextColor(BuildContext context) =>
+      CitizenColors.textPrimary(context);
+  Color _secondaryTextColor(BuildContext context) =>
+      CitizenColors.textSecondary(context);
+
   @override
   Widget build(BuildContext context) {
     return Container(
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.only(
+      decoration: BoxDecoration(
+        color: CitizenColors.surface(context),
+        borderRadius: const BorderRadius.only(
           topLeft: Radius.circular(20),
           topRight: Radius.circular(20),
         ),
@@ -1129,7 +1400,7 @@ class _SuccessBottomSheet extends StatelessWidget {
                 fontFamily: 'Noto Sans',
                 fontSize: 16.sp,
                 fontWeight: FontWeight.w500,
-                color: const Color(0xFF111827),
+                color: _primaryTextColor(context),
               ),
               textAlign: TextAlign.center,
             ),
@@ -1153,7 +1424,7 @@ class _SuccessBottomSheet extends StatelessWidget {
                     fontFamily: 'Noto Sans',
                     fontSize: 14.sp,
                     fontWeight: FontWeight.w600,
-                    color: Colors.white,
+                    color: CitizenColors.light,
                   ),
                 ),
               ),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:provider/provider.dart';
 // import 'package:sbmg/screens/citizen/scheme_details_screen.dart';
@@ -8,18 +9,18 @@ import 'package:intl/intl.dart';
 import 'package:csv/csv.dart';
 import 'dart:io';
 import 'package:path_provider/path_provider.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../config/connstants.dart';
 import '../../widgets/common/custom_bottom_navigation.dart';
 import '../../providers/smd_provider.dart';
 import '../../models/scheme_model.dart';
 import '../../models/event_model.dart';
 import '../../models/contractor_model.dart';
-import '../../models/geography_model.dart';
 import '../../services/api_services.dart';
 import '../../services/auth_services.dart';
-import '../../widgets/common/bottom_sheet_picker.dart';
-// import 'smd_gp_ranking_screen.dart';
-// import 'smd_gp_attendance_screen.dart';
+import 'smd_select_location_screen.dart';
+import 'smd_gp_attendance_screen.dart';
+import 'smd_gp_ranking_screen.dart';
 
 class SmdHomeScreen extends StatefulWidget {
   const SmdHomeScreen({super.key});
@@ -33,14 +34,30 @@ class _SmdHomeScreenState extends State<SmdHomeScreen> {
   final BookmarkService _bookmarkService = BookmarkService();
   final ApiService _apiService = ApiService();
   BuildContext? _parentContext;
+  bool _hasLoadedData = false;
 
   @override
   void initState() {
     super.initState();
     _parentContext = null;
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<SmdProvider>().loadAllData();
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      final authService = AuthService();
+      final districtId = await authService.getSmdSelectedDistrictId();
+
+      if (!mounted) return;
+
+      if (districtId == null) {
+        Navigator.pushReplacementNamed(context, '/smd-district-selection');
+      } else {
+        _loadInitialData();
+      }
     });
+  }
+
+  void _loadInitialData() {
+    if (_hasLoadedData) return;
+    _hasLoadedData = true;
+    context.read<SmdProvider>().loadAllData();
   }
 
   Future<void> _selectDateRange(SmdProvider provider) async {
@@ -154,7 +171,15 @@ class _SmdHomeScreenState extends State<SmdHomeScreen> {
                     child: SingleChildScrollView(
                       child: Column(
                         children: [
-                          const BannerCarousel(),
+                          const BannerCarousel(
+                            imagePaths: [
+                              'assets/images/dash1.jpeg',
+                              'assets/images/dash2.jpeg',
+                              'assets/images/dash3.jpeg',
+                              'assets/images/dash4.jpeg',
+                              'assets/images/dash5.jpeg',
+                            ],
+                          ),
                           Image.asset('assets/images/Group.png'),
                           // Overview Section
                           _buildOverviewSection(provider),
@@ -173,6 +198,10 @@ class _SmdHomeScreenState extends State<SmdHomeScreen> {
 
                           // Events Section
                           _buildEventsSection(provider),
+
+                          SizedBox(height: 24.h),
+
+                          _buildSocialMediaSection(),
 
                           SizedBox(height: 24.h),
 
@@ -208,10 +237,10 @@ class _SmdHomeScreenState extends State<SmdHomeScreen> {
               }
             },
             items: const [
-              BottomNavItem(icon: Icons.home, label: 'Home'),
-              BottomNavItem(icon: Icons.report_problem, label: 'Complaint'),
-              BottomNavItem(icon: Icons.checklist, label: 'Inspection'),
-              BottomNavItem(icon: Icons.settings, label: 'Settings'),
+              BottomNavItem(iconPath: 'assets/icons/bottombar/home.png', label: 'Home'),
+              BottomNavItem(iconPath: 'assets/icons/bottombar/complaints.png', label: 'Complaint'),
+              BottomNavItem(iconPath: 'assets/icons/bottombar/inspection.png', label: 'Inspection'),
+              BottomNavItem(iconPath: 'assets/icons/bottombar/settings.png', label: 'Settings'),
             ],
           ),
         );
@@ -512,12 +541,7 @@ class _SmdHomeScreenState extends State<SmdHomeScreen> {
 
   Widget _buildRankingsCard() {
     return GestureDetector(
-      onTap: () {
-        // TODO: Navigate to GP Ranking Screen
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('GP Ranking feature coming soon!')),
-        );
-      },
+      onTap: () => _openLocationSelection('ranking'),
       child: Container(
         width: double.infinity,
         padding: EdgeInsets.all(16.r),
@@ -577,9 +601,9 @@ class _SmdHomeScreenState extends State<SmdHomeScreen> {
       onTap: () {
         print('🎯 Tapped on: $text');
         if (text == 'Contractor details') {
-          _showGPSelctionBottomSheet('contractor');
+          _openLocationSelection('contractor');
         } else if (text == 'Check Vender / Supervisor attendance') {
-          _showGPSelctionBottomSheet('attendance');
+          _openLocationSelection('attendance');
         }
       },
       child: Container(
@@ -1095,94 +1119,52 @@ class _SmdHomeScreenState extends State<SmdHomeScreen> {
     }
   }
 
-  void _showGPSelctionBottomSheet(String actionType) async {
-    // Show bottom sheet to select block first
-    await _showBlockSelectionBottomSheet(actionType);
-  }
-
-  Future<void> _showBlockSelectionBottomSheet(String actionType) async {
-    final AuthService authService = AuthService();
-    final districtId = await authService.getDistrictId();
-
-    if (districtId == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('District ID not found'),
-          backgroundColor: Colors.red,
-        ),
-      );
-      return;
-    }
-
-    final blocks = await _apiService.getBlocks(districtId: districtId);
-
-    BottomSheetPicker.show<Block>(
-      context: context,
-      title: 'Select Block',
-      items: blocks,
-      itemBuilder: (block) => block.name,
-      selectedItem: null,
-      onSelected: (block) {
-        _showGPSelectionBottomSheet(actionType, districtId, block.id);
-      },
-      isLoading: false,
-      showSearch: true,
-      searchHint: 'Search Block...',
-    );
-  }
-
-  Future<void> _showGPSelectionBottomSheet(
-    String actionType,
-    int districtId,
-    int blockId,
-  ) async {
-    final gps = await _apiService.getGramPanchayats(
-      districtId: districtId,
-      blockId: blockId,
+  Future<void> _openLocationSelection(String actionType) async {
+    final result = await Navigator.push<Map<String, dynamic>>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => SmdSelectLocationScreen(actionType: actionType),
+      ),
     );
 
-    BottomSheetPicker.show<GramPanchayat>(
-      context: context,
-      title: 'Select Gram Panchayat',
-      items: gps,
-      itemBuilder: (gp) => gp.name,
-      selectedItem: null,
-      onSelected: (gp) {
-        if (actionType == 'contractor') {
-          _loadAndShowContractorDetails(gp.id, gp.name);
-        } else if (actionType == 'attendance') {
-          _navigateToAttendance(gp.id, gp.name);
-        }
-      },
-      isLoading: false,
-      showSearch: true,
-      searchHint: 'Search Gram Panchayat...',
-    );
-  }
+    if (result == null) return;
 
-  void _navigateToAttendance(int gpId, String gpName) {
-    print('🚀 _navigateToAttendance called with gpId: $gpId, gpName: $gpName');
-    try {
-      final navContext = _parentContext ?? context;
-      print('📱 Using context: $_parentContext');
-      Navigator.push(
-        navContext,
-        MaterialPageRoute(
-          builder: (context) {
-            print('📱 Building GpAttendanceScreen with gpId: $gpId');
-            // TODO: Implement GpAttendanceScreen for SMD
-            return Scaffold(
-              body: Center(
-                child: Text('GP Attendance for $gpName (ID: $gpId)'),
-              ),
-            );
-          },
-        ),
-      );
-      print('✅ Navigation completed');
-    } catch (e, stackTrace) {
-      print('❌ Error navigating to attendance: $e');
-      print('📚 Stack trace: $stackTrace');
+    final gpId = result['gpId'] as int?;
+    final gpName = (result['gpName'] as String?) ?? '';
+    final blockId = result['blockId'] as int?;
+    final districtId = result['districtId'] as int?;
+    final blockName = result['blockName'] as String?;
+
+    if (actionType == 'contractor') {
+      if (gpId != null) {
+        _loadAndShowContractorDetails(gpId, gpName);
+      }
+    } else if (actionType == 'attendance') {
+      if (gpId != null) {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => SmdGpAttendanceScreen(
+              gpId: gpId,
+              gpName: gpName,
+              blockId: blockId,
+            ),
+          ),
+        );
+      }
+    } else if (actionType == 'ranking') {
+      if (blockId != null && districtId != null) {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => SmdGpRankingScreen(
+              initialDistrictId: districtId,
+              initialBlockId: blockId,
+              initialBlockName: blockName,
+            ),
+          ),
+        );
+      }
     }
   }
 
@@ -1231,6 +1213,110 @@ class _SmdHomeScreenState extends State<SmdHomeScreen> {
         );
       }
     }
+  }
+
+  Widget _buildSocialMediaSection() {
+    return Padding(
+      padding: EdgeInsets.symmetric(horizontal: 16.w),
+      child: Container(
+        padding: EdgeInsets.symmetric(vertical: 16.h, horizontal: 20.w),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12.r),
+          border: Border.all(color: Colors.grey.shade200),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.03),
+              blurRadius: 6,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              'Connect with Swachh Rajasthan',
+              style: TextStyle(
+                fontSize: 16.sp,
+                fontWeight: FontWeight.w600,
+                color: const Color(0xFF111827),
+              ),
+            ),
+            SizedBox(height: 12.h),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                _buildSocialIcon(
+                  assetPath: 'assets/images/InstagramLogo.png',
+                  platform: 'Instagram',
+                  url: 'https://instagram.com/SwachhRajasthan_',
+                ),
+                SizedBox(width: 20.w),
+                _buildSocialIcon(
+                  assetPath: 'assets/images/XLogo.png',
+                  platform: 'X',
+                  url: 'https://x.com/SwachRajasthan',
+                ),
+                SizedBox(width: 20.w),
+                _buildSocialIcon(
+                  assetPath: 'assets/images/FacebookLogo.png',
+                  platform: 'Facebook',
+                  url: 'https://www.facebook.com/share/16UZeZDuvF/',
+                ),
+                SizedBox(width: 20.w),
+                _buildSocialIcon(
+                  assetPath: 'assets/images/YoutubeLogo.png',
+                  platform: 'YouTube',
+                  url: 'https://youtube.com/@swachhrajasthan',
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSocialIcon({
+    required String assetPath,
+    required String platform,
+    required String url,
+  }) {
+    return GestureDetector(
+      onTap: () => _launchSocialLink(url, platform),
+      child: SizedBox(width: 40, height: 40, child: Image.asset(assetPath)),
+    );
+  }
+
+  Future<void> _launchSocialLink(String url, String platform) async {
+    final uri = Uri.parse(url);
+
+    try {
+      final launched = await launchUrl(
+        uri,
+        mode: LaunchMode.externalApplication,
+      );
+      if (!launched && mounted) {
+        _showLinkError(platform);
+      }
+    } catch (_) {
+      if (mounted) {
+        _showLinkError(platform);
+      }
+    }
+  }
+
+  void _showLinkError(String platform) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: Text('Could not open $platform link.'),
+          backgroundColor: Colors.red,
+        ),
+      );
   }
 }
 

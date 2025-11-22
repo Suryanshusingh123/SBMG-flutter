@@ -143,7 +143,7 @@ EXTERNAL SOURCES:
 
 SPEC CHECKSUMS:
   camera_avfoundation: adb0207d868b2d873e895371d88448399ab78d87
-  Flutter: e0871f40cf51350855a761d2e70bf5af5b9b5de7
+  Flutter: cabc95a1d2626b1b06e7179b784ebcf0c0cde467
   geocoding_ios: eafacae6ad11a1eb56681f7d11df602a5fd49416
   geolocator_apple: 66b711889fd333205763b83c9dcf0a57a28c7afd
   GoogleDataTransport: 6c09b596d841063d76d4288cc2d2f42cc36e1e2a
@@ -169,6 +169,6 @@ SPEC CHECKSUMS:
   TOCropViewController: 797deaf39c90e6e9ddd848d88817f6b9a8a09888
   url_launcher_ios: 5334b05cef931de560670eeae103fd3e431ac3fe
 
-PODFILE CHECKSUM: 4305caec6b40dde0ae97be1573c53de1882a07e5
+PODFILE CHECKSUM: 3c63482e143d1b91d2d2560aee9fb04ecc74ac7e
 
 COCOAPODS: 1.16.2

@@ -6,6 +6,7 @@ import '../../models/api_complaint_model.dart';
 import '../../providers/supervisor_complaints_provider.dart';
 import '../../services/auth_services.dart';
 import '../../services/api_services.dart';
+import '../../utils/location_display_helper.dart';
 import '../../widgets/common/custom_bottom_navigation.dart';
 import '../../widgets/common/date_filter_bottom_sheet.dart';
 import '../../l10n/app_localizations.dart';
@@ -173,19 +174,19 @@ class _SupervisorComplaintsScreenState
         },
         items: [
           BottomNavItem(
-            icon: Icons.home,
+            iconPath: 'assets/icons/bottombar/home.png',
             label: AppLocalizations.of(context)!.home,
           ),
           BottomNavItem(
-            icon: Icons.list_alt,
+            iconPath: 'assets/icons/bottombar/complaints.png',
             label: AppLocalizations.of(context)!.complaints,
           ),
           BottomNavItem(
-            icon: Icons.people,
+            iconPath: 'assets/icons/bottombar/attendance.png',
             label: AppLocalizations.of(context)!.attendance,
           ),
           BottomNavItem(
-            icon: Icons.settings,
+            iconPath: 'assets/icons/bottombar/settings.png',
             label: AppLocalizations.of(context)!.settings,
           ),
         ],
@@ -286,7 +287,7 @@ class _SupervisorComplaintsScreenState
             context,
             AppLocalizations.of(context)!.complaintClosed,
             provider.closedComplaints.length,
-            _selectedStatus == 'Closed',
+            _selectedStatus == AppLocalizations.of(context)!.complaintClosed,
             3,
           ),
         ],
@@ -402,7 +403,9 @@ class _SupervisorComplaintsScreenState
       case 'Verified':
         filteredComplaints = provider.verifiedComplaints;
         break;
-      case 'Closed':
+      case 'Disposed complaints':
+      case 'Closed': // Fallback for backwards compatibility
+      case 'निपटाई गई शिकायतें': // Hindi fallback
         filteredComplaints = provider.closedComplaints;
         break;
     }
@@ -420,10 +423,11 @@ class _SupervisorComplaintsScreenState
     if (_filterDate != null) {
       filteredComplaints = filteredComplaints.where((complaint) {
         try {
-          final complaintDate = DateTime.parse(complaint.createdAt);
-          return complaintDate.year == _filterDate!.year &&
-              complaintDate.month == _filterDate!.month &&
-              complaintDate.day == _filterDate!.day;
+          final complaintDate = DateTime.parse(complaint.createdAt).toUtc();
+          final filterDate = _filterDate!.toUtc();
+          return complaintDate.year == filterDate.year &&
+              complaintDate.month == filterDate.month &&
+              complaintDate.day == filterDate.day;
         } catch (e) {
           return false;
         }
@@ -433,24 +437,51 @@ class _SupervisorComplaintsScreenState
     if (_filterStartDate != null && _filterEndDate != null) {
       filteredComplaints = filteredComplaints.where((complaint) {
         try {
-          final complaintDate = DateTime.parse(complaint.createdAt);
-          return complaintDate.isAfter(
-                _filterStartDate!.subtract(const Duration(days: 1)),
-              ) &&
-              complaintDate.isBefore(
-                _filterEndDate!.add(const Duration(days: 1)),
-              );
+          final complaintDate = DateTime.parse(complaint.createdAt).toUtc();
+          final startDate = DateTime.utc(
+            _filterStartDate!.year,
+            _filterStartDate!.month,
+            _filterStartDate!.day,
+          );
+          final endDate = DateTime.utc(
+            _filterEndDate!.year,
+            _filterEndDate!.month,
+            _filterEndDate!.day,
+            23,
+            59,
+            59,
+          );
+          return (complaintDate.isAfter(startDate.subtract(const Duration(seconds: 1))) ||
+                  complaintDate.isAtSameMomentAs(startDate)) &&
+              (complaintDate.isBefore(endDate) ||
+                  complaintDate.isAtSameMomentAs(endDate));
         } catch (e) {
           return false;
         }
       }).toList();
     }
 
-    // Sort complaints based on sort order
+    // Sort complaints based on sort order (including time)
     if (_sortOrder == 'newest') {
-      filteredComplaints.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      filteredComplaints.sort((a, b) {
+        try {
+          final dateA = DateTime.parse(a.createdAt).toUtc();
+          final dateB = DateTime.parse(b.createdAt).toUtc();
+          return dateB.compareTo(dateA); // Newest first (descending)
+        } catch (e) {
+          return b.createdAt.compareTo(a.createdAt); // Fallback to string comparison
+        }
+      });
     } else {
-      filteredComplaints.sort((a, b) => a.createdAt.compareTo(b.createdAt));
+      filteredComplaints.sort((a, b) {
+        try {
+          final dateA = DateTime.parse(a.createdAt).toUtc();
+          final dateB = DateTime.parse(b.createdAt).toUtc();
+          return dateA.compareTo(dateB); // Oldest first (ascending)
+        } catch (e) {
+          return a.createdAt.compareTo(b.createdAt); // Fallback to string comparison
+        }
+      });
     }
 
     if (filteredComplaints.isEmpty) {
@@ -489,6 +520,21 @@ class _SupervisorComplaintsScreenState
     final mediaUrl = firstMediaUrl != null
         ? ApiConstants.getMediaUrl(firstMediaUrl)
         : null;
+    final l10n = AppLocalizations.of(context)!;
+    final locationText = LocationDisplayHelper.buildDisplay(
+      cacheKey: 'supervisor-${complaint.id}',
+      latitude: complaint.latitude,
+      longitude: complaint.longitude,
+      locationField: complaint.location,
+      district: complaint.districtName,
+      block: complaint.blockName,
+      village: complaint.villageName,
+      scheduleUpdate: () {
+        if (!mounted) return;
+        setState(() {});
+      },
+      unavailableLabel: l10n.locationNotAvailable,
+    );
 
     return GestureDetector(
       onTap: () {
@@ -661,15 +707,15 @@ class _SupervisorComplaintsScreenState
                   // Location with icon
                   Row(
                     children: [
-                      const Icon(
+                      Icon(
                         Icons.location_on,
                         size: 16,
-                        color: Color(0xFF6B7280),
+                        color: Colors.grey.shade600,
                       ),
                       SizedBox(width: 4.w),
                       Expanded(
                         child: Text(
-                          complaint.location ?? complaint.fullLocation,
+                          locationText,
                           style: TextStyle(
                             fontSize: 14.sp,
                             color: Colors.grey.shade600,

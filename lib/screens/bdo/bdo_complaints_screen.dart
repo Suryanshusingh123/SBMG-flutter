@@ -1,8 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:intl/intl.dart';
-import '../../services/complaints_service.dart';
+import 'package:provider/provider.dart';
+import '../../config/connstants.dart';
 import '../../models/api_complaint_model.dart';
+import '../../providers/bdo_complaints_provider.dart';
+import '../../utils/location_display_helper.dart';
+import '../../widgets/common/custom_bottom_navigation.dart';
+import '../../widgets/common/date_filter_bottom_sheet.dart';
+import '../../l10n/app_localizations.dart';
+import 'bdo_complaint_details_screen.dart';
+import '../../services/auth_services.dart';
+import '../../services/api_services.dart';
+import '../../models/geography_model.dart';
 
 class BdoComplaintsScreen extends StatefulWidget {
   const BdoComplaintsScreen({super.key});
@@ -11,112 +20,127 @@ class BdoComplaintsScreen extends StatefulWidget {
   State<BdoComplaintsScreen> createState() => _BdoComplaintsScreenState();
 }
 
-class _BdoComplaintsScreenState extends State<BdoComplaintsScreen>
-    with SingleTickerProviderStateMixin {
-  late TabController _tabController;
-
-  // API data
-  final ComplaintsService _complaintsService = ComplaintsService();
-  List<ApiComplaintModel> _complaints = [];
-  bool _isLoading = true;
-  String? _errorMessage;
-  String _villageName = 'Gram Panchayat';
+class _BdoComplaintsScreenState extends State<BdoComplaintsScreen> {
+  String _selectedStatus = 'Open';
+  String _sortOrder = 'newest';
+  int _selectedIndex = 1;
+  bool _hasLoadedComplaints = false;
+  DateTime? _filterDate;
+  DateTime? _filterStartDate;
+  DateTime? _filterEndDate;
+  String? _blockName;
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 4, vsync: this);
-    _tabController.addListener(() {
-      setState(() {});
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadComplaints();
+      _loadBlockName();
     });
-    _loadComplaints();
   }
 
-  Future<void> _loadComplaints() async {
-    try {
-      setState(() {
-        _isLoading = true;
-        _errorMessage = null;
-      });
-
-      final response = await _complaintsService.getComplaintsForSupervisor();
-
-      if (response['success'] == true) {
-        final complaints = response['complaints'] as List<ApiComplaintModel>;
-
-        // Extract village name from first complaint if available
-        String villageName = 'Gram Panchayat';
-        if (complaints.isNotEmpty) {
-          villageName = complaints[0].villageName;
-        }
-
-        setState(() {
-          _complaints = complaints;
-          _villageName = villageName;
-          _isLoading = false;
-        });
-      } else {
-        setState(() {
-          _errorMessage = response['message'] ?? 'Failed to load complaints';
-          _isLoading = false;
-        });
-      }
-    } catch (e) {
-      setState(() {
-        _errorMessage = 'Network error. Please try again.';
-        _isLoading = false;
-      });
+  void _loadComplaints() {
+    if (!_hasLoadedComplaints) {
+      _hasLoadedComplaints = true;
+      context.read<BdoComplaintsProvider>().loadComplaints();
     }
   }
 
-  // Helper methods to filter complaints by status
-  List<ApiComplaintModel> get _openComplaints =>
-      _complaints.where((c) => c.isOpen).toList();
+  Future<void> _loadBlockName() async {
+    try {
+      final authService = AuthService();
+      final apiService = ApiService();
+      final districtId = await authService.getDistrictId();
+      final blockId = await authService.getBlockId();
 
-  List<ApiComplaintModel> get _resolvedComplaints =>
-      _complaints.where((c) => c.isResolved).toList();
-
-  List<ApiComplaintModel> get _verifiedComplaints =>
-      _complaints.where((c) => c.isVerified).toList();
-
-  List<ApiComplaintModel> get _closedComplaints =>
-      _complaints.where((c) => c.isClosed).toList();
-
-  Widget _buildErrorState() {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(Icons.error_outline, size: 64.sp, color: Colors.red),
-          SizedBox(height: 16.h),
-          Text(
-            _errorMessage ?? 'Something went wrong',
-            style: TextStyle(
-              fontFamily: 'Noto Sans',
-              fontSize: 16.sp,
-              fontWeight: FontWeight.w500,
-              color: const Color(0xFF6B7280),
-            ),
-            textAlign: TextAlign.center,
-          ),
-          SizedBox(height: 16.h),
-          ElevatedButton(
-            onPressed: _loadComplaints,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF009B56),
-              foregroundColor: Colors.white,
-            ),
-            child: const Text('Retry'),
-          ),
-        ],
-      ),
-    );
+      if (districtId != null && blockId != null) {
+        final blocks = await apiService.getBlocks(districtId: districtId);
+        final block = blocks.firstWhere(
+          (b) => b.id == blockId,
+          orElse: () =>
+              Block(id: blockId, name: 'Block', districtId: districtId),
+        );
+        if (mounted) {
+          setState(() {
+            _blockName = block.name;
+          });
+        }
+      } else {
+        if (mounted) {
+          setState(() {
+            _blockName = 'Block';
+          });
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _blockName = 'Block';
+        });
+      }
+    }
   }
 
-  @override
-  void dispose() {
-    _tabController.dispose();
-    super.dispose();
+  String _getCurrentMonth() {
+    final months = [
+      'January',
+      'February',
+      'March',
+      'April',
+      'May',
+      'June',
+      'July',
+      'August',
+      'September',
+      'October',
+      'November',
+      'December',
+    ];
+    return months[DateTime.now().month - 1];
+  }
+
+  String _getDisplayMonth() {
+    if (_filterDate != null) {
+      final months = [
+        'January',
+        'February',
+        'March',
+        'April',
+        'May',
+        'June',
+        'July',
+        'August',
+        'September',
+        'October',
+        'November',
+        'December',
+      ];
+      return months[_filterDate!.month - 1];
+    }
+
+    if (_filterStartDate != null) {
+      final months = [
+        'January',
+        'February',
+        'March',
+        'April',
+        'May',
+        'June',
+        'July',
+        'August',
+        'September',
+        'October',
+        'November',
+        'December',
+      ];
+      return months[_filterStartDate!.month - 1];
+    }
+
+    return _getCurrentMonth();
+  }
+
+  void _refreshComplaints() {
+    context.read<BdoComplaintsProvider>().loadComplaints();
   }
 
   @override
@@ -126,211 +150,413 @@ class _BdoComplaintsScreenState extends State<BdoComplaintsScreen>
       body: SafeArea(
         child: Column(
           children: [
-            // Header
-            _buildHeader(),
-
-            // Status Tabs
-            _buildStatusTabs(),
-
-            // Complaints List
-            Expanded(
-              child: _isLoading
-                  ? const Center(child: CircularProgressIndicator())
-                  : _errorMessage != null
-                  ? _buildErrorState()
-                  : TabBarView(
-                      controller: _tabController,
-                      children: [
-                        _buildComplaintsList(_openComplaints),
-                        _buildComplaintsList(_resolvedComplaints),
-                        _buildComplaintsList(_verifiedComplaints),
-                        _buildComplaintsList(_closedComplaints),
-                      ],
-                    ),
-            ),
+            _buildHeader(context),
+            _buildStatusTabs(context),
+            Expanded(child: _buildComplaintsList(context)),
           ],
         ),
       ),
-      bottomNavigationBar: _buildBottomNavigationBar(),
+      bottomNavigationBar: CustomBottomNavigationBar(
+        currentIndex: _selectedIndex,
+        onTap: (index) {
+          setState(() {
+            _selectedIndex = index;
+          });
+
+          switch (index) {
+            case 0:
+              Navigator.pushReplacementNamed(context, '/bdo-dashboard');
+              break;
+            case 1:
+              break;
+            case 2:
+              Navigator.pushReplacementNamed(context, '/bdo-monitoring');
+              break;
+            case 3:
+              Navigator.pushReplacementNamed(context, '/bdo-settings');
+              break;
+          }
+        },
+        items: [
+          BottomNavItem(
+            iconPath: 'assets/icons/bottombar/home.png',
+            label: AppLocalizations.of(context)!.home,
+          ),
+          BottomNavItem(
+            iconPath: 'assets/icons/bottombar/complaints.png',
+            label: AppLocalizations.of(context)!.complaints,
+          ),
+          BottomNavItem(
+            iconPath: 'assets/icons/bottombar/inspection.png',
+            label: AppLocalizations.of(context)!.inspection,
+          ),
+          BottomNavItem(
+            iconPath: 'assets/icons/bottombar/settings.png',
+            label: AppLocalizations.of(context)!.settings,
+          ),
+        ],
+      ),
     );
   }
 
-  Widget _buildHeader() {
+  Widget _buildHeader(BuildContext context) {
+    final provider = context.watch<BdoComplaintsProvider>();
+    final totalComplaints = provider.complaints.length;
+    final l10n = AppLocalizations.of(context)!;
+
     return Container(
-      padding: EdgeInsets.all(16.r),
+      padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Complaint (23)',
-                    style: TextStyle(
-                      fontFamily: 'Noto Sans',
-                      fontSize: 22.sp,
-                      fontWeight: FontWeight.w600,
-                      color: const Color(0xFF111827),
-                    ),
-                  ),
-                  SizedBox(height: 2.h),
-                  Text(
-                    '$_villageName • ${DateFormat('MMMM').format(DateTime.now())}',
-                    style: TextStyle(
-                      fontFamily: 'Noto Sans',
-                      fontSize: 14.sp,
-                      fontWeight: FontWeight.w500,
-                      color: const Color(0xFF4B5563),
-                      letterSpacing: 0,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ],
+              Text(
+                '${l10n.complaints} ($totalComplaints)',
+                style: TextStyle(
+                  fontSize: 18.sp,
+                  fontWeight: FontWeight.w600,
+                  color: const Color(0xFF111827),
+                ),
               ),
               Row(
                 children: [
-                  Row(
-                    children: [
-                      Icon(
-                        Icons.calendar_today,
-                        size: 24.sp,
-                        color: Colors.black,
-                      ),
-                    ],
+                  GestureDetector(
+                    onTap: _showDateFilter,
+                    child: Icon(
+                      Icons.calendar_today,
+                      size: 18.sp,
+                      color: Colors.black,
+                    ),
                   ),
-                  SizedBox(width: 8.w),
-                  Icon(Icons.swap_vert, size: 24.sp, color: Colors.black),
+                  SizedBox(width: 12.w),
+                  GestureDetector(
+                    onTap: _showSortOptions,
+                    child: Icon(
+                      Icons.swap_vert,
+                      size: 18.sp,
+                      color: Colors.black,
+                    ),
+                  ),
                 ],
               ),
             ],
           ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildStatusTabs() {
-    return Container(
-      margin: EdgeInsets.symmetric(horizontal: 16.w),
-      decoration: const BoxDecoration(
-        border: Border(bottom: BorderSide(color: Color(0xFFE5E7EB), width: 1)),
-      ),
-      child: TabBar(
-        controller: _tabController,
-        isScrollable: true,
-        tabAlignment: TabAlignment.start,
-        indicator: const UnderlineTabIndicator(
-          borderSide: BorderSide(color: Color(0xFF009B56), width: 3),
-        ),
-        labelColor: const Color(0xFF111827),
-        unselectedLabelColor: const Color(0xFF9CA3AF),
-        labelStyle: TextStyle(
-          fontFamily: 'Noto Sans',
-          fontSize: 14.sp,
-          fontWeight: FontWeight.w600,
-        ),
-        unselectedLabelStyle: TextStyle(
-          fontFamily: 'Noto Sans',
-          fontSize: 14.sp,
-          fontWeight: FontWeight.w400,
-        ),
-        tabs: [
-          _buildTab(
-            'Open (${_openComplaints.length})',
-            _tabController.index == 0,
-          ),
-          _buildTab(
-            'Resolved (${_resolvedComplaints.length})',
-            _tabController.index == 1,
-          ),
-          _buildTab(
-            'Verified (${_verifiedComplaints.length})',
-            _tabController.index == 2,
-          ),
-          _buildTab(
-            'Closed (${_closedComplaints.length})',
-            _tabController.index == 3,
+          SizedBox(height: 4.h),
+          Text(
+            '${_blockName ?? 'Block'} • ${_getDisplayMonth()}',
+            style: TextStyle(fontSize: 11.sp, color: const Color(0xFF6B7280)),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildTab(String text, bool isActive) {
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
+  Widget _buildStatusTabs(BuildContext context) {
+    final provider = context.watch<BdoComplaintsProvider>();
+
+    return SizedBox(
+      height: 40.h,
+      child: ListView(
+        scrollDirection: Axis.horizontal,
+        padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 8.h),
         children: [
-          Text(text),
-          SizedBox(width: 8.w),
-          Container(
-            width: 6,
-            height: 6,
-            decoration: BoxDecoration(
-              color: isActive ? const Color(0xFF009B56) : Colors.transparent,
-              shape: BoxShape.circle,
+          _buildTab(
+            context,
+            AppLocalizations.of(context)!.open,
+            provider.openComplaints.length,
+            _selectedStatus == 'Open',
+            0,
+          ),
+          SizedBox(width: 12.w),
+          _buildTab(
+            context,
+            AppLocalizations.of(context)!.resolved,
+            provider.resolvedComplaints.length,
+            _selectedStatus == 'Resolved',
+            1,
+          ),
+          SizedBox(width: 12.w),
+          _buildTab(
+            context,
+            AppLocalizations.of(context)!.verified,
+            provider.verifiedComplaints.length,
+            _selectedStatus == 'Verified',
+            2,
+          ),
+          SizedBox(width: 12.w),
+          _buildTab(
+            context,
+            AppLocalizations.of(context)!.complaintClosed,
+            provider.closedComplaints.length,
+            _selectedStatus == AppLocalizations.of(context)!.complaintClosed,
+            3,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTab(
+    BuildContext context,
+    String status,
+    int count,
+    bool isSelected,
+    int index,
+  ) {
+    return GestureDetector(
+      onTap: () {
+        setState(() {
+          _selectedStatus = status;
+        });
+      },
+      child: Container(
+        padding: EdgeInsets.symmetric(horizontal: 12.w),
+        decoration: BoxDecoration(
+          border: Border(
+            bottom: BorderSide(
+              color: isSelected ? const Color(0xFF009B56) : Colors.transparent,
+              width: 2.5,
             ),
           ),
-        ],
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (isSelected) ...[
+              Container(
+                width: 6.w,
+                height: 6.h,
+                decoration: const BoxDecoration(
+                  color: Color(0xFF009B56),
+                  shape: BoxShape.circle,
+                ),
+              ),
+              SizedBox(width: 6.w),
+            ],
+            Text(
+              status,
+              style: TextStyle(
+                fontSize: 14.sp,
+                fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                color: isSelected
+                    ? const Color(0xFF009B56)
+                    : const Color(0xFF6B7280),
+              ),
+            ),
+            SizedBox(width: 6.w),
+            Text(
+              '($count)',
+              style: TextStyle(
+                fontSize: 15.sp,
+                fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                color: isSelected
+                    ? const Color(0xFF009B56)
+                    : const Color(0xFF6B7280),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
 
-  Widget _buildComplaintsList(List<ApiComplaintModel> complaints) {
-    if (complaints.isEmpty) {
+  Widget _buildComplaintsList(BuildContext context) {
+    final provider = context.watch<BdoComplaintsProvider>();
+
+    if (provider.isLoading) {
+      return const Center(
+        child: CircularProgressIndicator(color: Color(0xFF009B56)),
+      );
+    }
+
+    if (provider.errorMessage != null) {
       return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
-              Icons.inbox_outlined,
-              size: 64.sp,
-              color: const Color(0xFF9CA3AF),
-            ),
+            Icon(Icons.error_outline, size: 64.w, color: Colors.grey),
             SizedBox(height: 16.h),
             Text(
-              'No complaints found',
-              style: TextStyle(
-                fontFamily: 'Noto Sans',
-                fontSize: 16.sp,
-                fontWeight: FontWeight.w500,
-                color: const Color(0xFF6B7280),
-              ),
+              provider.errorMessage!,
+              style: TextStyle(fontSize: 16.sp, color: Colors.grey),
+            ),
+            SizedBox(height: 16.h),
+            ElevatedButton(
+              onPressed: _refreshComplaints,
+              child: Text(AppLocalizations.of(context)!.retry),
             ),
           ],
         ),
       );
     }
 
-    return ListView.builder(
-      padding: EdgeInsets.all(16.r),
-      itemCount: complaints.length,
-      itemBuilder: (context, index) {
-        return _buildComplaintCard(complaints[index]);
+    List<ApiComplaintModel> filteredComplaints = [];
+
+    switch (_selectedStatus) {
+      case 'Open':
+        filteredComplaints = provider.openComplaints;
+        break;
+      case 'Resolved':
+        filteredComplaints = provider.resolvedComplaints;
+        break;
+      case 'Verified':
+        filteredComplaints = provider.verifiedComplaints;
+        break;
+      case 'Disposed complaints':
+      case 'Closed': // Fallback for backwards compatibility
+      case 'निपटाई गई शिकायतें': // Hindi fallback
+        filteredComplaints = provider.closedComplaints;
+        break;
+    }
+
+    final Map<int, ApiComplaintModel> uniqueComplaints = {};
+    for (final complaint in filteredComplaints) {
+      if (!uniqueComplaints.containsKey(complaint.id)) {
+        uniqueComplaints[complaint.id] = complaint;
+      }
+    }
+    filteredComplaints = uniqueComplaints.values.toList();
+
+    if (_filterDate != null) {
+      filteredComplaints = filteredComplaints.where((complaint) {
+        try {
+          final complaintDate = DateTime.parse(complaint.createdAt).toUtc();
+          final filterDate = _filterDate!.toUtc();
+          return complaintDate.year == filterDate.year &&
+              complaintDate.month == filterDate.month &&
+              complaintDate.day == filterDate.day;
+        } catch (e) {
+          return false;
+        }
+      }).toList();
+    }
+
+    if (_filterStartDate != null && _filterEndDate != null) {
+      filteredComplaints = filteredComplaints.where((complaint) {
+        try {
+          final complaintDate = DateTime.parse(complaint.createdAt).toUtc();
+          final startDate = DateTime.utc(
+            _filterStartDate!.year,
+            _filterStartDate!.month,
+            _filterStartDate!.day,
+          );
+          final endDate = DateTime.utc(
+            _filterEndDate!.year,
+            _filterEndDate!.month,
+            _filterEndDate!.day,
+            23,
+            59,
+            59,
+          );
+          return (complaintDate.isAfter(
+                    startDate.subtract(const Duration(seconds: 1)),
+                  ) ||
+                  complaintDate.isAtSameMomentAs(startDate)) &&
+              (complaintDate.isBefore(endDate) ||
+                  complaintDate.isAtSameMomentAs(endDate));
+        } catch (e) {
+          return false;
+        }
+      }).toList();
+    }
+
+    // Sort complaints based on sort order (including time)
+    if (_sortOrder == 'newest') {
+      filteredComplaints.sort((a, b) {
+        try {
+          final dateA = DateTime.parse(a.createdAt).toUtc();
+          final dateB = DateTime.parse(b.createdAt).toUtc();
+          return dateB.compareTo(dateA); // Newest first (descending)
+        } catch (e) {
+          return b.createdAt.compareTo(a.createdAt); // Fallback to string comparison
+        }
+      });
+    } else {
+      filteredComplaints.sort((a, b) {
+        try {
+          final dateA = DateTime.parse(a.createdAt).toUtc();
+          final dateB = DateTime.parse(b.createdAt).toUtc();
+          return dateA.compareTo(dateB); // Oldest first (ascending)
+        } catch (e) {
+          return a.createdAt.compareTo(b.createdAt); // Fallback to string comparison
+        }
+      });
+    }
+
+    if (filteredComplaints.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.inbox_outlined, size: 64.w, color: Colors.grey),
+            SizedBox(height: 16.h),
+            Text(
+              'No ${_selectedStatus.toLowerCase()} complaints',
+              style: TextStyle(fontSize: 16.sp, color: Colors.grey),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return RefreshIndicator(
+      onRefresh: () async {
+        _refreshComplaints();
       },
+      color: const Color(0xFF009B56),
+      child: ListView.builder(
+        padding: EdgeInsets.all(16.r),
+        itemCount: filteredComplaints.length,
+        itemBuilder: (context, index) {
+          return _buildComplaintCard(filteredComplaints[index]);
+        },
+      ),
     );
   }
 
   Widget _buildComplaintCard(ApiComplaintModel complaint) {
+    final firstMediaUrl = complaint.hasMedia ? complaint.firstMediaUrl : null;
+    final mediaUrl = firstMediaUrl != null
+        ? ApiConstants.getMediaUrl(firstMediaUrl)
+        : null;
+    final l10n = AppLocalizations.of(context)!;
+    final locationText = LocationDisplayHelper.buildDisplay(
+      cacheKey: 'bdo-${complaint.id}',
+      latitude: complaint.latitude,
+      longitude: complaint.longitude,
+      locationField: complaint.location,
+      district: complaint.districtName,
+      block: complaint.blockName,
+      village: complaint.villageName,
+      scheduleUpdate: () {
+        if (!mounted) return;
+        setState(() {});
+      },
+      unavailableLabel: l10n.locationNotAvailable,
+    );
+
     return GestureDetector(
       onTap: () {
-        // TODO: Navigate to complaint details if needed
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) =>
+                BdoComplaintDetailsScreen(complaintId: complaint.id),
+          ),
+        );
       },
       child: Container(
-        margin: const EdgeInsets.only(bottom: 16),
+        margin: EdgeInsets.only(bottom: 16.h),
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(12.r),
-          border: Border.all(color: Colors.grey.shade200),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withOpacity(0.05),
-              blurRadius: 4,
+              blurRadius: 8,
               offset: const Offset(0, 2),
             ),
           ],
@@ -338,55 +564,90 @@ class _BdoComplaintsScreenState extends State<BdoComplaintsScreen>
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Image
-            ClipRRect(
-              borderRadius: const BorderRadius.only(
-                topLeft: Radius.circular(12),
-                topRight: Radius.circular(12),
+            Container(
+              height: 150.h,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.only(
+                  topLeft: Radius.circular(12.r),
+                  topRight: Radius.circular(12.r),
+                ),
+                color: Colors.grey.shade300,
               ),
               child: Stack(
                 children: [
-                  complaint.hasMedia
-                      ? Image.network(
-                          complaint.firstMediaUrl,
-                          width: double.infinity,
-                          height: 160,
-                          fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) {
-                            return Image.asset(
-                              'assets/images/road.png',
-                              width: double.infinity,
-                              height: 160,
-                              fit: BoxFit.cover,
-                            );
-                          },
-                        )
-                      : Image.asset(
-                          'assets/images/road.png',
-                          width: double.infinity,
-                          height: 160,
-                          fit: BoxFit.cover,
-                        ),
+                  ClipRRect(
+                    borderRadius: BorderRadius.only(
+                      topLeft: Radius.circular(12.r),
+                      topRight: Radius.circular(12.r),
+                    ),
+                    child: mediaUrl != null
+                        ? Image.network(
+                            mediaUrl,
+                            width: double.infinity,
+                            height: double.infinity,
+                            fit: BoxFit.cover,
+                            errorBuilder: (context, error, stackTrace) {
+                              return Container(
+                                color: Colors.grey.shade400,
+                                child: const Center(
+                                  child: Icon(
+                                    Icons.image,
+                                    size: 40,
+                                    color: Colors.grey,
+                                  ),
+                                ),
+                              );
+                            },
+                            loadingBuilder: (context, child, loadingProgress) {
+                              if (loadingProgress == null) return child;
+                              return Container(
+                                color: Colors.grey.shade300,
+                                child: Center(
+                                  child: CircularProgressIndicator(
+                                    value:
+                                        loadingProgress.expectedTotalBytes !=
+                                            null
+                                        ? loadingProgress
+                                                  .cumulativeBytesLoaded /
+                                              loadingProgress
+                                                  .expectedTotalBytes!
+                                        : null,
+                                    strokeWidth: 2,
+                                    color: const Color(0xFF009B56),
+                                  ),
+                                ),
+                              );
+                            },
+                          )
+                        : Container(
+                            color: Colors.grey.shade400,
+                            child: const Center(
+                              child: Icon(
+                                Icons.image,
+                                size: 40,
+                                color: Colors.grey,
+                              ),
+                            ),
+                          ),
+                  ),
                   Positioned(
-                    top: 12,
-                    right: 12,
+                    bottom: 12.h,
+                    right: 12.w,
                     child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 4,
+                      padding: EdgeInsets.symmetric(
+                        horizontal: 8.w,
+                        vertical: 4.h,
                       ),
                       decoration: BoxDecoration(
-                        color: Colors.black.withOpacity(0.7),
-                        borderRadius: BorderRadius.circular(4.r),
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(6.r),
                       ),
                       child: Text(
-                        complaint.formattedDate,
+                        _formatDate(complaint.createdAt),
                         style: TextStyle(
-                          fontFamily: 'Noto Sans',
-                          color: Colors.white,
-                          fontSize: 12.sp,
-                          fontWeight: FontWeight.w500,
-                          letterSpacing: 0.5,
+                          fontSize: 10.sp,
+                          fontWeight: FontWeight.w600,
+                          color: const Color(0xFF111827),
                         ),
                       ),
                     ),
@@ -394,79 +655,70 @@ class _BdoComplaintsScreenState extends State<BdoComplaintsScreen>
                 ],
               ),
             ),
-
-            // Content
-            Padding(
+            Container(
               padding: EdgeInsets.all(16.r),
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.only(
+                  bottomLeft: Radius.circular(12),
+                  bottomRight: Radius.circular(12),
+                ),
+              ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Title and Status
                   Row(
                     children: [
+                      Container(
+                        width: 8.w,
+                        height: 8.h,
+                        decoration: const BoxDecoration(
+                          color: Color(0xFF009B56),
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                      SizedBox(width: 8.w),
                       Expanded(
                         child: Text(
                           complaint.complaintType,
                           style: TextStyle(
-                            fontFamily: 'Noto Sans',
-                            fontSize: 18.sp,
-                            fontWeight: FontWeight.w500,
+                            fontSize: 14.sp,
+                            fontWeight: FontWeight.bold,
                             color: const Color(0xFF111827),
-                            letterSpacing: 0,
                           ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
                         ),
-                      ),
-                      SizedBox(width: 8.w),
-                      Image.asset(
-                        'assets/icons/map.png',
-                        width: 20,
-                        height: 20,
                       ),
                     ],
                   ),
-
-                  SizedBox(height: 2.h),
-
-                  // Location
+                  SizedBox(height: 8.h),
                   Row(
                     children: [
                       Icon(
-                        Icons.location_pin,
-                        size: 18.sp,
-                        color: const Color(0xFF6B7280),
+                        Icons.location_on,
+                        size: 14,
+                        color: Colors.grey.shade600,
                       ),
                       SizedBox(width: 4.w),
                       Expanded(
                         child: Text(
-                          complaint.fullLocation,
+                          locationText,
                           style: TextStyle(
-                            fontFamily: 'Noto Sans',
-                            fontSize: 14.sp,
-                            fontWeight: FontWeight.w400,
-                            color: const Color(0xFF6B7280),
-                            letterSpacing: 0,
+                            fontSize: 12.sp,
+                            color: Colors.grey.shade600,
                           ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ),
                     ],
                   ),
-
-                  Divider(color: Colors.grey.shade200, thickness: 2),
-
-                  // Description
+                  Divider(color: Colors.grey.shade200, thickness: 1),
                   Text(
                     complaint.description,
                     style: TextStyle(
-                      fontFamily: 'Noto Sans',
-                      fontSize: 14.sp,
-                      fontWeight: FontWeight.w400,
-                      color: const Color(0xFF6B7280),
-                      letterSpacing: 0,
+                      fontSize: 12.sp,
+                      color: Colors.grey.shade700,
                     ),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
                   ),
                 ],
               ),
@@ -477,84 +729,123 @@ class _BdoComplaintsScreenState extends State<BdoComplaintsScreen>
     );
   }
 
-  Widget _buildBottomNavigationBar() {
-    return Container(
-      height: 80,
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        border: Border(top: BorderSide(color: Color(0xFFE5E7EB), width: 1)),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceAround,
-        children: [
-          _buildNavItem(Icons.home, 'Home', 0),
-          _buildNavItem(Icons.list_alt, 'Complaint', 1, isActive: true),
-          _buildNavItem(Icons.people, 'Monitoring', 2),
-          _buildNavItem(Icons.settings, 'Settings', 3),
-        ],
+  String _formatDate(String dateString) {
+    try {
+      final date = DateTime.parse(dateString);
+      final istDate = date.add(const Duration(hours: 5, minutes: 30));
+      final months = [
+        'Jan',
+        'Feb',
+        'Mar',
+        'Apr',
+        'May',
+        'Jun',
+        'Jul',
+        'Aug',
+        'Sep',
+        'Oct',
+        'Nov',
+        'Dec',
+      ];
+      return '${months[istDate.month - 1]} ${istDate.day}, ${istDate.year}';
+    } catch (e) {
+      return 'Recent';
+    }
+  }
+
+  void _showSortOptions() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.only(
+            topLeft: Radius.circular(20),
+            topRight: Radius.circular(20),
+          ),
+        ),
+        padding: EdgeInsets.all(20.w),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 40.w,
+              height: 4.h,
+              decoration: BoxDecoration(
+                color: Colors.grey.shade300,
+                borderRadius: BorderRadius.circular(2.r),
+              ),
+            ),
+            SizedBox(height: 20.h),
+            _buildSortOption('Newest First', _sortOrder == 'newest', () {
+              setState(() {
+                _sortOrder = 'newest';
+              });
+              Navigator.pop(context);
+            }),
+            SizedBox(height: 12.h),
+            _buildSortOption('Oldest First', _sortOrder == 'oldest', () {
+              setState(() {
+                _sortOrder = 'oldest';
+              });
+              Navigator.pop(context);
+            }),
+            SizedBox(height: 20.h),
+          ],
+        ),
       ),
     );
   }
 
-  Widget _buildNavItem(
-    IconData icon,
-    String label,
-    int index, {
-    bool isActive = false,
-  }) {
-    return Expanded(
-      child: GestureDetector(
-        onTap: () {
-          if (index == 0) {
-            Navigator.pushReplacementNamed(context, '/bdo-dashboard');
-          } else if (index == 2) {
-            Navigator.pushNamed(context, '/bdo-monitoring');
-          } else if (index == 3) {
-            Navigator.pushNamed(context, '/bdo-settings');
-          }
-        },
-        child: Container(
-          height: 80,
-          decoration: BoxDecoration(
-            color: isActive ? const Color(0xFFE8F5E8) : Colors.transparent,
-          ),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
-                icon,
-                size: 24.sp,
-                color: isActive
-                    ? const Color(0xFF4CAF50)
-                    : const Color(0xFF9CA3AF),
-              ),
-              SizedBox(height: 4.h),
-              Text(
-                label,
+  Widget _buildSortOption(String title, bool isSelected, VoidCallback onTap) {
+    return InkWell(
+      onTap: onTap,
+      child: Container(
+        padding: EdgeInsets.symmetric(vertical: 16.h),
+        decoration: BoxDecoration(
+          color: isSelected
+              ? AppColors.primaryColor.withOpacity(0.1)
+              : Colors.transparent,
+          borderRadius: BorderRadius.circular(8.r),
+        ),
+        child: Row(
+          children: [
+            SizedBox(width: 16.w),
+            Expanded(
+              child: Text(
+                title,
                 style: TextStyle(
-                  fontSize: 12.sp,
-                  fontWeight: FontWeight.w500,
-                  color: isActive
-                      ? const Color(0xFF111827)
-                      : const Color(0xFF9CA3AF),
+                  fontSize: 16.sp,
+                  fontWeight: FontWeight.w600,
+                  color: isSelected ? AppColors.primaryColor : Colors.black,
                 ),
               ),
-              SizedBox(height: 4.h),
-              if (isActive)
-                Container(
-                  width: 24,
-                  height: 3,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF111827),
-                    borderRadius: BorderRadius.circular(1.5),
-                  ),
-                )
-              else
-                SizedBox(height: 3.h),
+            ),
+            if (isSelected) ...[
+              Icon(
+                Icons.check_circle,
+                color: AppColors.primaryColor,
+                size: 24.sp,
+              ),
+              SizedBox(width: 16.w),
             ],
-          ),
+          ],
         ),
       ),
+    );
+  }
+
+  void _showDateFilter() {
+    showDateFilterBottomSheet(
+      context: context,
+      onApply: (filterType, selectedDate, startDate, endDate) {
+        setState(() {
+          _filterDate = selectedDate;
+          _filterStartDate = startDate;
+          _filterEndDate = endDate;
+        });
+      },
     );
   }
 }

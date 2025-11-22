@@ -3,6 +3,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../../services/api_services.dart';
 import 'package:intl/intl.dart';
 import '../../l10n/app_localizations.dart';
+import '../../theme/citizen_colors.dart';
 
 class VillageMasterDataFormScreen extends StatefulWidget {
   final int villageId;
@@ -89,13 +90,25 @@ class _VillageMasterDataFormScreenState
       final data = await ApiService().getLatestAnnualSurveyForGp(
         widget.villageId,
       );
+      if (!mounted) return;
+      if (data.isEmpty) {
+        setState(() {
+          surveyData = null;
+          isLoading = false;
+        });
+        return;
+      }
       setState(() {
         surveyData = data;
         isLoading = false;
-        _populateFieldsFromData(data);
       });
+      _populateFieldsFromData(data);
     } catch (e) {
-      setState(() => isLoading = false);
+      if (!mounted) return;
+      setState(() {
+        surveyData = null;
+        isLoading = false;
+      });
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -257,19 +270,23 @@ class _VillageMasterDataFormScreenState
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final surfaceColor = CitizenColors.surface(context);
+    final primaryTextColor = CitizenColors.textPrimary(context);
+    final hasSurveyData = surveyData != null && surveyData!.isNotEmpty;
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: CitizenColors.background(context),
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: surfaceColor,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.black),
+          icon: Icon(Icons.arrow_back, color: primaryTextColor),
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
-          AppLocalizations.of(context)!.villageMasterDataForm,
-          style: const TextStyle(
-            color: Colors.black,
+          l10n.villageMasterDataForm,
+          style: TextStyle(
+            color: primaryTextColor,
             fontSize: 18,
             fontWeight: FontWeight.w600,
           ),
@@ -280,7 +297,8 @@ class _VillageMasterDataFormScreenState
           ? const Center(
               child: CircularProgressIndicator(color: Color(0xFF009B56)),
             )
-          : Form(
+          : hasSurveyData
+          ? Form(
               key: _formKey,
               child: Column(
                 children: [
@@ -665,7 +683,44 @@ class _VillageMasterDataFormScreenState
                   ),
                 ],
               ),
+            )
+          : _buildNoDataContent(
+              context: context,
+              message: l10n.gpMasterDataNotFilled,
             ),
+    );
+  }
+
+  Widget _buildNoDataContent({
+    required BuildContext context,
+    required String message,
+  }) {
+    final primaryTextColor = CitizenColors.textPrimary(context);
+    return Center(
+      child: Padding(
+        padding: EdgeInsets.symmetric(horizontal: 24.w),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Image.asset(
+              'assets/images/nodata.png',
+              width: 140.w,
+              height: 140.w,
+            ),
+            SizedBox(height: 24.h),
+            Text(
+              message,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 16.sp,
+                fontWeight: FontWeight.w500,
+                color: primaryTextColor,
+                height: 1.4,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -737,9 +792,11 @@ class _VillageMasterDataFormScreenState
     required VoidCallback onToggle,
     required List<Widget> children,
   }) {
+    final surfaceColor = CitizenColors.surface(context);
+    final primaryTextColor = CitizenColors.textPrimary(context);
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: surfaceColor,
         borderRadius: BorderRadius.circular(8.r),
         border: Border.all(color: Colors.grey.shade300),
       ),
@@ -756,10 +813,10 @@ class _VillageMasterDataFormScreenState
                   Expanded(
                     child: Text(
                       title,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
-                        color: Color(0xFF111827),
+                        color: primaryTextColor,
                       ),
                     ),
                   ),

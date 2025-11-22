@@ -5,6 +5,7 @@ import '../../config/connstants.dart';
 import '../../providers/citizen_bookmarks_provider.dart';
 import '../../models/scheme_model.dart';
 import '../../l10n/app_localizations.dart';
+import '../../theme/citizen_colors.dart';
 
 class SchemeDetailsScreen extends StatefulWidget {
   final Scheme scheme;
@@ -42,18 +43,18 @@ class _SchemeDetailsScreenState extends State<SchemeDetailsScreen> {
         : '';
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: CitizenColors.background(context),
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: CitizenColors.surface(context),
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.black),
+          icon: Icon(Icons.arrow_back, color: CitizenColors.textPrimary(context)),
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
           widget.scheme.name,
-          style: const TextStyle(
-            color: Colors.black,
+          style: TextStyle(
+            color: CitizenColors.textPrimary(context),
             fontSize: 18,
             fontWeight: FontWeight.w600,
           ),
@@ -64,7 +65,7 @@ class _SchemeDetailsScreenState extends State<SchemeDetailsScreen> {
       body: Column(
         children: [
           // Image section with bookmark
-          Container(
+          SizedBox(
             height: 180.h,
             width: double.infinity,
             child: Stack(
@@ -142,7 +143,7 @@ class _SchemeDetailsScreenState extends State<SchemeDetailsScreen> {
                                 ? Icons.bookmark
                                 : Icons.bookmark_border_outlined,
                             size: 20.sp,
-                            color: Colors.black,
+                        color: CitizenColors.textPrimary(context),
                           ),
                         ),
                       );
@@ -156,7 +157,7 @@ class _SchemeDetailsScreenState extends State<SchemeDetailsScreen> {
           // Tabs
           Container(
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: CitizenColors.surface(context),
               border: Border(
                 bottom: BorderSide(color: Colors.grey.shade200, width: 1),
               ),
@@ -188,6 +189,7 @@ class _SchemeDetailsScreenState extends State<SchemeDetailsScreen> {
 
   Widget _buildTab(String label, int index) {
     final isSelected = _selectedTabIndex == index;
+    final secondaryTextColor = CitizenColors.textSecondary(context);
     return GestureDetector(
       onTap: () {
         setState(() {
@@ -212,7 +214,7 @@ class _SchemeDetailsScreenState extends State<SchemeDetailsScreen> {
             fontWeight: FontWeight.w600,
             color: isSelected
                 ? AppColors.primaryColor
-                : const Color(0xFF6B7280),
+                : secondaryTextColor,
           ),
         ),
       ),
@@ -240,7 +242,7 @@ class _SchemeDetailsScreenState extends State<SchemeDetailsScreen> {
         style: TextStyle(
           fontSize: 14.sp,
           height: 1.6,
-          color: const Color(0xFF111827),
+          color: CitizenColors.textPrimary(context),
         ),
       ),
     );
@@ -257,7 +259,7 @@ class _SchemeDetailsScreenState extends State<SchemeDetailsScreen> {
             style: TextStyle(
               fontSize: 14.sp,
               height: 1.6,
-              color: const Color(0xFF111827),
+              color: CitizenColors.textPrimary(context),
             ),
           ),
         ],
@@ -276,7 +278,7 @@ class _SchemeDetailsScreenState extends State<SchemeDetailsScreen> {
             style: TextStyle(
               fontSize: 14.sp,
               height: 1.6,
-              color: const Color(0xFF111827),
+              color: CitizenColors.textPrimary(context),
             ),
           ),
         ],

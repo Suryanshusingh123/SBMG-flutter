@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import '../supervisor/theme_bottom_sheet.dart';
-import '../supervisor/reset_password_flow_screen.dart';
+import 'package:provider/provider.dart';
+import '../../config/connstants.dart';
+import '../../providers/locale_provider.dart';
+import '../../services/auth_services.dart';
+import '../../l10n/app_localizations.dart';
 import '../../widgets/common/custom_bottom_navigation.dart';
-// import '../supervisor/feedback_bottom_sheet.dart';
-// import '../supervisor/language_bottom_sheet.dart';
+import '../supervisor/reset_password_flow_screen.dart';
+import '../citizen/language_screen.dart';
 
 class BdoSettingsScreen extends StatefulWidget {
   const BdoSettingsScreen({super.key});
@@ -20,383 +23,705 @@ class _BdoSettingsScreenState extends State<BdoSettingsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey.shade50,
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
-        title: Text(
-          'Settings',
-          style: TextStyle(
-            fontFamily: 'Noto Sans',
-            fontSize: 24.sp,
-            fontWeight: FontWeight.w600,
-            color: const Color(0xFF111827),
-          ),
-        ),
-        centerTitle: true,
-      ),
-      body: SingleChildScrollView(
-        padding: EdgeInsets.all(16.r),
+      backgroundColor: const Color(0xFFF9FAFB),
+      body: SafeArea(
         child: Column(
           children: [
-            // Regular Settings Items
-            _buildSettingsSection([
-              _buildSettingsItem(
-                icon: Icons.lock,
-                title: 'Reset Password',
-                onTap: () => _navigateToResetPassword(),
-              ),
-              _buildSettingsItem(
-                icon: Icons.notifications,
-                title: 'Notifications',
-                trailing: Switch(
-                  value: _notificationsEnabled,
-                  onChanged: (value) {
-                    setState(() {
-                      _notificationsEnabled = value;
-                    });
-                  },
-                  activeColor: const Color(0xFF009B56),
-                ),
-              ),
-              _buildSettingsItem(
-                icon: Icons.palette,
-                title: 'Theme',
-                onTap: () => _showThemeBottomSheet(),
-              ),
-              _buildSettingsItem(
-                icon: Icons.thumb_up,
-                title: 'Give us Feedback',
-                onTap: () => _showFeedbackBottomSheet(),
-              ),
-              _buildSettingsItem(
-                icon: Icons.translate,
-                title: 'Language',
-                trailing: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 4,
-                  ),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF009B56),
-                    borderRadius: BorderRadius.circular(12.r),
-                  ),
-                  child: Text(
-                    'English',
+            // Header
+            Padding(
+              padding: EdgeInsets.fromLTRB(16.w, 8.h, 16.w, 16.h),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    AppLocalizations.of(context)!.settings,
                     style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 12.sp,
-                      fontWeight: FontWeight.w500,
+                      fontSize: 20.sp,
+                      fontWeight: FontWeight.w700,
+                      color: const Color(0xFF111827),
                     ),
                   ),
+                ],
+              ),
+            ),
+
+            // Settings List
+            Expanded(
+              child: SingleChildScrollView(
+                child: Column(
+                  children: [
+                    // Change Password
+                    _buildSettingItem(
+                      icon: Icons.lock_outline,
+                      title: AppLocalizations.of(context)!.changePassword,
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) =>
+                                const ResetPasswordFlowScreen(),
+                          ),
+                        );
+                      },
+                    ),
+                    _buildDivider(),
+
+                    // Notifications with toggle
+                    _buildSettingItemWithToggle(
+                      icon: Icons.notifications_outlined,
+                      title: AppLocalizations.of(context)!.notifications,
+                      value: _notificationsEnabled,
+                      onChanged: (value) {
+                        setState(() {
+                          _notificationsEnabled = value;
+                        });
+                      },
+                    ),
+                    _buildDivider(),
+
+                    // FAQs
+                    _buildSettingItem(
+                      icon: Icons.help_outline,
+                      title: AppLocalizations.of(context)!.faqs,
+                      onTap: () {
+                        // TODO: Navigate to FAQs screen
+                      },
+                    ),
+                    _buildDivider(),
+
+                    // Give us Feedback
+                    _buildSettingItem(
+                      icon: Icons.thumb_up_outlined,
+                      title: AppLocalizations.of(context)!.giveUsFeedback,
+                      onTap: () {
+                        _showFeedbackBottomSheet(context);
+                      },
+                    ),
+                    _buildDivider(),
+
+                    // Language
+                    Consumer<LocaleProvider>(
+                      builder: (context, localeProvider, child) {
+                        return _buildSettingItemWithLabel(
+                          icon: Icons.language_outlined,
+                          title: AppLocalizations.of(context)!.language,
+                          label: localeProvider.locale.languageCode == 'hi'
+                              ? AppLocalizations.of(context)!.hindi
+                              : AppLocalizations.of(context)!.english,
+                          onTap: () async {
+                            await Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => const LanguageScreen(),
+                              ),
+                            );
+                            // Refresh the UI after returning from language screen
+                            if (mounted) {
+                              setState(() {});
+                            }
+                          },
+                        );
+                      },
+                    ),
+
+                    SizedBox(height: 24.h),
+
+                    // Login as Citizen
+                    _buildActionTile(
+                      title: AppLocalizations.of(context)!.loginAsCitizen,
+                      onTap: () {
+                        _handleLoginAsCitizen(context);
+                      },
+                    ),
+
+                    SizedBox(height: 12.h),
+
+                    // Logout
+                    _buildActionTile(
+                      title: AppLocalizations.of(context)!.logout,
+                      icon: Icons.logout,
+                      iconColor: const Color(0xFFEF4444),
+                      textColor: const Color(0xFFEF4444),
+                      backgroundColor: Colors.white,
+                      onTap: () {
+                        _showLogoutDialog(context);
+                      },
+                    ),
+
+                    SizedBox(height: 24.h),
+                  ],
                 ),
-                onTap: () => _showLanguageBottomSheet(),
-                showDivider: false,
               ),
-            ]),
-
-            SizedBox(height: 24.h),
-
-            // Login as Citizen Card
-            _buildCardSection([
-              _buildSettingsItem(
-                title: 'Login as Citizen',
-                onTap: () {
-                  Navigator.pushReplacementNamed(context, '/citizen-dashboard');
-                },
-                showDivider: false,
-              ),
-            ]),
-
-            SizedBox(height: 16.h),
-
-            // Logout Card
-            _buildCardSection([
-              _buildSettingsItem(
-                icon: Icons.logout,
-                title: 'Logout',
-                textColor: const Color(0xFFEF4444),
-                iconColor: const Color(0xFFEF4444),
-                onTap: () {
-                  _showLogoutDialog();
-                },
-                showDivider: false,
-              ),
-            ]),
+            ),
           ],
         ),
       ),
+
+      // Bottom Navigation Bar
       bottomNavigationBar: _buildBottomNavigationBar(),
     );
   }
 
-  Widget _buildSettingsSection(List<Widget> items) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12.r),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Column(children: items),
+  Widget _buildDivider() {
+    return Padding(
+      padding: EdgeInsets.only(left: 56.w),
+      child: Divider(height: 1, thickness: 1, color: const Color(0xFFE5E7EB)),
     );
   }
 
-  Widget _buildCardSection(List<Widget> items) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12.r),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Column(children: items),
-    );
-  }
-
-  Widget _buildSettingsItem({
-    IconData? icon,
+  Widget _buildSettingItem({
+    required IconData icon,
     required String title,
-    String? subtitle,
-    Widget? trailing,
-    VoidCallback? onTap,
-    Color? textColor,
-    Color? iconColor,
-    bool showDivider = true,
+    required VoidCallback onTap,
   }) {
-    return Column(
-      children: [
-        Material(
-          color: Colors.transparent,
-          child: InkWell(
-            onTap: onTap,
-            borderRadius: BorderRadius.circular(12.r),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-              child: Row(
-                children: [
-                  // Icon
-                  if (icon != null) ...[
-                    Container(
-                      width: 40,
-                      height: 40,
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFF3F4F6),
-                        borderRadius: BorderRadius.circular(8.r),
-                      ),
-                      child: Icon(
-                        icon,
-                        color: iconColor ?? const Color(0xFF6B7280),
-                        size: 20.sp,
-                      ),
-                    ),
-                    SizedBox(width: 16.w),
-                  ],
+    return InkWell(
+      onTap: onTap,
+      child: Container(
+        padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 16.h),
+        color: Colors.white,
+        child: Row(
+          children: [
+            Icon(icon, size: 24.sp, color: const Color(0xFF111827)),
+            SizedBox(width: 16.w),
+            Expanded(
+              child: Text(
+                title,
+                style: TextStyle(
+                  fontSize: 16.sp,
+                  fontWeight: FontWeight.w400,
+                  color: const Color(0xFF111827),
+                ),
+              ),
+            ),
+            Icon(
+              Icons.chevron_right,
+              size: 24.sp,
+              color: const Color(0xFF6B7280),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 
-                  // Title and Subtitle
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          title,
-                          style: TextStyle(
-                            fontFamily: 'Noto Sans',
-                            fontSize: 16.sp,
-                            fontWeight: FontWeight.w500,
-                            color: textColor ?? const Color(0xFF111827),
-                          ),
-                        ),
-                        if (subtitle != null) ...[
-                          SizedBox(height: 2.h),
-                          Text(
-                            subtitle,
-                            style: TextStyle(
-                              fontFamily: 'Noto Sans',
-                              fontSize: 14.sp,
-                              color: const Color(0xFF6B7280),
-                            ),
-                          ),
-                        ],
-                      ],
-                    ),
-                  ),
-
-                  // Trailing Widget or Arrow
-                  if (trailing != null)
-                    trailing
-                  else if (onTap != null)
-                    Icon(
-                      Icons.arrow_forward_ios,
-                      size: 16.sp,
-                      color: const Color(0xFF9CA3AF),
-                    ),
-                ],
+  Widget _buildSettingItemWithToggle({
+    required IconData icon,
+    required String title,
+    required bool value,
+    required Function(bool) onChanged,
+  }) {
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
+      color: Colors.white,
+      child: Row(
+        children: [
+          Icon(icon, size: 24.sp, color: const Color(0xFF111827)),
+          SizedBox(width: 16.w),
+          Expanded(
+            child: Text(
+              title,
+              style: TextStyle(
+                fontSize: 16.sp,
+                fontWeight: FontWeight.w400,
+                color: const Color(0xFF111827),
               ),
             ),
           ),
-        ),
-        if (showDivider)
-          const Divider(
-            height: 1,
-            thickness: 1,
-            color: Color(0xFFE5E7EB),
-            indent: 16,
-            endIndent: 16,
-          ),
-      ],
-    );
-  }
-
-  void _showThemeBottomSheet() {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => const ThemeBottomSheet(),
-    );
-  }
-
-  void _navigateToResetPassword() {
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => const ResetPasswordFlowScreen()),
-    );
-  }
-
-  void _showLanguageBottomSheet() {
-    // TODO: Implement LanguageBottomSheet
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Language Selection'),
-        content: const Text('Language selection coming soon!'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('OK'),
+          Switch(
+            value: value,
+            onChanged: onChanged,
+            activeThumbColor: Colors.white,
+            activeTrackColor: AppColors.primaryColor,
+            inactiveThumbColor: Colors.white,
+            inactiveTrackColor: const Color(0xFFE5E7EB),
           ),
         ],
       ),
     );
   }
 
-  void _showFeedbackBottomSheet() {
-    // TODO: Implement FeedbackBottomSheet
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Feedback'),
-        content: const Text('Feedback feature coming soon!'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('OK'),
-          ),
-        ],
+  Widget _buildSettingItemWithLabel({
+    required IconData icon,
+    required String title,
+    required String label,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      child: Container(
+        padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 16.h),
+        color: Colors.white,
+        child: Row(
+          children: [
+            Icon(icon, size: 24.sp, color: const Color(0xFF111827)),
+            SizedBox(width: 16.w),
+            Expanded(
+              child: Text(
+                title,
+                style: TextStyle(
+                  fontSize: 16.sp,
+                  fontWeight: FontWeight.w400,
+                  color: const Color(0xFF111827),
+                ),
+              ),
+            ),
+            Container(
+              padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 4.h),
+              decoration: BoxDecoration(
+                color: const Color(0xFF10B981),
+                borderRadius: BorderRadius.circular(12.r),
+              ),
+              child: Text(
+                label,
+                style: TextStyle(
+                  fontSize: 12.sp,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.white,
+                ),
+              ),
+            ),
+            SizedBox(width: 8.w),
+            Icon(
+              Icons.chevron_right,
+              size: 24.sp,
+              color: const Color(0xFF6B7280),
+            ),
+          ],
+        ),
       ),
     );
   }
 
   Widget _buildBottomNavigationBar() {
+    final l10n = AppLocalizations.of(context)!;
+
     return CustomBottomNavigationBar(
       currentIndex: _selectedIndex,
       onTap: (index) {
         setState(() {
           _selectedIndex = index;
         });
+
+        // Navigate to different screens based on selection
         switch (index) {
           case 0:
             Navigator.pushReplacementNamed(context, '/bdo-dashboard');
             break;
           case 1:
-            Navigator.pushNamed(context, '/bdo-complaints');
+            Navigator.pushReplacementNamed(context, '/bdo-complaints');
             break;
           case 2:
-            Navigator.pushNamed(context, '/bdo-monitoring');
+            Navigator.pushReplacementNamed(context, '/bdo-monitoring');
             break;
           case 3:
             // Already on settings
             break;
         }
       },
-      items: const [
-        BottomNavItem(icon: Icons.home, label: 'Home'),
-        BottomNavItem(icon: Icons.report_problem, label: 'Complaint'),
-        BottomNavItem(icon: Icons.checklist, label: 'Inspection'),
-        BottomNavItem(icon: Icons.settings, label: 'Settings'),
+      items: [
+        BottomNavItem(iconPath: 'assets/icons/bottombar/home.png', label: l10n.home),
+        BottomNavItem(iconPath: 'assets/icons/bottombar/complaints.png', label: l10n.complaints),
+        BottomNavItem(iconPath: 'assets/icons/bottombar/inspection.png', label: l10n.inspection),
+        BottomNavItem(iconPath: 'assets/icons/bottombar/settings.png', label: l10n.settings),
       ],
     );
   }
 
-  void _showLogoutDialog() {
+
+  void _showFeedbackBottomSheet(BuildContext context) {
+    int selectedRating = -1;
+    final feedbackController = TextEditingController();
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.only(
+          topLeft: Radius.circular(20.r),
+          topRight: Radius.circular(20.r),
+        ),
+      ),
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) => Padding(
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(context).viewInsets.bottom,
+          ),
+          child: Container(
+            color: Colors.white,
+            padding: EdgeInsets.all(20.w),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Header with close button
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      AppLocalizations.of(context)!.giveUsFeedback,
+                      style: TextStyle(
+                        fontSize: 20.sp,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    IconButton(
+                      icon: Icon(Icons.close, size: 24.sp),
+                      onPressed: () => Navigator.pop(context),
+                    ),
+                  ],
+                ),
+                SizedBox(height: 20.h),
+
+                // Question
+                Text(
+                  AppLocalizations.of(context)!.howWasYourExperience,
+                  style: TextStyle(
+                    fontSize: 16.sp,
+                    fontWeight: FontWeight.w500,
+                    color: const Color(0xFF111827),
+                  ),
+                ),
+                SizedBox(height: 16.h),
+
+                // Emoji rating
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceAround,
+                  children: List.generate(5, (index) {
+                    final emojis = ['😢', '😞', '😐', '🙂', '😄'];
+                    final isSelected = selectedRating == index;
+                    return GestureDetector(
+                      onTap: () {
+                        setState(() {
+                          selectedRating = index;
+                        });
+                      },
+                      child: Container(
+                        padding: EdgeInsets.all(8.w),
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(12.r),
+                          color: isSelected
+                              ? const Color(0xFFD1FAE5)
+                              : Colors.transparent,
+                        ),
+                        child: Text(
+                          emojis[index],
+                          style: TextStyle(fontSize: 32.sp),
+                        ),
+                      ),
+                    );
+                  }),
+                ),
+                SizedBox(height: 8.h),
+
+                // Instruction text
+                if (selectedRating == -1)
+                  Text(
+                    AppLocalizations.of(context)!.chooseYourExperience,
+                    style: TextStyle(
+                      fontSize: 14.sp,
+                      color: const Color(0xFF9CA3AF),
+                    ),
+                  ),
+                SizedBox(height: 24.h),
+
+                // Feedback label
+                Text(
+                  AppLocalizations.of(context)!.enterFeedback,
+                  style: TextStyle(
+                    fontSize: 14.sp,
+                    fontWeight: FontWeight.w500,
+                    color: const Color(0xFF111827),
+                  ),
+                ),
+                SizedBox(height: 8.h),
+
+                // Feedback text area
+                Container(
+                  decoration: BoxDecoration(
+                    border: Border.all(color: const Color(0xFFE5E7EB)),
+                    borderRadius: BorderRadius.circular(8.r),
+                  ),
+                  child: TextField(
+                    controller: feedbackController,
+                    maxLines: 4,
+                    maxLength: 100,
+                    decoration: InputDecoration(
+                      hintText: AppLocalizations.of(context)!.enterFeedback,
+                      hintStyle: TextStyle(
+                        fontSize: 14.sp,
+                        color: const Color(0xFF9CA3AF),
+                      ),
+                      border: InputBorder.none,
+                      contentPadding: EdgeInsets.all(12.w),
+                      counterText: '${feedbackController.text.length}/100',
+                    ),
+                    onChanged: (value) {
+                      setState(() {});
+                    },
+                  ),
+                ),
+
+                SizedBox(height: 24.h),
+
+                // Submit button
+                SizedBox(
+                  width: double.infinity,
+                  height: 50.h,
+                  child: ElevatedButton(
+                    onPressed: () {
+                      if (selectedRating == -1) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(
+                              AppLocalizations.of(
+                                context,
+                              )!.pleaseRateYourExperience,
+                            ),
+                            backgroundColor: Colors.red,
+                          ),
+                        );
+                        return;
+                      }
+
+                      // Show success dialog
+                      Navigator.pop(context);
+                      _showFeedbackSuccessDialog(context);
+
+                      // Clear controllers
+                      feedbackController.clear();
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primaryColor,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8.r),
+                      ),
+                      elevation: 0,
+                    ),
+                    child: Text(
+                      AppLocalizations.of(context)!.submit,
+                      style: TextStyle(
+                        fontSize: 16.sp,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ),
+                SizedBox(height: 16.h),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showFeedbackSuccessDialog(BuildContext context) {
     showDialog(
       context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          backgroundColor: Colors.white,
-          shape: RoundedRectangleBorder(
+      barrierDismissible: false,
+      builder: (context) => Dialog(
+        backgroundColor: Colors.white,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16.r),
+        ),
+        child: Container(
+          padding: EdgeInsets.all(24.w),
+          decoration: BoxDecoration(
+            color: Colors.white,
             borderRadius: BorderRadius.circular(16.r),
           ),
-          contentPadding: EdgeInsets.all(24.r),
-          content: Column(
+          child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
+              // Star icon
+              Container(
+                width: 60.w,
+                height: 60.w,
+                decoration: const BoxDecoration(
+                  color: Color(0xFFFFB800),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.star, color: Colors.white, size: 32),
+              ),
+              SizedBox(height: 20.h),
+
+              // Success message
               Text(
-                'Are you sure you want to log out?',
+                AppLocalizations.of(
+                  context,
+                )!.yourFeedbackIsSuccessfullySubmitted,
                 textAlign: TextAlign.center,
                 style: TextStyle(
-                  fontFamily: 'Noto Sans',
                   fontSize: 18.sp,
                   fontWeight: FontWeight.w600,
                   color: const Color(0xFF111827),
-                  height: 1.2,
-                ),
-              ),
-              SizedBox(height: 12.h),
-              Text(
-                'You\'ll need to sign in again to access your account.',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontFamily: 'Noto Sans',
-                  fontSize: 14.sp,
-                  fontWeight: FontWeight.w400,
-                  color: const Color(0xFF6B7280),
-                  height: 1.3,
                 ),
               ),
               SizedBox(height: 24.h),
+
+              // Close button
+              SizedBox(
+                width: double.infinity,
+                height: 50.h,
+                child: ElevatedButton(
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primaryColor,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8.r),
+                    ),
+                    elevation: 0,
+                  ),
+                  child: Text(
+                    AppLocalizations.of(context)!.close,
+                    style: TextStyle(
+                      fontSize: 16.sp,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildActionTile({
+    required String title,
+    IconData? icon,
+    Color? iconColor,
+    Color? textColor,
+    Color? backgroundColor,
+    required VoidCallback onTap,
+  }) {
+    return Container(
+      margin: EdgeInsets.symmetric(horizontal: 8.w),
+      decoration: BoxDecoration(
+        color: backgroundColor ?? Colors.white,
+        borderRadius: BorderRadius.circular(12.r),
+        border: Border.all(color: const Color(0xFFE5E7EB), width: 1),
+      ),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12.r),
+        child: Container(
+          padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 16.h),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              if (icon != null) ...[
+                Icon(
+                  icon,
+                  size: 24.sp,
+                  color: iconColor ?? const Color(0xFF111827),
+                ),
+                SizedBox(width: 16.w),
+              ],
+              Expanded(
+                child: Text(
+                  title,
+                  style: TextStyle(
+                    fontSize: 16.sp,
+                    fontWeight: FontWeight.w500,
+                    color: textColor ?? const Color(0xFF111827),
+                  ),
+                ),
+              ),
+              Icon(
+                Icons.chevron_right,
+                size: 24.sp,
+                color: iconColor ?? const Color(0xFF111827),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _handleLoginAsCitizen(BuildContext context) async {
+    // Clear BDO session
+    final authService = AuthService();
+    await authService.logout();
+
+    // Navigate to citizen home screen and clear navigation stack
+    if (context.mounted) {
+      Navigator.pushNamedAndRemoveUntil(
+        context,
+        '/citizen-dashboard',
+        (route) => false,
+      );
+    }
+  }
+
+  void _showLogoutDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => Dialog(
+        backgroundColor: Colors.white,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16.r),
+        ),
+        child: Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16.r),
+          ),
+          padding: EdgeInsets.all(24.w),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Title
+              Text(
+                AppLocalizations.of(context)!.areYouSureYouWantToLogOut,
+                style: TextStyle(
+                  fontSize: 18.sp,
+                  fontWeight: FontWeight.w600,
+                  color: const Color(0xFF111827),
+                ),
+                textAlign: TextAlign.center,
+              ),
+              SizedBox(height: 8.h),
+
+              // Subtitle
+              Text(
+                AppLocalizations.of(
+                  context,
+                )!.youllNeedToSignInAgainToAccessTheApp,
+                style: TextStyle(
+                  fontSize: 14.sp,
+                  fontWeight: FontWeight.w400,
+                  color: const Color(0xFF6B7280),
+                ),
+                textAlign: TextAlign.center,
+              ),
+              SizedBox(height: 24.h),
+
+              // Buttons
               Row(
                 children: [
+                  // Close button
                   Expanded(
                     child: ElevatedButton(
-                      onPressed: () {
-                        Navigator.pop(context); // Close dialog
-                        Navigator.pushReplacementNamed(context, '/landing');
-                      },
+                      onPressed: () => Navigator.pop(context),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFFEF4444),
-                        foregroundColor: Colors.white,
-                        padding: EdgeInsets.symmetric(vertical: 12.h),
+                        backgroundColor: const Color(0xFFF3F4F6),
+                        foregroundColor: const Color(0xFF374151),
+                        padding: EdgeInsets.symmetric(vertical: 14.h),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(8.r),
                         ),
                         elevation: 0,
                       ),
                       child: Text(
-                        'Confirm',
+                        AppLocalizations.of(context)!.close,
                         style: TextStyle(
-                          fontFamily: 'Noto Sans',
                           fontSize: 16.sp,
                           fontWeight: FontWeight.w600,
                         ),
@@ -404,24 +729,37 @@ class _BdoSettingsScreenState extends State<BdoSettingsScreen> {
                     ),
                   ),
                   SizedBox(width: 12.w),
+
+                  // Confirm button
                   Expanded(
                     child: ElevatedButton(
-                      onPressed: () => Navigator.pop(context),
+                      onPressed: () async {
+                        final authService = AuthService();
+                        await authService.logout();
+
+                        if (context.mounted) {
+                          Navigator.pop(context); // Close dialog
+                          Navigator.pushNamedAndRemoveUntil(
+                            context,
+                            '/landing',
+                            (route) => false,
+                          );
+                        }
+                      },
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFFF3F4F6),
-                        foregroundColor: const Color(0xFF111827),
-                        padding: EdgeInsets.symmetric(vertical: 12.h),
+                        backgroundColor: const Color(0xFFEF4444),
+                        foregroundColor: Colors.white,
+                        padding: EdgeInsets.symmetric(vertical: 14.h),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(8.r),
                         ),
                         elevation: 0,
                       ),
                       child: Text(
-                        'Close',
+                        AppLocalizations.of(context)!.confirm,
                         style: TextStyle(
-                          fontFamily: 'Noto Sans',
                           fontSize: 16.sp,
-                          fontWeight: FontWeight.w500,
+                          fontWeight: FontWeight.w600,
                         ),
                       ),
                     ),
@@ -430,8 +768,8 @@ class _BdoSettingsScreenState extends State<BdoSettingsScreen> {
               ),
             ],
           ),
-        );
-      },
+        ),
+      ),
     );
   }
 }

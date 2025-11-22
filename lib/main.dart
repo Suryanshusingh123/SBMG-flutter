@@ -20,10 +20,17 @@ import 'screens/landing_screen.dart';
 import 'screens/supervisor/supervisor_attendance_screen.dart';
 import 'screens/supervisor/supervisor_settings_screen.dart';
 import 'screens/bdo/bdo_complaints_screen.dart';
+import 'screens/bdo/bdo_home_screen.dart';
 import 'screens/bdo/bdo_settings_screen.dart';
 import 'screens/bdo/inspection_log_screen.dart';
+import 'screens/bdo/bdo_inspection_screen.dart';
+import 'screens/bdo/bdo_new_inspection_screen.dart';
 import 'screens/ceo/ceo_home_screen.dart';
 import 'screens/ceo/ceo_complaints_screen.dart';
+import 'screens/ceo/ceo_inspection_screen.dart';
+import 'screens/ceo/ceo_new_inspection_screen.dart';
+import 'screens/ceo/ceo_settings_screen.dart';
+import 'screens/ceo/ceo_gp_ranking_screen.dart';
 import 'screens/vdo/vdo_home_screen.dart';
 import 'screens/vdo/vdo_complaints_screen.dart';
 import 'screens/vdo/vdo_inspection_screen.dart';
@@ -31,7 +38,10 @@ import 'screens/vdo/new_inspection_screen.dart';
 import 'screens/vdo/vdo_settings_screen.dart';
 import 'screens/smd/smd_home_screen.dart';
 import 'screens/smd/smd_complaints_screen.dart';
+import 'screens/smd/smd_inspection_screen.dart';
+import 'screens/smd/smd_new_inspection_screen.dart';
 import 'screens/smd/smd_district_selection_screen.dart';
+import 'screens/smd/smd_settings_screen.dart';
 import 'providers/citizen_auth_provider.dart';
 import 'providers/citizen_schemes_provider.dart';
 import 'providers/citizen_events_provider.dart';
@@ -41,7 +51,6 @@ import 'providers/citizen_geography_provider.dart';
 import 'providers/citizen_notifications_provider.dart';
 import 'providers/citizen_user_provider.dart';
 import 'providers/locale_provider.dart';
-import 'providers/theme_provider.dart';
 import 'providers/supervisor_provider.dart';
 import 'providers/supervisor_complaints_provider.dart';
 import 'providers/supervisor_attendance_provider.dart';
@@ -68,13 +77,19 @@ void main() {
       providers: [
         // Common providers
         ChangeNotifierProvider(create: (_) => LocaleProvider()),
-        ChangeNotifierProvider(create: (_) => ThemeProvider()),
 
         // Citizen providers
         ChangeNotifierProvider(create: (_) => AuthProvider()),
         ChangeNotifierProvider(create: (_) => SchemesProvider()),
         ChangeNotifierProvider(create: (_) => EventsProvider()),
-        ChangeNotifierProvider(create: (_) => BookmarksProvider()),
+        ChangeNotifierProvider(
+          create: (_) {
+            final provider = BookmarksProvider();
+            // Initialize and load bookmarks from storage
+            provider.initialize();
+            return provider;
+          },
+        ),
         ChangeNotifierProvider(create: (_) => ComplaintsProvider()),
         ChangeNotifierProvider(create: (_) => GeographyProvider()),
         ChangeNotifierProvider(create: (_) => NotificationsProvider()),
@@ -119,8 +134,8 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Consumer2<LocaleProvider, ThemeProvider>(
-      builder: (context, localeProvider, themeProvider, child) {
+    return Consumer<LocaleProvider>(
+      builder: (context, localeProvider, child) {
         return ScreenUtilInit(
           designSize: const Size(375, 812),
           minTextAdapt: true,
@@ -142,21 +157,6 @@ class MyApp extends StatelessWidget {
                 elevation: 0,
               ),
             ),
-            darkTheme: ThemeData(
-              primarySwatch: Colors.orange,
-              useMaterial3: true,
-              colorScheme: ColorScheme.fromSeed(
-                seedColor: const Color(0xFFFFD700), // Golden color
-                brightness: Brightness.dark,
-              ),
-              fontFamily: 'Noto Sans',
-              scaffoldBackgroundColor: const Color(0xFF111827),
-              appBarTheme: const AppBarTheme(
-                backgroundColor: Color(0xFF1F2937),
-                elevation: 0,
-              ),
-            ),
-            themeMode: themeProvider.themeMode,
             locale: localeProvider.locale,
             localizationsDelegates: const [
               AppLocalizations.delegate,
@@ -197,26 +197,29 @@ class MyApp extends StatelessWidget {
               '/vdo-complaints': (context) =>
                   const VdoComplaintsScreen(),
               '/vdo-settings': (context) => const VdoSettingsScreen(),
-              '/bdo-dashboard': (context) =>
-                  Scaffold(body: Center(child: Text('BDO Dashboard'))),
+              '/bdo-dashboard': (context) => const BdoHomeScreen(),
               '/bdo-complaints': (context) => const BdoComplaintsScreen(),
-              '/bdo-monitoring': (context) =>
-                  Scaffold(body: Center(child: Text('BDO Inspection'))),
+              '/bdo-monitoring': (context) => const BdoInspectionScreen(),
               '/bdo-settings': (context) => const BdoSettingsScreen(),
               '/ceo-dashboard': (context) => const CeoHomeScreen(),
               '/ceo-complaints': (context) => const CeoComplaintsScreen(),
-              '/ceo-monitoring': (context) =>
-                  Scaffold(body: Center(child: Text('CEO Inspection'))),
-              '/ceo-settings': (context) =>
-                  Scaffold(body: Center(child: Text('CEO Settings'))),
+              '/ceo-monitoring': (context) => const CeoInspectionScreen(),
+              '/ceo-settings': (context) => const CeoSettingsScreen(),
+              '/ceo-gp-ranking': (context) {
+                final args = ModalRoute.of(context)!.settings.arguments
+                    as Map<String, dynamic>?;
+                return CeoGpRankingScreen(
+                  initialDistrictId: args?['districtId'] as int?,
+                  initialBlockId: args?['blockId'] as int?,
+                  initialBlockName: args?['blockName'] as String?,
+                );
+              },
               '/smd-district-selection': (context) =>
                   const SmdDistrictSelectionScreen(),
               '/smd-dashboard': (context) => const SmdHomeScreen(),
               '/smd-complaints': (context) => const SmdComplaintsScreen(),
-              '/smd-monitoring': (context) =>
-                  Scaffold(body: Center(child: Text('SMD Inspection'))),
-              '/smd-settings': (context) =>
-                  Scaffold(body: Center(child: Text('SMD Settings'))),
+              '/smd-monitoring': (context) => const SmdInspectionScreen(),
+              '/smd-settings': (context) => const SmdSettingsScreen(),
               '/contractor-dashboard': (context) =>
                   const SupervisorHomeScreen(), // Contractors use supervisor dashboard
               '/select-gp': (context) =>
@@ -237,13 +240,11 @@ class MyApp extends StatelessWidget {
               '/select-location': (context) =>
                   Scaffold(body: Center(child: Text('Select Location'))),
               '/bdo-new-inspection': (context) {
-                final args =
-                    ModalRoute.of(context)!.settings.arguments
-                        as Map<String, dynamic>?;
-                return Scaffold(
-                  appBar: AppBar(title: Text('New Inspection')),
-                  body: Center(child: Text('GP: ${args?['gpName']}')),
-                );
+                final args = ModalRoute.of(context)!.settings.arguments
+                    as Map<String, dynamic>?;
+                final gpId = args?['gpId'] as int? ?? 0;
+                final gpName = args?['gpName'] as String? ?? '';
+                return BdoNewInspectionScreen(gpId: gpId, gpName: gpName);
               },
               '/inspection-log': (context) => const InspectionLogScreen(),
               '/gp-inspection-details': (context) {
@@ -259,10 +260,17 @@ class MyApp extends StatelessWidget {
                 final args =
                     ModalRoute.of(context)!.settings.arguments
                         as Map<String, dynamic>?;
-                return Scaffold(
-                  appBar: AppBar(title: Text('New Inspection')),
-                  body: Center(child: Text('GP: ${args?['gpName']}')),
-                );
+                final gpId = args?['gpId'] as int? ?? 0;
+                final gpName = args?['gpName'] as String? ?? '';
+                return CeoNewInspectionScreen(gpId: gpId, gpName: gpName);
+              },
+              '/smd-new-inspection': (context) {
+                final args =
+                    ModalRoute.of(context)!.settings.arguments
+                        as Map<String, dynamic>?;
+                final gpId = args?['gpId'] as int? ?? 0;
+                final gpName = args?['gpName'] as String? ?? '';
+                return SmdNewInspectionScreen(gpId: gpId, gpName: gpName);
               },
               '/my-complaints': (context) => const MyComplaintsScreen(),
               '/schemes': (context) => const SchemesScreen(),

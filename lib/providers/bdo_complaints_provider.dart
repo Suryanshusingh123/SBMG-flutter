@@ -32,14 +32,18 @@ class BdoComplaintsProvider extends ChangeNotifier {
   // Load complaints
   Future<void> loadComplaints() async {
     try {
+      print('🔄 [BDO] Loading complaints...');
       _isLoading = true;
       _errorMessage = null;
       notifyListeners();
 
-      final response = await _complaintsService.getComplaintsForSupervisor();
+      print('📡 [BDO] Calling ComplaintsService.getComplaintsForBdo()');
+      final response = await _complaintsService.getComplaintsForBdo();
 
       if (response['success'] == true) {
         final complaints = response['complaints'] as List<ApiComplaintModel>;
+        print('✅ [BDO] Complaints API success. Received: '
+            '${complaints.length} complaints');
 
         String villageName = 'Gram Panchayat';
         if (complaints.isNotEmpty) {
@@ -50,12 +54,15 @@ class BdoComplaintsProvider extends ChangeNotifier {
         _villageName = villageName;
         _isLoading = false;
         notifyListeners();
+        print('📦 [BDO] Stored complaints. Village: ' '$_villageName');
       } else {
+        print('❌ [BDO] Complaints API error: ' '${response['message']}');
         _errorMessage = response['message'] ?? 'Failed to load complaints';
         _isLoading = false;
         notifyListeners();
       }
     } catch (e) {
+      print('❌ [BDO] Complaints API exception: $e');
       _errorMessage = 'Network error. Please try again.';
       _isLoading = false;
       notifyListeners();

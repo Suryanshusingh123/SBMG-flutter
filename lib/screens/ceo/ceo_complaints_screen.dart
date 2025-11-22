@@ -1,10 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:provider/provider.dart';
-import 'package:intl/intl.dart';
-import '../../providers/ceo_complaints_provider.dart';
-import '../../widgets/common/custom_bottom_navigation.dart';
 import '../../config/connstants.dart';
+import '../../models/api_complaint_model.dart';
+import '../../providers/ceo_complaints_provider.dart';
+import '../../utils/location_display_helper.dart';
+import '../../widgets/common/custom_bottom_navigation.dart';
+import '../../widgets/common/date_filter_bottom_sheet.dart';
+import '../../l10n/app_localizations.dart';
+import 'ceo_complaint_details_screen.dart';
+import '../../services/auth_services.dart';
+import '../../services/api_services.dart';
+import '../../models/geography_model.dart';
 
 class CeoComplaintsScreen extends StatefulWidget {
   const CeoComplaintsScreen({super.key});
@@ -13,297 +20,538 @@ class CeoComplaintsScreen extends StatefulWidget {
   State<CeoComplaintsScreen> createState() => _CeoComplaintsScreenState();
 }
 
-class _CeoComplaintsScreenState extends State<CeoComplaintsScreen>
-    with SingleTickerProviderStateMixin {
-  late TabController _tabController;
-  int _currentIndex = 1; // Complaint tab is selected
+class _CeoComplaintsScreenState extends State<CeoComplaintsScreen> {
+  String _selectedStatus = 'Open';
+  String _sortOrder = 'newest';
+  int _selectedIndex = 1;
+  bool _hasLoadedComplaints = false;
+  DateTime? _filterDate;
+  DateTime? _filterStartDate;
+  DateTime? _filterEndDate;
+  String? _districtName;
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 4, vsync: this);
-    _tabController.addListener(() {
-      setState(() {});
-    });
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<CeoComplaintsProvider>().loadComplaints();
+      _loadComplaints();
+      _loadDistrictName();
     });
   }
 
-  Widget _buildErrorState(CeoComplaintsProvider provider) {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(Icons.error_outline, size: 64.sp, color: Colors.red),
-          SizedBox(height: 16.h),
-          Text(
-            provider.errorMessage ?? 'Something went wrong',
-            style: TextStyle(
-              fontFamily: 'Noto Sans',
-              fontSize: 16.sp,
-              fontWeight: FontWeight.w500,
-              color: const Color(0xFF6B7280),
-            ),
-            textAlign: TextAlign.center,
+  void _loadComplaints() {
+    if (!_hasLoadedComplaints) {
+      _hasLoadedComplaints = true;
+      context.read<CeoComplaintsProvider>().loadComplaints();
+    }
+  }
+
+  Future<void> _loadDistrictName() async {
+    try {
+      final authService = AuthService();
+      final apiService = ApiService();
+      final districtId = await authService.getDistrictId();
+      if (districtId == null) {
+        if (mounted) {
+          setState(() => _districtName = 'District');
+        }
+        return;
+      }
+
+      final districts = await apiService.getDistricts();
+      final district = districts.firstWhere(
+        (d) => d.id == districtId,
+        orElse: () => District(id: districtId, name: 'District'),
+      );
+
+      if (mounted) {
+        setState(() {
+          _districtName = district.name;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _districtName = 'District';
+        });
+      }
+    }
+  }
+
+  String _getCurrentMonth() {
+    final months = [
+      'January',
+      'February',
+      'March',
+      'April',
+      'May',
+      'June',
+      'July',
+      'August',
+      'September',
+      'October',
+      'November',
+      'December',
+    ];
+    return months[DateTime.now().month - 1];
+  }
+
+  String _getDisplayMonth() {
+    if (_filterDate != null) {
+      final months = [
+        'January',
+        'February',
+        'March',
+        'April',
+        'May',
+        'June',
+        'July',
+        'August',
+        'September',
+        'October',
+        'November',
+        'December',
+      ];
+      return months[_filterDate!.month - 1];
+    }
+
+    if (_filterStartDate != null) {
+      final months = [
+        'January',
+        'February',
+        'March',
+        'April',
+        'May',
+        'June',
+        'July',
+        'August',
+        'September',
+        'October',
+        'November',
+        'December',
+      ];
+      return months[_filterStartDate!.month - 1];
+    }
+
+    return _getCurrentMonth();
+  }
+
+  void _refreshComplaints() {
+    context.read<CeoComplaintsProvider>().loadComplaints();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.white,
+      body: SafeArea(
+        child: Column(
+          children: [
+            _buildHeader(context),
+            _buildStatusTabs(context),
+            Expanded(child: _buildComplaintsList(context)),
+          ],
+        ),
+      ),
+      bottomNavigationBar: CustomBottomNavigationBar(
+        currentIndex: _selectedIndex,
+        onTap: (index) {
+          setState(() {
+            _selectedIndex = index;
+          });
+
+          switch (index) {
+            case 0:
+              Navigator.pushReplacementNamed(context, '/ceo-dashboard');
+              break;
+            case 1:
+              break;
+            case 2:
+              Navigator.pushReplacementNamed(context, '/ceo-monitoring');
+              break;
+            case 3:
+              Navigator.pushReplacementNamed(context, '/ceo-settings');
+              break;
+          }
+        },
+        items: [
+          BottomNavItem(
+            iconPath: 'assets/icons/bottombar/home.png',
+            label: AppLocalizations.of(context)!.home,
           ),
-          SizedBox(height: 16.h),
-          ElevatedButton(
-            onPressed: () => provider.loadComplaints(),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF009B56),
-              foregroundColor: Colors.white,
-            ),
-            child: const Text('Retry'),
+          BottomNavItem(
+            iconPath: 'assets/icons/bottombar/complaints.png',
+            label: AppLocalizations.of(context)!.complaints,
+          ),
+          BottomNavItem(
+            iconPath: 'assets/icons/bottombar/inspection.png',
+            label: AppLocalizations.of(context)!.inspection,
+          ),
+          BottomNavItem(
+            iconPath: 'assets/icons/bottombar/settings.png',
+            label: AppLocalizations.of(context)!.settings,
           ),
         ],
       ),
     );
   }
 
-  @override
-  void dispose() {
-    _tabController.dispose();
-    super.dispose();
-  }
+  Widget _buildHeader(BuildContext context) {
+    final provider = context.watch<CeoComplaintsProvider>();
+    final totalComplaints = provider.complaints.length;
+    final l10n = AppLocalizations.of(context)!;
 
-  @override
-  Widget build(BuildContext context) {
-    return Consumer<CeoComplaintsProvider>(
-      builder: (context, provider, child) {
-        return Scaffold(
-          backgroundColor: Colors.white,
-          body: SafeArea(
-            child: Column(
-              children: [
-                // Header
-                _buildHeader(provider),
-
-                // Status Tabs
-                _buildStatusTabs(provider),
-
-                // Complaints List
-                Expanded(
-                  child: provider.isLoading
-                      ? const Center(child: CircularProgressIndicator())
-                      : provider.errorMessage != null
-                      ? _buildErrorState(provider)
-                      : TabBarView(
-                          controller: _tabController,
-                          children: [
-                            _buildComplaintsList(
-                              provider.openComplaints,
-                              provider,
-                            ),
-                            _buildComplaintsList(
-                              provider.resolvedComplaints,
-                              provider,
-                            ),
-                            _buildComplaintsList(
-                              provider.verifiedComplaints,
-                              provider,
-                            ),
-                            _buildComplaintsList(
-                              provider.closedComplaints,
-                              provider,
-                            ),
-                          ],
-                        ),
-                ),
-              ],
-            ),
-          ),
-          bottomNavigationBar: CustomBottomNavigationBar(
-            currentIndex: _currentIndex,
-            onTap: _onBottomNavTap,
-            items: const [
-              BottomNavItem(icon: Icons.home, label: 'Home'),
-              BottomNavItem(icon: Icons.report_problem, label: 'Complaint'),
-              BottomNavItem(icon: Icons.checklist, label: 'Inspection'),
-              BottomNavItem(icon: Icons.settings, label: 'Settings'),
-            ],
-          ),
-        );
-      },
-    );
-  }
-
-  Widget _buildHeader(CeoComplaintsProvider provider) {
     return Container(
-      padding: EdgeInsets.all(16.r),
+      padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Complaint (23)',
-                    style: TextStyle(
-                      fontFamily: 'Noto Sans',
-                      fontSize: 22.sp,
-                      fontWeight: FontWeight.w600,
-                      color: const Color(0xFF111827),
-                    ),
-                  ),
-                  SizedBox(height: 2.h),
-                  Text(
-                    '${provider.villageName} • ${DateFormat('MMMM').format(DateTime.now())}',
-                    style: TextStyle(
-                      fontFamily: 'Noto Sans',
-                      fontSize: 14,
-                      fontWeight: FontWeight.w500,
-                      color: Color(0xFF4B5563),
-                      letterSpacing: 0,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ],
+              Text(
+                '${l10n.complaints} ($totalComplaints)',
+                style: TextStyle(
+                  fontSize: 18.sp,
+                  fontWeight: FontWeight.w600,
+                  color: const Color(0xFF111827),
+                ),
               ),
               Row(
                 children: [
-                  const Row(
-                    children: [
-                      Icon(Icons.calendar_today, size: 24, color: Colors.black),
-                    ],
+                  GestureDetector(
+                    onTap: _showDateFilter,
+                    child: Icon(
+                      Icons.calendar_today,
+                      size: 18.sp,
+                      color: Colors.black,
+                    ),
                   ),
-                  SizedBox(width: 8.w),
-                  Icon(Icons.swap_vert, size: 24, color: Colors.black),
+                  SizedBox(width: 12.w),
+                  GestureDetector(
+                    onTap: _showSortOptions,
+                    child: Icon(
+                      Icons.swap_vert,
+                      size: 18.sp,
+                      color: Colors.black,
+                    ),
+                  ),
                 ],
               ),
             ],
           ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildStatusTabs(CeoComplaintsProvider provider) {
-    return Container(
-      margin: EdgeInsets.symmetric(horizontal: 16.w),
-      decoration: const BoxDecoration(
-        border: Border(bottom: BorderSide(color: Color(0xFFE5E7EB), width: 1)),
-      ),
-      child: TabBar(
-        controller: _tabController,
-        isScrollable: true,
-        tabAlignment: TabAlignment.start,
-        indicator: const UnderlineTabIndicator(
-          borderSide: BorderSide(color: Color(0xFF009B56), width: 3),
-        ),
-        labelColor: const Color(0xFF111827),
-        unselectedLabelColor: const Color(0xFF9CA3AF),
-        labelStyle: TextStyle(
-          fontFamily: 'Noto Sans',
-          fontSize: 14.sp,
-          fontWeight: FontWeight.w600,
-        ),
-        unselectedLabelStyle: TextStyle(
-          fontFamily: 'Noto Sans',
-          fontSize: 14.sp,
-          fontWeight: FontWeight.w400,
-        ),
-        tabs: [
-          _buildTab(
-            'Open (${provider.openComplaints.length})',
-            _tabController.index == 0,
-          ),
-          _buildTab(
-            'Resolved (${provider.resolvedComplaints.length})',
-            _tabController.index == 1,
-          ),
-          _buildTab(
-            'Verified (${provider.verifiedComplaints.length})',
-            _tabController.index == 2,
-          ),
-          _buildTab(
-            'Closed (${provider.closedComplaints.length})',
-            _tabController.index == 3,
+          SizedBox(height: 4.h),
+          Text(
+            '${_districtName ?? 'District'} • ${_getDisplayMonth()}',
+            style: TextStyle(fontSize: 11.sp, color: const Color(0xFF6B7280)),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildTab(String text, bool isActive) {
-    return Container(
-      padding: EdgeInsets.symmetric(vertical: 16.h, horizontal: 16.w),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
+  Widget _buildStatusTabs(BuildContext context) {
+    final provider = context.watch<CeoComplaintsProvider>();
+
+    return SizedBox(
+      height: 40.h,
+      child: ListView(
+        scrollDirection: Axis.horizontal,
+        padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 8.h),
         children: [
-          Text(text),
-          SizedBox(width: 8.w),
-          Container(
-            width: 6,
-            height: 6,
-            decoration: BoxDecoration(
-              color: isActive ? const Color(0xFF009B56) : Colors.transparent,
-              shape: BoxShape.circle,
+          _buildTab(
+            context,
+            AppLocalizations.of(context)!.open,
+            provider.openComplaints.length,
+            _selectedStatus == 'Open',
+            0,
+          ),
+          SizedBox(width: 12.w),
+          _buildTab(
+            context,
+            AppLocalizations.of(context)!.resolved,
+            provider.resolvedComplaints.length,
+            _selectedStatus == 'Resolved',
+            1,
+          ),
+          SizedBox(width: 12.w),
+          _buildTab(
+            context,
+            AppLocalizations.of(context)!.verified,
+            provider.verifiedComplaints.length,
+            _selectedStatus == 'Verified',
+            2,
+          ),
+          SizedBox(width: 12.w),
+          _buildTab(
+            context,
+            AppLocalizations.of(context)!.complaintClosed,
+            provider.closedComplaints.length,
+            _selectedStatus == AppLocalizations.of(context)!.complaintClosed,
+            3,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTab(
+    BuildContext context,
+    String status,
+    int count,
+    bool isSelected,
+    int index,
+  ) {
+    return GestureDetector(
+      onTap: () {
+        setState(() {
+          _selectedStatus = status;
+        });
+      },
+      child: Container(
+        padding: EdgeInsets.symmetric(horizontal: 12.w),
+        decoration: BoxDecoration(
+          border: Border(
+            bottom: BorderSide(
+              color: isSelected ? const Color(0xFF009B56) : Colors.transparent,
+              width: 2.5,
             ),
           ),
-        ],
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (isSelected) ...[
+              Container(
+                width: 6.w,
+                height: 6.h,
+                decoration: const BoxDecoration(
+                  color: Color(0xFF009B56),
+                  shape: BoxShape.circle,
+                ),
+              ),
+              SizedBox(width: 6.w),
+            ],
+            Text(
+              status,
+              style: TextStyle(
+                fontSize: 14.sp,
+                fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                color: isSelected
+                    ? const Color(0xFF009B56)
+                    : const Color(0xFF6B7280),
+              ),
+            ),
+            SizedBox(width: 6.w),
+            Text(
+              '($count)',
+              style: TextStyle(
+                fontSize: 15.sp,
+                fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                color: isSelected
+                    ? const Color(0xFF009B56)
+                    : const Color(0xFF6B7280),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
 
-  Widget _buildComplaintsList(
-    List<dynamic> complaints,
-    CeoComplaintsProvider provider,
-  ) {
-    if (complaints.isEmpty) {
+  Widget _buildComplaintsList(BuildContext context) {
+    final provider = context.watch<CeoComplaintsProvider>();
+
+    if (provider.isLoading) {
+      return const Center(
+        child: CircularProgressIndicator(color: Color(0xFF009B56)),
+      );
+    }
+
+    if (provider.errorMessage != null) {
       return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
-              Icons.inbox_outlined,
-              size: 64.sp,
-              color: const Color(0xFF9CA3AF),
-            ),
+            Icon(Icons.error_outline, size: 64.w, color: Colors.grey),
             SizedBox(height: 16.h),
             Text(
-              'No complaints found',
-              style: TextStyle(
-                fontFamily: 'Noto Sans',
-                fontSize: 16.sp,
-                fontWeight: FontWeight.w500,
-                color: const Color(0xFF6B7280),
-              ),
+              provider.errorMessage!,
+              style: TextStyle(fontSize: 16.sp, color: Colors.grey),
+            ),
+            SizedBox(height: 16.h),
+            ElevatedButton(
+              onPressed: _refreshComplaints,
+              child: Text(AppLocalizations.of(context)!.retry),
             ),
           ],
         ),
       );
     }
 
-    return ListView.builder(
-      padding: EdgeInsets.all(16.r),
-      itemCount: complaints.length,
-      itemBuilder: (context, index) {
-        return _buildComplaintCard(complaints[index], provider);
+    List<ApiComplaintModel> filteredComplaints = [];
+
+    switch (_selectedStatus) {
+      case 'Open':
+        filteredComplaints = provider.openComplaints;
+        break;
+      case 'Resolved':
+        filteredComplaints = provider.resolvedComplaints;
+        break;
+      case 'Verified':
+        filteredComplaints = provider.verifiedComplaints;
+        break;
+      case 'Disposed complaints':
+      case 'Closed': // Fallback for backwards compatibility
+      case 'निपटाई गई शिकायतें': // Hindi fallback
+        filteredComplaints = provider.closedComplaints;
+        break;
+    }
+
+    final Map<int, ApiComplaintModel> uniqueComplaints = {};
+    for (final complaint in filteredComplaints) {
+      if (!uniqueComplaints.containsKey(complaint.id)) {
+        uniqueComplaints[complaint.id] = complaint;
+      }
+    }
+    filteredComplaints = uniqueComplaints.values.toList();
+
+    if (_filterDate != null) {
+      filteredComplaints = filteredComplaints.where((complaint) {
+        try {
+          final complaintDate = DateTime.parse(complaint.createdAt).toUtc();
+          final filterDate = _filterDate!.toUtc();
+          return complaintDate.year == filterDate.year &&
+              complaintDate.month == filterDate.month &&
+              complaintDate.day == filterDate.day;
+        } catch (e) {
+          return false;
+        }
+      }).toList();
+    }
+
+    if (_filterStartDate != null && _filterEndDate != null) {
+      filteredComplaints = filteredComplaints.where((complaint) {
+        try {
+          final complaintDate = DateTime.parse(complaint.createdAt).toUtc();
+          final startDate = DateTime.utc(
+            _filterStartDate!.year,
+            _filterStartDate!.month,
+            _filterStartDate!.day,
+          );
+          final endDate = DateTime.utc(
+            _filterEndDate!.year,
+            _filterEndDate!.month,
+            _filterEndDate!.day,
+            23,
+            59,
+            59,
+          );
+          return (complaintDate.isAfter(startDate.subtract(const Duration(seconds: 1))) ||
+                  complaintDate.isAtSameMomentAs(startDate)) &&
+              (complaintDate.isBefore(endDate) ||
+                  complaintDate.isAtSameMomentAs(endDate));
+        } catch (e) {
+          return false;
+        }
+      }).toList();
+    }
+
+    // Sort complaints based on sort order (including time)
+    if (_sortOrder == 'newest') {
+      filteredComplaints.sort((a, b) {
+        try {
+          final dateA = DateTime.parse(a.createdAt).toUtc();
+          final dateB = DateTime.parse(b.createdAt).toUtc();
+          return dateB.compareTo(dateA); // Newest first (descending)
+        } catch (e) {
+          return b.createdAt.compareTo(a.createdAt); // Fallback to string comparison
+        }
+      });
+    } else {
+      filteredComplaints.sort((a, b) {
+        try {
+          final dateA = DateTime.parse(a.createdAt).toUtc();
+          final dateB = DateTime.parse(b.createdAt).toUtc();
+          return dateA.compareTo(dateB); // Oldest first (ascending)
+        } catch (e) {
+          return a.createdAt.compareTo(b.createdAt); // Fallback to string comparison
+        }
+      });
+    }
+
+    if (filteredComplaints.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.inbox_outlined, size: 64.w, color: Colors.grey),
+            SizedBox(height: 16.h),
+            Text(
+              'No ${_selectedStatus.toLowerCase()} complaints',
+              style: TextStyle(fontSize: 16.sp, color: Colors.grey),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return RefreshIndicator(
+      onRefresh: () async {
+        _refreshComplaints();
       },
+      color: const Color(0xFF009B56),
+      child: ListView.builder(
+        padding: EdgeInsets.all(16.r),
+        itemCount: filteredComplaints.length,
+        itemBuilder: (context, index) {
+          return _buildComplaintCard(filteredComplaints[index]);
+        },
+      ),
     );
   }
 
-  Widget _buildComplaintCard(
-    dynamic complaint,
-    CeoComplaintsProvider provider,
-  ) {
+  Widget _buildComplaintCard(ApiComplaintModel complaint) {
+    final firstMediaUrl = complaint.hasMedia ? complaint.firstMediaUrl : null;
+    final mediaUrl = firstMediaUrl != null
+        ? ApiConstants.getMediaUrl(firstMediaUrl)
+        : null;
+    final l10n = AppLocalizations.of(context)!;
+    final locationText = LocationDisplayHelper.buildDisplay(
+      cacheKey: 'ceo-${complaint.id}',
+      latitude: complaint.latitude,
+      longitude: complaint.longitude,
+      locationField: complaint.location,
+      district: complaint.districtName,
+      block: complaint.blockName,
+      village: complaint.villageName,
+      scheduleUpdate: () {
+        if (!mounted) return;
+        setState(() {});
+      },
+      unavailableLabel: l10n.locationNotAvailable,
+    );
+
     return GestureDetector(
-      onTap: () {},
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) =>
+                CeoComplaintDetailsScreen(complaintId: complaint.id),
+          ),
+        );
+      },
       child: Container(
         margin: EdgeInsets.only(bottom: 16.h),
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(12.r),
-          border: Border.all(color: Colors.grey.shade200),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withOpacity(0.05),
-              blurRadius: 4,
+              blurRadius: 8,
               offset: const Offset(0, 2),
             ),
           ],
@@ -311,37 +559,74 @@ class _CeoComplaintsScreenState extends State<CeoComplaintsScreen>
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Image
-            ClipRRect(
-              borderRadius: const BorderRadius.only(
-                topLeft: Radius.circular(12),
-                topRight: Radius.circular(12),
+            Container(
+              height: 150.h,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.only(
+                  topLeft: Radius.circular(12.r),
+                  topRight: Radius.circular(12.r),
+                ),
+                color: Colors.grey.shade300,
               ),
               child: Stack(
                 children: [
-                  complaint.hasMedia
-                      ? Image.network(
-                          ApiConstants.getMediaUrl(complaint.firstMediaUrl),
-                          width: double.infinity,
-                          height: 160,
-                          fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) {
-                            return Image.asset(
-                              'assets/images/road.png',
-                              width: double.infinity,
-                              height: 160,
-                              fit: BoxFit.cover,
-                            );
-                          },
-                        )
-                      : Image.asset(
-                          'assets/images/road.png',
-                          width: double.infinity,
-                          height: 160,
-                          fit: BoxFit.cover,
-                        ),
+                  ClipRRect(
+                    borderRadius: BorderRadius.only(
+                      topLeft: Radius.circular(12.r),
+                      topRight: Radius.circular(12.r),
+                    ),
+                    child: mediaUrl != null
+                        ? Image.network(
+                            mediaUrl,
+                            width: double.infinity,
+                            height: double.infinity,
+                            fit: BoxFit.cover,
+                            errorBuilder: (context, error, stackTrace) {
+                              return Container(
+                                color: Colors.grey.shade400,
+                                child: const Center(
+                                  child: Icon(
+                                    Icons.image,
+                                    size: 40,
+                                    color: Colors.grey,
+                                  ),
+                                ),
+                              );
+                            },
+                            loadingBuilder: (context, child, loadingProgress) {
+                              if (loadingProgress == null) return child;
+                              return Container(
+                                color: Colors.grey.shade300,
+                                child: Center(
+                                  child: CircularProgressIndicator(
+                                    value:
+                                        loadingProgress.expectedTotalBytes !=
+                                            null
+                                        ? loadingProgress
+                                                  .cumulativeBytesLoaded /
+                                              loadingProgress
+                                                  .expectedTotalBytes!
+                                        : null,
+                                    strokeWidth: 2,
+                                    color: const Color(0xFF009B56),
+                                  ),
+                                ),
+                              );
+                            },
+                          )
+                        : Container(
+                            color: Colors.grey.shade400,
+                            child: const Center(
+                              child: Icon(
+                                Icons.image,
+                                size: 40,
+                                color: Colors.grey,
+                              ),
+                            ),
+                          ),
+                  ),
                   Positioned(
-                    top: 12.h,
+                    bottom: 12.h,
                     right: 12.w,
                     child: Container(
                       padding: EdgeInsets.symmetric(
@@ -349,17 +634,15 @@ class _CeoComplaintsScreenState extends State<CeoComplaintsScreen>
                         vertical: 4.h,
                       ),
                       decoration: BoxDecoration(
-                        color: Colors.black.withOpacity(0.7),
-                        borderRadius: BorderRadius.circular(4.r),
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(6.r),
                       ),
                       child: Text(
-                        complaint.formattedDate,
+                        _formatDate(complaint.createdAt),
                         style: TextStyle(
-                          fontFamily: 'Noto Sans',
-                          color: Colors.white,
-                          fontSize: 12.sp,
-                          fontWeight: FontWeight.w500,
-                          letterSpacing: 0.5,
+                          fontSize: 10.sp,
+                          fontWeight: FontWeight.w600,
+                          color: const Color(0xFF111827),
                         ),
                       ),
                     ),
@@ -367,79 +650,70 @@ class _CeoComplaintsScreenState extends State<CeoComplaintsScreen>
                 ],
               ),
             ),
-
-            // Content
-            Padding(
+            Container(
               padding: EdgeInsets.all(16.r),
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.only(
+                  bottomLeft: Radius.circular(12),
+                  bottomRight: Radius.circular(12),
+                ),
+              ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Title and Status
                   Row(
                     children: [
+                      Container(
+                        width: 8.w,
+                        height: 8.h,
+                        decoration: const BoxDecoration(
+                          color: Color(0xFF009B56),
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                      SizedBox(width: 8.w),
                       Expanded(
                         child: Text(
                           complaint.complaintType,
                           style: TextStyle(
-                            fontFamily: 'Noto Sans',
-                            fontSize: 18.sp,
-                            fontWeight: FontWeight.w500,
-                            color: Color(0xFF111827),
-                            letterSpacing: 0,
+                            fontSize: 14.sp,
+                            fontWeight: FontWeight.bold,
+                            color: const Color(0xFF111827),
                           ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
                         ),
-                      ),
-                      SizedBox(width: 8.w),
-                      Image.asset(
-                        'assets/icons/map.png',
-                        width: 20,
-                        height: 20,
                       ),
                     ],
                   ),
-
-                  SizedBox(height: 2.h),
-
-                  // Location
+                  SizedBox(height: 8.h),
                   Row(
                     children: [
-                      const Icon(
-                        Icons.location_pin,
-                        size: 18,
-                        color: Color(0xFF6B7280),
+                      Icon(
+                        Icons.location_on,
+                        size: 14,
+                        color: Colors.grey.shade600,
                       ),
                       SizedBox(width: 4.w),
                       Expanded(
                         child: Text(
-                          complaint.fullLocation,
+                          locationText,
                           style: TextStyle(
-                            fontFamily: 'Noto Sans',
-                            fontSize: 14.sp,
-                            fontWeight: FontWeight.w400,
-                            color: Color(0xFF6B7280),
-                            letterSpacing: 0,
+                            fontSize: 12.sp,
+                            color: Colors.grey.shade600,
                           ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ),
                     ],
                   ),
-
-                  Divider(color: Colors.grey.shade200, thickness: 2),
-
-                  // Description
+                  Divider(color: Colors.grey.shade200, thickness: 1),
                   Text(
                     complaint.description,
                     style: TextStyle(
-                      fontFamily: 'Noto Sans',
-                      fontSize: 14,
-                      fontWeight: FontWeight.w400,
-                      color: Color(0xFF6B7280),
-                      letterSpacing: 0,
+                      fontSize: 12.sp,
+                      color: Colors.grey.shade700,
                     ),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
                   ),
                 ],
               ),
@@ -450,24 +724,123 @@ class _CeoComplaintsScreenState extends State<CeoComplaintsScreen>
     );
   }
 
-  void _onBottomNavTap(int index) {
-    setState(() {
-      _currentIndex = index;
-    });
-
-    switch (index) {
-      case 0:
-        Navigator.pushReplacementNamed(context, '/ceo-dashboard');
-        break;
-      case 1:
-        // Already on complaints screen, do nothing
-        break;
-      case 2:
-        Navigator.pushNamed(context, '/ceo-monitoring');
-        break;
-      case 3:
-        Navigator.pushNamed(context, '/ceo-settings');
-        break;
+  String _formatDate(String dateString) {
+    try {
+      final date = DateTime.parse(dateString);
+      final istDate = date.add(const Duration(hours: 5, minutes: 30));
+      final months = [
+        'Jan',
+        'Feb',
+        'Mar',
+        'Apr',
+        'May',
+        'Jun',
+        'Jul',
+        'Aug',
+        'Sep',
+        'Oct',
+        'Nov',
+        'Dec',
+      ];
+      return '${months[istDate.month - 1]} ${istDate.day}, ${istDate.year}';
+    } catch (e) {
+      return 'Recent';
     }
+  }
+
+  void _showSortOptions() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.only(
+            topLeft: Radius.circular(20),
+            topRight: Radius.circular(20),
+          ),
+        ),
+        padding: EdgeInsets.all(20.w),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 40.w,
+              height: 4.h,
+              decoration: BoxDecoration(
+                color: Colors.grey.shade300,
+                borderRadius: BorderRadius.circular(2.r),
+              ),
+            ),
+            SizedBox(height: 20.h),
+            _buildSortOption('Newest First', _sortOrder == 'newest', () {
+              setState(() {
+                _sortOrder = 'newest';
+              });
+              Navigator.pop(context);
+            }),
+            SizedBox(height: 12.h),
+            _buildSortOption('Oldest First', _sortOrder == 'oldest', () {
+              setState(() {
+                _sortOrder = 'oldest';
+              });
+              Navigator.pop(context);
+            }),
+            SizedBox(height: 20.h),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSortOption(String title, bool isSelected, VoidCallback onTap) {
+    return InkWell(
+      onTap: onTap,
+      child: Container(
+        padding: EdgeInsets.symmetric(vertical: 16.h),
+        decoration: BoxDecoration(
+          color: isSelected
+              ? AppColors.primaryColor.withOpacity(0.1)
+              : Colors.transparent,
+          borderRadius: BorderRadius.circular(8.r),
+        ),
+        child: Row(
+          children: [
+            SizedBox(width: 16.w),
+            Expanded(
+              child: Text(
+                title,
+                style: TextStyle(
+                  fontSize: 16.sp,
+                  fontWeight: FontWeight.w600,
+                  color: isSelected ? AppColors.primaryColor : Colors.black,
+                ),
+              ),
+            ),
+            if (isSelected) ...[
+              Icon(
+                Icons.check_circle,
+                color: AppColors.primaryColor,
+                size: 24.sp,
+              ),
+              SizedBox(width: 16.w),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showDateFilter() {
+    showDateFilterBottomSheet(
+      context: context,
+      onApply: (filterType, selectedDate, startDate, endDate) {
+        setState(() {
+          _filterDate = selectedDate;
+          _filterStartDate = startDate;
+          _filterEndDate = endDate;
+        });
+      },
+    );
   }
 }

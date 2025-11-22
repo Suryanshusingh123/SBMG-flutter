@@ -3,6 +3,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:sbmg/services/auth_services.dart';
 import '../../config/connstants.dart';
 import '../../l10n/app_localizations.dart';
+import '../../theme/citizen_colors.dart';
 import 'citizen_otp_verification_screen.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -18,7 +19,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
   // UI State
   bool _isLoading = false;
-  bool _otpSent = false;
+  final bool _otpSent = false;
 
   // Controllers
   final _mobileController = TextEditingController();
@@ -84,13 +85,15 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
+    final primaryTextColor = CitizenColors.textPrimary(context);
+    final secondaryTextColor = CitizenColors.textSecondary(context);
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: CitizenColors.background(context),
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: CitizenColors.surface(context),
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.black),
+          icon: Icon(Icons.arrow_back, color: primaryTextColor),
           onPressed: () => Navigator.pop(context),
         ),
       ),
@@ -115,17 +118,17 @@ class _LoginScreenState extends State<LoginScreen> {
                 // Title
                 Text(
                   l10n.login,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 28,
                     fontWeight: FontWeight.bold,
-                    color: Color(0xFF111827),
+                    color: primaryTextColor,
                   ),
                 ),
 
                 // Subtitle
                 Text(
                   l10n.enterYourPhoneNumber,
-                  style: const TextStyle(fontSize: 16, color: Colors.grey),
+                  style: TextStyle(fontSize: 16, color: secondaryTextColor),
                 ),
                 SizedBox(height: 40.h),
 
@@ -135,10 +138,10 @@ class _LoginScreenState extends State<LoginScreen> {
                   children: [
                     Text(
                       l10n.phoneNumber,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w500,
-                        color: Color(0xFF111827),
+                        color: primaryTextColor,
                       ),
                     ),
                     SizedBox(height: 8.h),
@@ -188,17 +191,17 @@ class _LoginScreenState extends State<LoginScreen> {
                             SizedBox(width: 12.w),
                             const Text('🇮🇳', style: TextStyle(fontSize: 20)),
                             SizedBox(width: 8.w),
-                            const Icon(
+                            Icon(
                               Icons.arrow_drop_down,
-                              color: Colors.black87,
+                              color: primaryTextColor,
                               size: 20,
                             ),
                             SizedBox(width: 4.w),
-                            const Text(
+                            Text(
                               '+91',
                               style: TextStyle(
                                 fontSize: 14,
-                                color: Colors.black87,
+                                color: primaryTextColor,
                               ),
                             ),
                             SizedBox(width: 8.w),
@@ -244,12 +247,12 @@ class _LoginScreenState extends State<LoginScreen> {
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
+                      Text(
                         'OTP',
                         style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w500,
-                          color: Color(0xFF111827),
+                          color: primaryTextColor,
                         ),
                       ),
                       SizedBox(height: 8.h),
@@ -324,32 +327,32 @@ class _LoginScreenState extends State<LoginScreen> {
                         (_isLoading || _mobileController.text.length != 10)
                             ? null
                             : _handlePublicLogin,
-                        style: ElevatedButton.styleFrom(
+                    style: ElevatedButton.styleFrom(
                       backgroundColor: AppColors.primaryColor,
-                          foregroundColor: Colors.white,
-                          shape: RoundedRectangleBorder(
+                      foregroundColor: CitizenColors.light,
+                      shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(8.r),
-                          ),
+                      ),
                       elevation: 0,
-                        ),
-                        child: _isLoading
-                            ? const SizedBox(
-                                height: 20,
-                                width: 20,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  valueColor: AlwaysStoppedAnimation<Color>(
-                                    Colors.white,
-                                  ),
-                                ),
-                              )
-                            : Text(
-                            _otpSent ? l10n.verifyOTP : l10n.sentOTP,
-                                style: const TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w600,
-                                ),
+                    ),
+                    child: _isLoading
+                        ? SizedBox(
+                            height: 20,
+                            width: 20,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              valueColor: AlwaysStoppedAnimation<Color>(
+                                CitizenColors.light,
                               ),
+                            ),
+                          )
+                        : Text(
+                            _otpSent ? l10n.verifyOTP : l10n.sentOTP,
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
                   ),
                 ),
               ],

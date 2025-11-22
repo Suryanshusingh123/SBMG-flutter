@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../screens/citizen/citizen_login_screen.dart';
 
 class AuthErrorHandler {
   /// Shows a dialog for 401 authentication errors with login options (for complaints page)

@@ -2,9 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
+import '../../models/api_complaint_model.dart';
 import '../../providers/smd_complaints_provider.dart';
+import '../../utils/location_display_helper.dart';
 import '../../widgets/common/custom_bottom_navigation.dart';
 import '../../config/connstants.dart';
+import '../../services/auth_services.dart';
+import '../../l10n/app_localizations.dart';
 import 'smd_complaint_details_screen.dart';
 
 class SmdComplaintsScreen extends StatefulWidget {
@@ -23,12 +27,24 @@ class _SmdComplaintsScreenState extends State<SmdComplaintsScreen>
   void initState() {
     super.initState();
     _tabController = TabController(length: 4, vsync: this);
-    _tabController.addListener(() {
-      setState(() {});
-    });
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<SmdComplaintsProvider>().loadComplaints();
-    });
+    // Check for block and GP selection every time screen opens
+    WidgetsBinding.instance.addPostFrameCallback((_) => _checkAndSelectLocation());
+  }
+
+  Future<void> _checkAndSelectLocation() async {
+    if (!mounted) return;
+    
+    final authService = AuthService();
+    final districtId = await authService.getSmdSelectedDistrictId();
+    
+    if (districtId == null) {
+      // No district selected, go to district selection
+      Navigator.pushReplacementNamed(context, '/smd-district-selection');
+      return;
+    }
+    
+    // District is selected, load complaints (same as CEO - no need for block/GP selection)
+    context.read<SmdComplaintsProvider>().loadComplaints();
   }
 
   Widget _buildErrorState(SmdComplaintsProvider provider) {
@@ -118,10 +134,22 @@ class _SmdComplaintsScreenState extends State<SmdComplaintsScreen>
             currentIndex: _currentIndex,
             onTap: _onBottomNavTap,
             items: const [
-              BottomNavItem(icon: Icons.home, label: 'Home'),
-              BottomNavItem(icon: Icons.report_problem, label: 'Complaint'),
-              BottomNavItem(icon: Icons.checklist, label: 'Inspection'),
-              BottomNavItem(icon: Icons.settings, label: 'Settings'),
+              BottomNavItem(
+                iconPath: 'assets/icons/bottombar/home.png',
+                label: 'Home',
+              ),
+              BottomNavItem(
+                iconPath: 'assets/icons/bottombar/complaints.png',
+                label: 'Complaint',
+              ),
+              BottomNavItem(
+                iconPath: 'assets/icons/bottombar/inspection.png',
+                label: 'Inspection',
+              ),
+              BottomNavItem(
+                iconPath: 'assets/icons/bottombar/settings.png',
+                label: 'Settings',
+              ),
             ],
           ),
         );
@@ -222,7 +250,7 @@ class _SmdComplaintsScreenState extends State<SmdComplaintsScreen>
             _tabController.index == 2,
           ),
           _buildTab(
-            'Closed (${provider.closedComplaints.length})',
+            'Disposed complaints (${provider.closedComplaints.length})',
             _tabController.index == 3,
           ),
         ],
@@ -290,9 +318,24 @@ class _SmdComplaintsScreenState extends State<SmdComplaintsScreen>
   }
 
   Widget _buildComplaintCard(
-    dynamic complaint,
+    ApiComplaintModel complaint,
     SmdComplaintsProvider provider,
   ) {
+    final l10n = AppLocalizations.of(context)!;
+    final locationText = LocationDisplayHelper.buildDisplay(
+      cacheKey: 'smd-${complaint.id}',
+      latitude: complaint.latitude,
+      longitude: complaint.longitude,
+      locationField: complaint.location,
+      district: complaint.districtName,
+      block: complaint.blockName,
+      village: complaint.villageName,
+      scheduleUpdate: () {
+        // Location will be cached and shown on next rebuild
+        // No need to trigger setState which causes rendering conflicts
+      },
+      unavailableLabel: l10n.locationNotAvailable,
+    );
     return GestureDetector(
       onTap: () {
         Navigator.push(
@@ -414,20 +457,20 @@ class _SmdComplaintsScreenState extends State<SmdComplaintsScreen>
                   // Location
                   Row(
                     children: [
-                      const Icon(
+                      Icon(
                         Icons.location_pin,
                         size: 18,
-                        color: Color(0xFF6B7280),
+                        color: Colors.grey.shade600,
                       ),
                       SizedBox(width: 4.w),
                       Expanded(
                         child: Text(
-                          complaint.fullLocation,
+                          locationText,
                           style: TextStyle(
                             fontFamily: 'Noto Sans',
                             fontSize: 14.sp,
                             fontWeight: FontWeight.w400,
-                            color: Color(0xFF6B7280),
+                            color: Colors.grey.shade600,
                             letterSpacing: 0,
                           ),
                         ),

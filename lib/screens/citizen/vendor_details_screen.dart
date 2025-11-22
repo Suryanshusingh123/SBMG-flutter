@@ -5,6 +5,7 @@ import '../../models/geography_model.dart';
 import '../../services/api_services.dart';
 import '../../widgets/common/bottom_sheet_picker.dart';
 import '../../l10n/app_localizations.dart';
+import '../../theme/citizen_colors.dart';
 
 class VendorDetailsScreen extends StatefulWidget {
   const VendorDetailsScreen({super.key});
@@ -144,7 +145,10 @@ class _VendorDetailsScreenState extends State<VendorDetailsScreen> {
         _showVendorDetailsBottomSheet(context);
       }
     } catch (e) {
-      setState(() => isLoadingContractor = false);
+      setState(() {
+        isLoadingContractor = false;
+        contractor = null;
+      });
 
       // Extract user-friendly message from error
       String errorMessage = 'Failed to load contractor details';
@@ -159,37 +163,41 @@ class _VendorDetailsScreenState extends State<VendorDetailsScreen> {
         }
       }
 
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(errorMessage),
-            backgroundColor: Colors.orange,
-            duration: const Duration(seconds: 3),
-          ),
-        );
-      }
+      if (!mounted) return;
+      final scaffoldMessenger = ScaffoldMessenger.of(context);
+      scaffoldMessenger.showSnackBar(
+        SnackBar(
+          content: Text(errorMessage),
+          backgroundColor: Colors.orange,
+          duration: const Duration(seconds: 2),
+        ),
+      );
+      _showNoDataBottomSheet(context);
     }
   }
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
+    final surfaceColor = CitizenColors.surface(context);
+    final primaryTextColor = CitizenColors.textPrimary(context);
+    final secondaryTextColor = CitizenColors.textSecondary(context);
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: CitizenColors.background(context),
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: surfaceColor,
         elevation: 0,
         leading: IconButton(
           onPressed: () => Navigator.pop(context),
-          icon: const Icon(Icons.arrow_back, color: Color(0xFF111827)),
+          icon: Icon(Icons.arrow_back, color: primaryTextColor),
         ),
         title: Text(
           l10n.knowYourAreasVendor,
-          style: const TextStyle(
+          style: TextStyle(
             fontFamily: 'Noto Sans',
             fontSize: 18,
             fontWeight: FontWeight.w600,
-            color: Color(0xFF111827),
+            color: primaryTextColor,
           ),
         ),
         centerTitle: true,
@@ -211,11 +219,11 @@ class _VendorDetailsScreenState extends State<VendorDetailsScreen> {
                     children: [
                       Text(
                         l10n.district,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontFamily: 'Noto Sans',
                           fontSize: 14,
                           fontWeight: FontWeight.w500,
-                          color: Color(0xFF111827),
+                          color: primaryTextColor,
                         ),
                       ),
                       SizedBox(height: 8.h),
@@ -223,7 +231,7 @@ class _VendorDetailsScreenState extends State<VendorDetailsScreen> {
                         height: 50,
                         padding: const EdgeInsets.symmetric(horizontal: 12),
                         decoration: BoxDecoration(
-                          color: Colors.white,
+                          color: surfaceColor,
                           borderRadius: BorderRadius.circular(8.r),
                           border: Border.all(color: Colors.grey.shade300),
                         ),
@@ -248,6 +256,7 @@ class _VendorDetailsScreenState extends State<VendorDetailsScreen> {
                                     itemBuilder: (district) => district.name,
                                     showSearch: true,
                                     searchHint: l10n.searchDistricts,
+                                    isLoading: isLoadingDistricts,
                                     onSelected: (district) {
                                       setState(() {
                                         selectedDistrict = district;
@@ -268,15 +277,15 @@ class _VendorDetailsScreenState extends State<VendorDetailsScreen> {
                                             l10n.selectDistrict,
                                         style: TextStyle(
                                           color: selectedDistrict == null
-                                              ? Colors.grey
-                                              : Colors.black,
+                                              ? secondaryTextColor
+                                              : primaryTextColor,
                                           fontSize: 14.sp,
                                         ),
                                       ),
                                     ),
-                                    const Icon(
+                                    Icon(
                                       Icons.arrow_drop_down,
-                                      color: Colors.grey,
+                                      color: secondaryTextColor,
                                     ),
                                   ],
                                 ),
@@ -295,11 +304,11 @@ class _VendorDetailsScreenState extends State<VendorDetailsScreen> {
                     children: [
                       Text(
                         l10n.block,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontFamily: 'Noto Sans',
                           fontSize: 14,
                           fontWeight: FontWeight.w500,
-                          color: Color(0xFF111827),
+                          color: primaryTextColor,
                         ),
                       ),
                       SizedBox(height: 8.h),
@@ -307,7 +316,7 @@ class _VendorDetailsScreenState extends State<VendorDetailsScreen> {
                         height: 50,
                         padding: const EdgeInsets.symmetric(horizontal: 12),
                         decoration: BoxDecoration(
-                          color: Colors.white,
+                          color: surfaceColor,
                           borderRadius: BorderRadius.circular(8.r),
                           border: Border.all(color: Colors.grey.shade300),
                         ),
@@ -334,6 +343,7 @@ class _VendorDetailsScreenState extends State<VendorDetailsScreen> {
                                           itemBuilder: (block) => block.name,
                                           showSearch: true,
                                           searchHint: l10n.searchBlocks,
+                                          isLoading: isLoadingBlocks,
                                           onSelected: (block) {
                                             setState(() {
                                               selectedBlock = block;
@@ -356,15 +366,15 @@ class _VendorDetailsScreenState extends State<VendorDetailsScreen> {
                                         selectedBlock?.name ?? l10n.selectBlock,
                                         style: TextStyle(
                                           color: selectedBlock == null
-                                              ? Colors.grey
-                                              : Colors.black,
+                                              ? secondaryTextColor
+                                              : primaryTextColor,
                                           fontSize: 14.sp,
                                         ),
                                       ),
                                     ),
-                                    const Icon(
+                                    Icon(
                                       Icons.arrow_drop_down,
-                                      color: Colors.grey,
+                                      color: secondaryTextColor,
                                     ),
                                   ],
                                 ),
@@ -384,11 +394,11 @@ class _VendorDetailsScreenState extends State<VendorDetailsScreen> {
               children: [
                 Text(
                   l10n.gramPanchayat,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontFamily: 'Noto Sans',
                     fontSize: 14,
                     fontWeight: FontWeight.w500,
-                    color: Color(0xFF111827),
+                    color: primaryTextColor,
                   ),
                 ),
                 SizedBox(height: 8.h),
@@ -396,7 +406,7 @@ class _VendorDetailsScreenState extends State<VendorDetailsScreen> {
                   height: 50,
                   padding: const EdgeInsets.symmetric(horizontal: 12),
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: surfaceColor,
                     borderRadius: BorderRadius.circular(8.r),
                     border: Border.all(color: Colors.grey.shade300),
                   ),
@@ -423,6 +433,7 @@ class _VendorDetailsScreenState extends State<VendorDetailsScreen> {
                                     itemBuilder: (village) => village.name,
                                     showSearch: true,
                                     searchHint: l10n.searchVillages,
+                                    isLoading: isLoadingVillages,
                                     onSelected: (village) {
                                       setState(() {
                                         selectedVillage = village;
@@ -438,15 +449,15 @@ class _VendorDetailsScreenState extends State<VendorDetailsScreen> {
                                       l10n.selectGramPanchayat,
                                   style: TextStyle(
                                     color: selectedVillage == null
-                                        ? Colors.grey
-                                        : Colors.black,
+                                        ? secondaryTextColor
+                                        : primaryTextColor,
                                     fontSize: 14.sp,
                                   ),
                                 ),
                               ),
-                              const Icon(
+                              Icon(
                                 Icons.arrow_drop_down,
-                                color: Colors.grey,
+                                color: secondaryTextColor,
                               ),
                             ],
                           ),
@@ -483,19 +494,19 @@ class _VendorDetailsScreenState extends State<VendorDetailsScreen> {
                       },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF009B56),
-                  foregroundColor: Colors.white,
+                  foregroundColor: CitizenColors.light,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(8.r),
                   ),
                   elevation: 0,
                 ),
                 child: isLoadingContractor
-                    ? const SizedBox(
+                    ? SizedBox(
                         height: 20,
                         width: 20,
                         child: CircularProgressIndicator(
                           strokeWidth: 2,
-                          color: Colors.white,
+                          color: CitizenColors.light,
                         ),
                       )
                     : Text(
@@ -517,15 +528,18 @@ class _VendorDetailsScreenState extends State<VendorDetailsScreen> {
   void _showVendorDetailsBottomSheet(BuildContext context) {
     if (contractor == null) return;
     final l10n = AppLocalizations.of(context)!;
+    final surfaceColor = CitizenColors.surface(context);
+    final primaryTextColor = CitizenColors.textPrimary(context);
+    final secondaryTextColor = CitizenColors.textSecondary(context);
 
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (context) => Container(
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.only(
+        decoration: BoxDecoration(
+          color: surfaceColor,
+          borderRadius: const BorderRadius.only(
             topLeft: Radius.circular(20),
             topRight: Radius.circular(20),
           ),
@@ -542,16 +556,16 @@ class _VendorDetailsScreenState extends State<VendorDetailsScreen> {
                 children: [
                   Text(
                     l10n.vendorDetails,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontFamily: 'Noto Sans',
                       fontSize: 20,
                       fontWeight: FontWeight.bold,
-                      color: Color(0xFF111827),
+                      color: primaryTextColor,
                     ),
                   ),
                   IconButton(
                     onPressed: () => Navigator.pop(context),
-                    icon: const Icon(Icons.close, color: Color(0xFF111827)),
+                    icon: Icon(Icons.close, color: primaryTextColor),
                   ),
                 ],
               ),
@@ -559,18 +573,30 @@ class _VendorDetailsScreenState extends State<VendorDetailsScreen> {
               SizedBox(height: 24.h),
 
               // Name
-              _buildDetailRow(l10n.name, contractor!.personName),
+              _buildDetailRow(
+                l10n.name,
+                contractor!.personName,
+                primaryTextColor,
+                secondaryTextColor,
+              ),
               SizedBox(height: 16.h),
 
               // Work order date
               _buildDetailRow(
                 l10n.workOrderDate,
                 _formatDate(contractor!.contractStartDate),
+                primaryTextColor,
+                secondaryTextColor,
               ),
               SizedBox(height: 16.h),
 
               // Annual contract amount (hardcoded for now as it's not in API)
-              _buildDetailRow(l10n.annualContractAmount, '₹ 12 Crore'),
+              _buildDetailRow(
+                l10n.annualContractAmount,
+                '₹ 12 Crore',
+                primaryTextColor,
+                secondaryTextColor,
+              ),
               SizedBox(height: 16.h),
 
               // Duration of work
@@ -580,11 +606,18 @@ class _VendorDetailsScreenState extends State<VendorDetailsScreen> {
                   contractor!.contractStartDate,
                   contractor!.contractEndDate,
                 ),
+                primaryTextColor,
+                secondaryTextColor,
               ),
               SizedBox(height: 16.h),
 
               // Frequency of work (hardcoded for now)
-              _buildDetailRow(l10n.frequencyOfWork, '3 times a day'),
+              _buildDetailRow(
+                l10n.frequencyOfWork,
+                '3 times a day',
+                primaryTextColor,
+                secondaryTextColor,
+              ),
 
               SizedBox(height: 30.h),
 
@@ -596,7 +629,7 @@ class _VendorDetailsScreenState extends State<VendorDetailsScreen> {
                   onPressed: () => Navigator.pop(context),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF009B56),
-                    foregroundColor: Colors.white,
+                    foregroundColor: CitizenColors.light,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(8.r),
                     ),
@@ -604,10 +637,11 @@ class _VendorDetailsScreenState extends State<VendorDetailsScreen> {
                   ),
                   child: Text(
                     l10n.close,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontFamily: 'Noto Sans',
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
+                      color: CitizenColors.light,
                     ),
                   ),
                 ),
@@ -619,7 +653,76 @@ class _VendorDetailsScreenState extends State<VendorDetailsScreen> {
     );
   }
 
-  Widget _buildDetailRow(String label, String value) {
+  void _showNoDataBottomSheet(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final surfaceColor = CitizenColors.surface(context);
+    final primaryTextColor = CitizenColors.textPrimary(context);
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        decoration: BoxDecoration(
+          color: surfaceColor,
+          borderRadius: const BorderRadius.only(
+            topLeft: Radius.circular(20),
+            topRight: Radius.circular(20),
+          ),
+        ),
+        padding: EdgeInsets.all(20.r),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Image.asset(
+              'assets/images/nodata.png',
+              width: 140.w,
+              height: 140.w,
+            ),
+            SizedBox(height: 20.h),
+            Text(
+              l10n.contractorDetailsNotAvailable,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 16.sp,
+                fontWeight: FontWeight.w500,
+                color: primaryTextColor,
+                height: 1.4,
+              ),
+            ),
+            SizedBox(height: 24.h),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: () => Navigator.pop(context),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF009B56),
+                  foregroundColor: CitizenColors.light,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8.r),
+                  ),
+                  elevation: 0,
+                ),
+                child: Text(
+                  l10n.close,
+                  style: const TextStyle(
+                    fontFamily: 'Noto Sans',
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDetailRow(
+    String label,
+    String value,
+    Color primaryTextColor,
+    Color secondaryTextColor,
+  ) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -627,11 +730,11 @@ class _VendorDetailsScreenState extends State<VendorDetailsScreen> {
           flex: 2,
           child: Text(
             '$label:',
-            style: const TextStyle(
+            style: TextStyle(
               fontFamily: 'Noto Sans',
               fontSize: 14,
               fontWeight: FontWeight.w500,
-              color: Colors.grey,
+              color: secondaryTextColor,
             ),
           ),
         ),
@@ -640,11 +743,11 @@ class _VendorDetailsScreenState extends State<VendorDetailsScreen> {
           flex: 3,
           child: Text(
             value,
-            style: const TextStyle(
+            style: TextStyle(
               fontFamily: 'Noto Sans',
               fontSize: 14,
               fontWeight: FontWeight.w600,
-              color: Color(0xFF111827),
+              color: primaryTextColor,
             ),
           ),
         ),

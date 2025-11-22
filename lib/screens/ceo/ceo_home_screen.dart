@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:provider/provider.dart';
 // import 'package:sbmg/screens/citizen/scheme_details_screen.dart';
 import 'package:sbmg/services/bookmark_service.dart';
 import 'package:sbmg/widgets/common/banner_carousel.dart';
 import 'package:intl/intl.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:csv/csv.dart';
 import 'dart:io';
 import 'package:path_provider/path_provider.dart';
@@ -14,12 +16,9 @@ import '../../providers/ceo_provider.dart';
 import '../../models/scheme_model.dart';
 import '../../models/event_model.dart';
 import '../../models/contractor_model.dart';
-import '../../models/geography_model.dart';
 import '../../services/api_services.dart';
-import '../../services/auth_services.dart';
-import '../../widgets/common/bottom_sheet_picker.dart';
-// import 'ceo_gp_ranking_screen.dart';
-// import 'ceo_gp_attendance_screen.dart';
+import 'ceo_select_location_screen.dart';
+import 'ceo_gp_attendance_screen.dart';
 
 class CeoHomeScreen extends StatefulWidget {
   const CeoHomeScreen({super.key});
@@ -154,7 +153,15 @@ class _CeoHomeScreenState extends State<CeoHomeScreen> {
                     child: SingleChildScrollView(
                       child: Column(
                         children: [
-                          const BannerCarousel(),
+                          const BannerCarousel(
+                            imagePaths: [
+                              'assets/images/dash1.jpeg',
+                              'assets/images/dash2.jpeg',
+                              'assets/images/dash3.jpeg',
+                              'assets/images/dash4.jpeg',
+                              'assets/images/dash5.jpeg',
+                            ],
+                          ),
                           Image.asset('assets/images/Group.png'),
                           // Overview Section
                           _buildOverviewSection(provider),
@@ -173,6 +180,10 @@ class _CeoHomeScreenState extends State<CeoHomeScreen> {
 
                           // Events Section
                           _buildEventsSection(provider),
+
+                          SizedBox(height: 24.h),
+
+                          _buildSocialMediaSection(),
 
                           SizedBox(height: 24.h),
 
@@ -208,10 +219,10 @@ class _CeoHomeScreenState extends State<CeoHomeScreen> {
               }
             },
             items: const [
-              BottomNavItem(icon: Icons.home, label: 'Home'),
-              BottomNavItem(icon: Icons.report_problem, label: 'Complaint'),
-              BottomNavItem(icon: Icons.checklist, label: 'Inspection'),
-              BottomNavItem(icon: Icons.settings, label: 'Settings'),
+              BottomNavItem(iconPath: 'assets/icons/bottombar/home.png', label: 'Home'),
+              BottomNavItem(iconPath: 'assets/icons/bottombar/complaints.png', label: 'Complaint'),
+              BottomNavItem(iconPath: 'assets/icons/bottombar/inspection.png', label: 'Inspection'),
+              BottomNavItem(iconPath: 'assets/icons/bottombar/settings.png', label: 'Settings'),
             ],
           ),
         );
@@ -485,6 +496,7 @@ class _CeoHomeScreenState extends State<CeoHomeScreen> {
                 child: _buildInspectionActionCard(
                   'Check Vender / Supervisor attendance',
                   Icons.calendar_today,
+                  'attendance',
                 ),
               ),
               SizedBox(width: 12.w),
@@ -492,6 +504,7 @@ class _CeoHomeScreenState extends State<CeoHomeScreen> {
                 child: _buildInspectionActionCard(
                   'Contractor details',
                   Icons.business,
+                  'contractor',
                 ),
               ),
             ],
@@ -510,10 +523,40 @@ class _CeoHomeScreenState extends State<CeoHomeScreen> {
 
   Widget _buildRankingsCard() {
     return GestureDetector(
-      onTap: () {},
+      onTap: () async {
+        final result = await Navigator.push<Map<String, dynamic>>(
+          context,
+          MaterialPageRoute(
+            builder: (_) =>
+                const CeoSelectLocationScreen(actionType: 'ranking'),
+          ),
+        );
+
+        if (result == null) {
+          return;
+        }
+
+        final blockId = result['blockId'] as int?;
+        final blockName = result['blockName'] as String?;
+        final districtId = result['districtId'] as int?;
+
+        if (blockId == null || districtId == null) {
+          return;
+        }
+
+        Navigator.pushNamed(
+          context,
+          '/ceo-gp-ranking',
+          arguments: {
+            'districtId': districtId,
+            'blockId': blockId,
+            'blockName': blockName,
+          },
+        );
+      },
       child: Container(
         width: double.infinity,
-        padding: EdgeInsets.all(16.r),
+        padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
         decoration: BoxDecoration(
           color: const Color(0xFF18a558), // Medium green background
           borderRadius: BorderRadius.circular(12.r),
@@ -529,8 +572,8 @@ class _CeoHomeScreenState extends State<CeoHomeScreen> {
           children: [
             // Icon with light green background
             Container(
-              width: 50.w,
-              height: 50.h,
+              width: 40.w,
+              height: 40.h,
               decoration: BoxDecoration(
                 color: const Color(0xFFe8f5e9), // Light green background
                 shape: BoxShape.circle,
@@ -539,7 +582,7 @@ class _CeoHomeScreenState extends State<CeoHomeScreen> {
               child: Icon(
                 Icons.emoji_events, // Ribbon/medal icon
                 color: const Color(0xFF18a558),
-                size: 24.sp,
+                size: 20.sp,
               ),
             ),
             SizedBox(width: 16.w),
@@ -549,14 +592,14 @@ class _CeoHomeScreenState extends State<CeoHomeScreen> {
                 'View Rankings of GP',
                 style: TextStyle(
                   fontFamily: 'Noto Sans',
-                  fontSize: 16.sp,
+                  fontSize: 14.sp,
                   fontWeight: FontWeight.w600,
                   color: Colors.white,
                 ),
               ),
             ),
             // Right arrow
-            Icon(Icons.chevron_right, color: Colors.white, size: 24.sp),
+            Icon(Icons.chevron_right, color: Colors.white, size: 20.sp),
           ],
         ),
       ),
@@ -565,15 +608,15 @@ class _CeoHomeScreenState extends State<CeoHomeScreen> {
 
   // Removed unused _buildInspectionSummaryCard method
 
-  Widget _buildInspectionActionCard(String text, IconData icon) {
+  Widget _buildInspectionActionCard(
+    String text,
+    IconData icon,
+    String actionType,
+  ) {
     return GestureDetector(
       onTap: () {
         print('🎯 Tapped on: $text');
-        if (text == 'Contractor details') {
-          _showGPSelctionBottomSheet('contractor');
-        } else if (text == 'Check Vender / Supervisor attendance') {
-          _showGPSelctionBottomSheet('attendance');
-        }
+        _openLocationSelection(actionType);
       },
       child: Container(
         height: 150.h, // Fixed height for both cards
@@ -634,6 +677,39 @@ class _CeoHomeScreenState extends State<CeoHomeScreen> {
         ),
       ),
     );
+  }
+
+  Future<void> _openLocationSelection(String actionType) async {
+    final result = await Navigator.push<Map<String, dynamic>>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => CeoSelectLocationScreen(actionType: actionType),
+      ),
+    );
+
+    if (result == null) {
+      return;
+    }
+
+    final gpId = result['gpId'] as int?;
+    final gpName = (result['gpName'] as String?) ?? '';
+    final blockId = result['blockId'] as int?;
+    final districtId = result['districtId'] as int?;
+
+    if (gpId == null || gpName.isEmpty) {
+      return;
+    }
+
+    if (actionType == 'contractor') {
+      _loadAndShowContractorDetails(gpId, gpName);
+    } else if (actionType == 'attendance') {
+      _navigateToAttendance(
+        gpId,
+        gpName,
+        blockId: blockId,
+        districtId: districtId,
+      );
+    }
   }
 
   Widget _buildOverviewCard(
@@ -1083,95 +1159,128 @@ class _CeoHomeScreenState extends State<CeoHomeScreen> {
     }
   }
 
-  void _showGPSelctionBottomSheet(String actionType) async {
-    // Show bottom sheet to select block first
-    await _showBlockSelectionBottomSheet(actionType);
+  void _navigateToAttendance(
+    int gpId,
+    String gpName, {
+    int? blockId,
+    int? districtId,
+  }) {
+    final navContext = _parentContext ?? context;
+    Navigator.push(
+      navContext,
+      MaterialPageRoute(
+        builder: (_) => CeoGpAttendanceScreen(
+          gpId: gpId,
+          gpName: gpName,
+          blockId: blockId,
+          districtId: districtId,
+        ),
+      ),
+    );
   }
 
-  Future<void> _showBlockSelectionBottomSheet(String actionType) async {
-    final AuthService authService = AuthService();
-    final districtId = await authService.getDistrictId();
+  Widget _buildSocialMediaSection() {
+    return Padding(
+      padding: EdgeInsets.symmetric(horizontal: 16.w),
+      child: Container(
+        padding: EdgeInsets.symmetric(vertical: 16.h, horizontal: 20.w),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12.r),
+          border: Border.all(color: Colors.grey.shade200),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.03),
+              blurRadius: 6,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              'Connect with Swachh Rajasthan',
+              style: TextStyle(
+                fontSize: 16.sp,
+                fontWeight: FontWeight.w600,
+                color: const Color(0xFF111827),
+              ),
+            ),
+            SizedBox(height: 12.h),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                _buildSocialIcon(
+                  assetPath: 'assets/images/InstagramLogo.png',
+                  platform: 'Instagram',
+                  url: 'https://instagram.com/SwachhRajasthan_',
+                ),
+                SizedBox(width: 20.w),
+                _buildSocialIcon(
+                  assetPath: 'assets/images/XLogo.png',
+                  platform: 'X',
+                  url: 'https://x.com/SwachRajasthan',
+                ),
+                SizedBox(width: 20.w),
+                _buildSocialIcon(
+                  assetPath: 'assets/images/FacebookLogo.png',
+                  platform: 'Facebook',
+                  url: 'https://www.facebook.com/share/16UZeZDuvF/',
+                ),
+                SizedBox(width: 20.w),
+                _buildSocialIcon(
+                  assetPath: 'assets/images/YoutubeLogo.png',
+                  platform: 'YouTube',
+                  url: 'https://youtube.com/@swachhrajasthan',
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 
-    if (districtId == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('District ID not found'),
+  Widget _buildSocialIcon({
+    required String assetPath,
+    required String platform,
+    required String url,
+  }) {
+    return GestureDetector(
+      onTap: () => _launchSocialLink(url, platform),
+      child: SizedBox(width: 40, height: 40, child: Image.asset(assetPath)),
+    );
+  }
+
+  Future<void> _launchSocialLink(String url, String platform) async {
+    final uri = Uri.parse(url);
+
+    try {
+      final launched = await launchUrl(
+        uri,
+        mode: LaunchMode.externalApplication,
+      );
+      if (!launched && mounted) {
+        _showLinkError(platform);
+      }
+    } catch (_) {
+      if (mounted) {
+        _showLinkError(platform);
+      }
+    }
+  }
+
+  void _showLinkError(String platform) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: Text('Could not open $platform link.'),
           backgroundColor: Colors.red,
         ),
       );
-      return;
-    }
-
-    final blocks = await _apiService.getBlocks(districtId: districtId);
-
-    BottomSheetPicker.show<Block>(
-      context: context,
-      title: 'Select Block',
-      items: blocks,
-      itemBuilder: (block) => block.name,
-      selectedItem: null,
-      onSelected: (block) {
-        _showGPSelectionBottomSheet(actionType, districtId, block.id);
-      },
-      isLoading: false,
-      showSearch: true,
-      searchHint: 'Search Block...',
-    );
-  }
-
-  Future<void> _showGPSelectionBottomSheet(
-    String actionType,
-    int districtId,
-    int blockId,
-  ) async {
-    final gps = await _apiService.getGramPanchayats(
-      districtId: districtId,
-      blockId: blockId,
-    );
-
-    BottomSheetPicker.show<GramPanchayat>(
-      context: context,
-      title: 'Select Gram Panchayat',
-      items: gps,
-      itemBuilder: (gp) => gp.name,
-      selectedItem: null,
-      onSelected: (gp) {
-        if (actionType == 'contractor') {
-          _loadAndShowContractorDetails(gp.id, gp.name);
-        } else if (actionType == 'attendance') {
-          _navigateToAttendance(gp.id, gp.name);
-        }
-      },
-      isLoading: false,
-      showSearch: true,
-      searchHint: 'Search Gram Panchayat...',
-    );
-  }
-
-  void _navigateToAttendance(int gpId, String gpName) {
-    print('🚀 _navigateToAttendance called with gpId: $gpId, gpName: $gpName');
-    try {
-      final navContext = _parentContext ?? context;
-      print('📱 Using context: $_parentContext');
-      Navigator.push(
-        navContext,
-        MaterialPageRoute(
-          builder: (context) {
-            print('📱 Building CeoGpAttendanceScreen with gpId: $gpId');
-            // TODO: Implement CeoGpAttendanceScreen
-            return Scaffold(
-              body: Center(
-                child: Text('GP Attendance for $gpName (ID: $gpId)'),
-              ),
-            );
-          },
-        ),
-      );
-      print('✅ Navigation completed');
-    } catch (e, stackTrace) {
-      print('❌ Error navigating to attendance: $e');
-      print('📚 Stack trace: $stackTrace');
-    }
   }
 
   Future<void> _loadAndShowContractorDetails(int gpId, String gpName) async {
@@ -1231,171 +1340,158 @@ class _GPContractorDetailsBottomSheet extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      decoration: BoxDecoration(
-        color: const Color(0xFFF3F4F6),
+      decoration: const BoxDecoration(
+        color: Colors.white,
         borderRadius: BorderRadius.only(
-          topLeft: Radius.circular(20.r),
-          topRight: Radius.circular(20.r),
+          topLeft: Radius.circular(20),
+          topRight: Radius.circular(20),
         ),
       ),
       padding: EdgeInsets.all(20.r),
-      child: SingleChildScrollView(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // Modal Handle
-            Container(
-              width: 40.w,
-              height: 4.h,
-              margin: EdgeInsets.only(bottom: 20.h),
-              decoration: BoxDecoration(
-                color: const Color(0xFFD1D5DB),
-                borderRadius: BorderRadius.circular(2.r),
-              ),
-            ),
-            // Header
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  'Contractor Details',
-                  style: TextStyle(
-                    fontFamily: 'Noto Sans',
-                    fontSize: 20.sp,
-                    fontWeight: FontWeight.bold,
-                    color: const Color(0xFF111827),
+      child: SafeArea(
+        top: false,
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Contractor details',
+                    style: TextStyle(
+                      fontFamily: 'Noto Sans',
+                      fontSize: 20.sp,
+                      fontWeight: FontWeight.bold,
+                      color: const Color(0xFF111827),
+                    ),
                   ),
-                ),
-                IconButton(
-                  onPressed: () => Navigator.pop(context),
-                  icon: Icon(Icons.close, color: const Color(0xFF111827)),
-                ),
-              ],
-            ),
-
-            SizedBox(height: 20.h),
-
-            // View Mode - Display details
-            Container(
-              width: double.infinity,
-              padding: EdgeInsets.all(20.r),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(12.r),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.05),
-                    blurRadius: 10,
-                    offset: const Offset(0, 2),
+                  IconButton(
+                    onPressed: () => Navigator.pop(context),
+                    icon: const Icon(Icons.close, color: Color(0xFF111827)),
                   ),
                 ],
               ),
-              child: contractorDetails != null
-                  ? Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        if (gpName != null) ...[
-                          _buildDetailRow('Gram Panchayat', gpName!),
-                          SizedBox(height: 20.h),
-                        ],
-                        _buildDetailRow(
-                          'Agency Name',
-                          contractorDetails!.agency.name,
-                        ),
-                        SizedBox(height: 20.h),
-                        _buildDetailRow(
-                          'Contact Person',
-                          contractorDetails!.personName,
-                        ),
-                        SizedBox(height: 20.h),
-                        _buildDetailRow(
-                          'Contact Phone',
-                          contractorDetails!.personPhone,
-                        ),
-                        SizedBox(height: 20.h),
-                        _buildDetailRow(
-                          'Agency Phone',
-                          contractorDetails!.agency.phone,
-                        ),
-                        SizedBox(height: 20.h),
-                        _buildDetailRow(
-                          'Agency Email',
-                          contractorDetails!.agency.email,
-                        ),
-                        SizedBox(height: 20.h),
-                        _buildDetailRow(
-                          'Contract Start Date',
-                          contractorDetails!.contractStartDate,
-                        ),
-                        SizedBox(height: 20.h),
-                        _buildDetailRow(
-                          'Contract End Date',
-                          contractorDetails!.contractEndDate ?? 'N/A',
-                        ),
-                      ],
-                    )
-                  : Text(
-                      'No contractor details available',
-                      style: TextStyle(fontSize: 16.sp, color: Colors.grey),
-                    ),
-            ),
 
-            SizedBox(height: 30.h),
+              SizedBox(height: 24.h),
 
-            // Close Button
-            SizedBox(
-              width: double.infinity,
-              height: 50.h,
-              child: ElevatedButton(
-                onPressed: () => Navigator.pop(context),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF009B56),
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8.r),
-                  ),
-                  elevation: 0,
+              if (contractorDetails != null) ...[
+                if (gpName != null && gpName!.isNotEmpty) ...[
+                  _buildDetailRow('Gram Panchayat', gpName!),
+                  SizedBox(height: 16.h),
+                ],
+                _buildDetailRow('Agency name', contractorDetails!.agency.name),
+                SizedBox(height: 16.h),
+                _buildDetailRow(
+                  'Contact person',
+                  contractorDetails!.personName,
                 ),
-                child: Text(
-                  'Close',
-                  style: TextStyle(
-                    fontFamily: 'Noto Sans',
-                    fontSize: 16.sp,
-                    fontWeight: FontWeight.w600,
+                SizedBox(height: 16.h),
+                _buildDetailRow(
+                  'Contact phone',
+                  contractorDetails!.personPhone,
+                ),
+                SizedBox(height: 16.h),
+                _buildDetailRow(
+                  'Agency phone',
+                  contractorDetails!.agency.phone,
+                ),
+                SizedBox(height: 16.h),
+                _buildDetailRow(
+                  'Agency email',
+                  contractorDetails!.agency.email,
+                ),
+                SizedBox(height: 16.h),
+                _buildDetailRow(
+                  'Contract start date',
+                  _formatDate(contractorDetails!.contractStartDate),
+                ),
+                SizedBox(height: 16.h),
+                _buildDetailRow(
+                  'Contract end date',
+                  contractorDetails!.contractEndDate != null
+                      ? _formatDate(contractorDetails!.contractEndDate!)
+                      : 'N/A',
+                ),
+              ] else ...[
+                Text(
+                  'No contractor details available',
+                  style: TextStyle(fontSize: 14.sp, color: Colors.grey),
+                ),
+              ],
+
+              SizedBox(height: 30.h),
+
+              SizedBox(
+                width: double.infinity,
+                height: 50.h,
+                child: ElevatedButton(
+                  onPressed: () => Navigator.pop(context),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF009B56),
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8.r),
+                    ),
+                    elevation: 0,
+                  ),
+                  child: Text(
+                    'Close',
+                    style: TextStyle(
+                      fontFamily: 'Noto Sans',
+                      fontSize: 16.sp,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
   }
 
   Widget _buildDetailRow(String label, String value) {
-    return Column(
+    return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          label,
-          style: TextStyle(
-            fontFamily: 'Noto Sans',
-            fontSize: 14.sp,
-            fontWeight: FontWeight.w400,
-            color: const Color(0xFF6B7280),
+        Expanded(
+          flex: 2,
+          child: Text(
+            '$label:',
+            style: TextStyle(
+              fontFamily: 'Noto Sans',
+              fontSize: 14.sp,
+              fontWeight: FontWeight.w500,
+              color: const Color(0xFF6B7280),
+            ),
           ),
         ),
-        SizedBox(height: 4.h),
-        Text(
-          value,
-          style: TextStyle(
-            fontFamily: 'Noto Sans',
-            fontSize: 16.sp,
-            fontWeight: FontWeight.w600,
-            color: const Color(0xFF111827),
+        SizedBox(width: 12.w),
+        Expanded(
+          flex: 3,
+          child: Text(
+            value,
+            style: TextStyle(
+              fontFamily: 'Noto Sans',
+              fontSize: 14.sp,
+              fontWeight: FontWeight.w600,
+              color: const Color(0xFF111827),
+            ),
           ),
         ),
       ],
     );
+  }
+
+  String _formatDate(String dateString) {
+    try {
+      final date = DateTime.parse(dateString);
+      return DateFormat('dd MMMM yyyy').format(date);
+    } catch (_) {
+      return dateString;
+    }
   }
 }

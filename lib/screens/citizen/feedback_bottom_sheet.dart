@@ -3,6 +3,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import '../../theme/citizen_colors.dart';
 
 // TODO: Replace with your actual Gemini API key
 const String geminiApiKey = 'YOUR_GEMINI_API_KEY_HERE';
@@ -163,7 +164,7 @@ class _QuizPageState extends State<QuizPage> {
                                 backgroundColor: selectedAnswer == opt
                                     ? (opt == correctAnswer ? Colors.green : Colors.red)
                                     : Colors.deepPurple,
-                                foregroundColor: Colors.white,
+                      foregroundColor: CitizenColors.light,
                                 padding: EdgeInsets.symmetric(vertical: 16.h),
                               ),
                               child: Text(opt, style: TextStyle(fontSize: 18.sp)),
@@ -188,7 +189,7 @@ class _QuizPageState extends State<QuizPage> {
                       label: const Text('Play Again'),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.deepPurple,
-                        foregroundColor: Colors.white,
+                  foregroundColor: CitizenColors.light,
                         padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
                       ),
                     ),

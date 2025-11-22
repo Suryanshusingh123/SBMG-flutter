@@ -8,6 +8,7 @@ import '../../services/api_services.dart';
 import '../../models/complaint_type_model.dart';
 import '../../widgets/common/bottom_sheet_picker.dart';
 import '../../l10n/app_localizations.dart';
+import '../../theme/citizen_colors.dart';
 import 'complaint_location_screen.dart';
 
 class RaiseComplaintScreen extends StatefulWidget {
@@ -31,7 +32,7 @@ class ImageWithLocation {
 
 class _RaiseComplaintScreenState extends State<RaiseComplaintScreen> {
   // Form state
-  List<ImageWithLocation> _uploadedImages = [];
+  final List<ImageWithLocation> _uploadedImages = [];
   ComplaintType? _selectedComplaintType;
   final TextEditingController _descriptionController = TextEditingController();
   final int maxDescriptionLength = 100;
@@ -133,26 +134,29 @@ class _RaiseComplaintScreenState extends State<RaiseComplaintScreen> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
+    final surfaceColor = CitizenColors.surface(context);
+    final primaryTextColor = CitizenColors.textPrimary(context);
+    final secondaryTextColor = CitizenColors.textSecondary(context);
     return WillPopScope(
       onWillPop: () async {
         Navigator.pushReplacementNamed(context, '/citizen-dashboard');
         return false;
       },
       child: Scaffold(
-        backgroundColor: Colors.white,
+        backgroundColor: CitizenColors.background(context),
         appBar: AppBar(
-          backgroundColor: Colors.white,
+          backgroundColor: CitizenColors.surface(context),
           elevation: 0,
           leading: IconButton(
-            icon: const Icon(Icons.arrow_back, color: Colors.black),
+            icon: Icon(Icons.arrow_back, color: primaryTextColor),
             onPressed: () {
               Navigator.pushReplacementNamed(context, '/citizen-dashboard');
             },
           ),
           title: Text(
             l10n.raiseComplaint,
-            style: const TextStyle(
-              color: Colors.black,
+            style: TextStyle(
+              color: primaryTextColor,
               fontSize: 18,
               fontWeight: FontWeight.w600,
             ),
@@ -170,10 +174,10 @@ class _RaiseComplaintScreenState extends State<RaiseComplaintScreen> {
                     // Upload Image Section
                     Text(
                       l10n.uploadImage,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
-                        color: Color(0xFF111827),
+                        color: primaryTextColor,
                       ),
                     ),
                     SizedBox(height: 12.h),
@@ -218,9 +222,9 @@ class _RaiseComplaintScreenState extends State<RaiseComplaintScreen> {
                                         color: Colors.red,
                                         shape: BoxShape.circle,
                                       ),
-                                      child: const Icon(
+                                      child: Icon(
                                         Icons.close,
-                                        color: Colors.white,
+                                        color: CitizenColors.light,
                                         size: 16,
                                       ),
                                     ),
@@ -247,7 +251,7 @@ class _RaiseComplaintScreenState extends State<RaiseComplaintScreen> {
                                   width: 2,
                                 ),
                                 borderRadius: BorderRadius.circular(8.r),
-                                color: Colors.white,
+                                color: surfaceColor,
                               ),
                               child: Center(
                                 child: Container(
@@ -257,9 +261,9 @@ class _RaiseComplaintScreenState extends State<RaiseComplaintScreen> {
                                     color: AppColors.primaryColor,
                                     shape: BoxShape.circle,
                                   ),
-                                  child: const Icon(
+                                  child: Icon(
                                     Icons.add,
-                                    color: Colors.white,
+                                    color: CitizenColors.light,
                                     size: 20,
                                   ),
                                 ),
@@ -273,10 +277,10 @@ class _RaiseComplaintScreenState extends State<RaiseComplaintScreen> {
                     // Select Type of Complaint
                     Text(
                       l10n.selectTypeOfComplaint,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
-                        color: Color(0xFF111827),
+                        color: primaryTextColor,
                       ),
                     ),
                     SizedBox(height: 12.h),
@@ -292,7 +296,7 @@ class _RaiseComplaintScreenState extends State<RaiseComplaintScreen> {
                         decoration: BoxDecoration(
                           border: Border.all(color: Colors.grey.shade300),
                           borderRadius: BorderRadius.circular(8.r),
-                          color: Colors.white,
+                          color: surfaceColor,
                         ),
                         child: _isLoadingTypes
                             ? Center(
@@ -319,8 +323,8 @@ class _RaiseComplaintScreenState extends State<RaiseComplaintScreen> {
                                           l10n.selectOption,
                                       style: TextStyle(
                                         color: _selectedComplaintType != null
-                                            ? Colors.black
-                                            : Colors.grey,
+                                            ? primaryTextColor
+                                            : secondaryTextColor,
                                         fontSize: 14,
                                       ),
                                     ),
@@ -338,10 +342,10 @@ class _RaiseComplaintScreenState extends State<RaiseComplaintScreen> {
                     // Describe Complaint
                     Text(
                       l10n.describeComplaint,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
-                        color: Color(0xFF111827),
+                        color: primaryTextColor,
                       ),
                     ),
                     SizedBox(height: 12.h),
@@ -374,7 +378,7 @@ class _RaiseComplaintScreenState extends State<RaiseComplaintScreen> {
                     // Character Counter
                     Text(
                       '${_descriptionController.text.length}/$maxDescriptionLength',
-                      style: const TextStyle(fontSize: 12, color: Colors.grey),
+                      style: TextStyle(fontSize: 12, color: secondaryTextColor),
                     ),
                     SizedBox(height: 40.h),
                   ],
@@ -385,7 +389,7 @@ class _RaiseComplaintScreenState extends State<RaiseComplaintScreen> {
             Container(
               padding: EdgeInsets.all(16.w),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: surfaceColor,
                 border: Border(
                   top: BorderSide(color: Colors.grey.shade200, width: 1),
                 ),
@@ -409,7 +413,7 @@ class _RaiseComplaintScreenState extends State<RaiseComplaintScreen> {
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.primaryColor,
-                    foregroundColor: Colors.white,
+                    foregroundColor: CitizenColors.light,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(8.r),
                     ),

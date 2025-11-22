@@ -3,7 +3,6 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:provider/provider.dart';
 import '../../config/connstants.dart';
 import '../../providers/locale_provider.dart';
-import '../../providers/theme_provider.dart';
 import '../../services/auth_services.dart';
 import '../../l10n/app_localizations.dart';
 import 'reset_password_flow_screen.dart';
@@ -75,16 +74,6 @@ class _SupervisorSettingsScreenState extends State<SupervisorSettingsScreen> {
                         setState(() {
                           _notificationsEnabled = value;
                         });
-                      },
-                    ),
-                    _buildDivider(),
-
-                    // Theme
-                    _buildSettingItem(
-                      icon: Icons.palette_outlined,
-                      title: AppLocalizations.of(context)!.theme,
-                      onTap: () {
-                        _showThemeBottomSheet(context);
                       },
                     ),
                     _buildDivider(),
@@ -240,7 +229,7 @@ class _SupervisorSettingsScreenState extends State<SupervisorSettingsScreen> {
           Switch(
             value: value,
             onChanged: onChanged,
-            activeColor: Colors.white,
+            activeThumbColor: Colors.white,
             activeTrackColor: AppColors.primaryColor,
             inactiveThumbColor: Colors.white,
             inactiveTrackColor: const Color(0xFFE5E7EB),
@@ -312,19 +301,19 @@ class _SupervisorSettingsScreenState extends State<SupervisorSettingsScreen> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
-          _buildNavItem(Icons.home, AppLocalizations.of(context)!.home, 0),
+          _buildNavItem('assets/icons/bottombar/home.png', AppLocalizations.of(context)!.home, 0),
           _buildNavItem(
-            Icons.list_alt,
+            'assets/icons/bottombar/complaints.png',
             AppLocalizations.of(context)!.complaints,
             1,
           ),
           _buildNavItem(
-            Icons.grid_view,
+            'assets/icons/bottombar/attendance.png',
             AppLocalizations.of(context)!.attendance,
             2,
           ),
           _buildNavItem(
-            Icons.settings,
+            'assets/icons/bottombar/settings.png',
             AppLocalizations.of(context)!.settings,
             3,
             isActive: true,
@@ -335,7 +324,7 @@ class _SupervisorSettingsScreenState extends State<SupervisorSettingsScreen> {
   }
 
   Widget _buildNavItem(
-    IconData icon,
+    String iconPath,
     String label,
     int index, {
     bool isActive = false,
@@ -361,12 +350,14 @@ class _SupervisorSettingsScreenState extends State<SupervisorSettingsScreen> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(
-                icon,
-                size: 24.sp,
+              Image.asset(
+                iconPath,
+                width: 24,
+                height: 24,
                 color: isActive
                     ? const Color(0xFF4CAF50)
                     : const Color(0xFF9CA3AF),
+                colorBlendMode: BlendMode.srcIn,
               ),
               SizedBox(height: 4.h),
               Text(
@@ -398,145 +389,6 @@ class _SupervisorSettingsScreenState extends State<SupervisorSettingsScreen> {
     );
   }
 
-  void _showThemeBottomSheet(BuildContext context) {
-    showModalBottomSheet(
-      context: context,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.only(
-          topLeft: Radius.circular(20.r),
-          topRight: Radius.circular(20.r),
-        ),
-      ),
-      builder: (context) => Container(
-        color: Colors.white,
-        padding: EdgeInsets.all(20.w),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // Header
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  AppLocalizations.of(context)!.theme,
-                  style: TextStyle(
-                    fontSize: 20.sp,
-                    fontWeight: FontWeight.w600,
-                    color: const Color(0xFF111827),
-                  ),
-                ),
-                IconButton(
-                  icon: Icon(Icons.close, size: 24.sp),
-                  onPressed: () => Navigator.pop(context),
-                ),
-              ],
-            ),
-            SizedBox(height: 20.h),
-
-            // Dark Mode option
-            Consumer<ThemeProvider>(
-              builder: (context, themeProvider, child) {
-                return InkWell(
-                  onTap: () {
-                    themeProvider.setThemeMode(ThemeMode.dark);
-                    Navigator.pop(context);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(AppLocalizations.of(context)!.darkMode),
-                        backgroundColor: const Color(0xFF009B56),
-                      ),
-                    );
-                  },
-                  child: Container(
-                    padding: EdgeInsets.symmetric(vertical: 16.h),
-                    child: Row(
-                      children: [
-                        Icon(
-                          Icons.dark_mode_outlined,
-                          size: 24.sp,
-                          color: themeProvider.isDarkMode
-                              ? AppColors.primaryColor
-                              : const Color(0xFF111827),
-                        ),
-                        SizedBox(width: 16.w),
-                        Expanded(
-                          child: Text(
-                            AppLocalizations.of(context)!.darkMode,
-                            style: TextStyle(
-                              fontSize: 16.sp,
-                              color: const Color(0xFF111827),
-                            ),
-                          ),
-                        ),
-                        if (themeProvider.isDarkMode)
-                          Icon(
-                            Icons.check,
-                            size: 20.sp,
-                            color: AppColors.primaryColor,
-                          ),
-                      ],
-                    ),
-                  ),
-                );
-              },
-            ),
-
-            SizedBox(height: 8.h),
-
-            // Light Mode option
-            Consumer<ThemeProvider>(
-              builder: (context, themeProvider, child) {
-                return InkWell(
-                  onTap: () {
-                    themeProvider.setThemeMode(ThemeMode.light);
-                    Navigator.pop(context);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(AppLocalizations.of(context)!.lightMode),
-                        backgroundColor: const Color(0xFF009B56),
-                      ),
-                    );
-                  },
-                  child: Container(
-                    padding: EdgeInsets.symmetric(vertical: 16.h),
-                    child: Row(
-                      children: [
-                        Icon(
-                          Icons.light_mode_outlined,
-                          size: 24.sp,
-                          color: !themeProvider.isDarkMode
-                              ? AppColors.primaryColor
-                              : const Color(0xFF111827),
-                        ),
-                        SizedBox(width: 16.w),
-                        Expanded(
-                          child: Text(
-                            AppLocalizations.of(context)!.lightMode,
-                            style: TextStyle(
-                              fontSize: 16.sp,
-                              color: const Color(0xFF111827),
-                            ),
-                          ),
-                        ),
-                        if (!themeProvider.isDarkMode)
-                          Icon(
-                            Icons.check,
-                            size: 20.sp,
-                            color: AppColors.primaryColor,
-                          ),
-                      ],
-                    ),
-                  ),
-                );
-              },
-            ),
-
-            SizedBox(height: 20.h),
-          ],
-        ),
-      ),
-    );
-  }
 
   void _showFeedbackBottomSheet(BuildContext context) {
     int selectedRating = -1;

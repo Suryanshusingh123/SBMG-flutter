@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter/services.dart';
 import '../../l10n/app_localizations.dart';
+import '../../theme/citizen_colors.dart';
 
 class ResetPasswordFlowScreen extends StatefulWidget {
   const ResetPasswordFlowScreen({super.key});
@@ -79,13 +80,15 @@ class _ResetPasswordFlowScreenState extends State<ResetPasswordFlowScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final surfaceColor = CitizenColors.surface(context);
+    final primaryTextColor = CitizenColors.textPrimary(context);
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: CitizenColors.background(context),
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: surfaceColor,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Color(0xFF111827)),
+          icon: Icon(Icons.arrow_back, color: primaryTextColor),
           onPressed: () {
             if (_currentStep > 0) {
               _pageController.previousPage(
@@ -103,7 +106,7 @@ class _ResetPasswordFlowScreenState extends State<ResetPasswordFlowScreen> {
             fontFamily: 'Noto Sans',
             fontSize: 20.sp,
             fontWeight: FontWeight.w600,
-            color: const Color(0xFF111827),
+            color: primaryTextColor,
           ),
         ),
         centerTitle: true,
@@ -136,6 +139,9 @@ class _ResetPasswordFlowScreenState extends State<ResetPasswordFlowScreen> {
 
   Widget _buildPhoneStep() {
     final l10n = AppLocalizations.of(context)!;
+    final primaryTextColor = CitizenColors.textPrimary(context);
+    final secondaryTextColor = CitizenColors.textSecondary(context);
+
     return Padding(
       padding: EdgeInsets.all(20.r),
       child: Column(
@@ -155,7 +161,7 @@ class _ResetPasswordFlowScreenState extends State<ResetPasswordFlowScreen> {
               fontFamily: 'Noto Sans',
               fontSize: 24.sp,
               fontWeight: FontWeight.w600,
-              color: const Color(0xFF111827),
+              color: primaryTextColor,
             ),
           ),
 
@@ -168,7 +174,7 @@ class _ResetPasswordFlowScreenState extends State<ResetPasswordFlowScreen> {
               fontFamily: 'Noto Sans',
               fontSize: 16.sp,
               fontWeight: FontWeight.w400,
-              color: const Color(0xFF6B7280),
+              color: secondaryTextColor,
             ),
           ),
 
@@ -184,7 +190,7 @@ class _ResetPasswordFlowScreenState extends State<ResetPasswordFlowScreen> {
                   fontFamily: 'Noto Sans',
                   fontSize: 14.sp,
                   fontWeight: FontWeight.w500,
-                  color: const Color(0xFF111827),
+                  color: primaryTextColor,
                 ),
               ),
               SizedBox(height: 8.h),
@@ -229,13 +235,13 @@ class _ResetPasswordFlowScreenState extends State<ResetPasswordFlowScreen> {
                               fontFamily: 'Noto Sans',
                               fontSize: 16.sp,
                               fontWeight: FontWeight.w500,
-                              color: const Color(0xFF111827),
+                              color: primaryTextColor,
                             ),
                           ),
                           SizedBox(width: 4.w),
                           Icon(
                             Icons.keyboard_arrow_down,
-                            color: const Color(0xFF6B7280),
+                            color: secondaryTextColor,
                             size: 16.sp,
                           ),
                         ],
@@ -253,7 +259,7 @@ class _ResetPasswordFlowScreenState extends State<ResetPasswordFlowScreen> {
                             fontFamily: 'Noto Sans',
                             fontSize: 16.sp,
                             fontWeight: FontWeight.w400,
-                            color: const Color(0xFF9CA3AF),
+                            color: secondaryTextColor,
                           ),
                           border: InputBorder.none,
                           contentPadding: EdgeInsets.symmetric(
@@ -265,7 +271,7 @@ class _ResetPasswordFlowScreenState extends State<ResetPasswordFlowScreen> {
                           fontFamily: 'Noto Sans',
                           fontSize: 16.sp,
                           fontWeight: FontWeight.w500,
-                          color: const Color(0xFF111827),
+                          color: primaryTextColor,
                         ),
                         onChanged: (value) {
                           setState(() {
@@ -313,7 +319,7 @@ class _ResetPasswordFlowScreenState extends State<ResetPasswordFlowScreen> {
               onPressed: _sendOtp,
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF009B56),
-                foregroundColor: Colors.white,
+                foregroundColor: CitizenColors.light,
                 padding: EdgeInsets.symmetric(vertical: 16.h),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(8.r),
@@ -336,6 +342,8 @@ class _ResetPasswordFlowScreenState extends State<ResetPasswordFlowScreen> {
 
   Widget _buildOtpStep() {
     final l10n = AppLocalizations.of(context)!;
+    final primaryTextColor = CitizenColors.textPrimary(context);
+    final secondaryTextColor = CitizenColors.textSecondary(context);
     return Padding(
       padding: EdgeInsets.all(20.r),
       child: Column(
@@ -355,7 +363,7 @@ class _ResetPasswordFlowScreenState extends State<ResetPasswordFlowScreen> {
               fontFamily: 'Noto Sans',
               fontSize: 24.sp,
               fontWeight: FontWeight.w600,
-              color: const Color(0xFF111827),
+              color: primaryTextColor,
             ),
           ),
 
@@ -369,7 +377,7 @@ class _ResetPasswordFlowScreenState extends State<ResetPasswordFlowScreen> {
               fontFamily: 'Noto Sans',
               fontSize: 16.sp,
               fontWeight: FontWeight.w400,
-              color: const Color(0xFF6B7280),
+              color: secondaryTextColor,
             ),
           ),
 
@@ -396,7 +404,7 @@ class _ResetPasswordFlowScreenState extends State<ResetPasswordFlowScreen> {
                       fontFamily: 'Noto Sans',
                       fontSize: 18.sp,
                       fontWeight: FontWeight.w500,
-                      color: const Color(0xFF9CA3AF),
+                      color: secondaryTextColor,
                     ),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(8.r),
@@ -411,7 +419,7 @@ class _ResetPasswordFlowScreenState extends State<ResetPasswordFlowScreen> {
                     fontFamily: 'Noto Sans',
                     fontSize: 18.sp,
                     fontWeight: FontWeight.w500,
-                    color: const Color(0xFF111827),
+                    color: primaryTextColor,
                   ),
                   onChanged: (value) {
                     if (value.isNotEmpty && index < 5) {
@@ -437,7 +445,7 @@ class _ResetPasswordFlowScreenState extends State<ResetPasswordFlowScreen> {
                   fontFamily: 'Noto Sans',
                   fontSize: 14.sp,
                   fontWeight: FontWeight.w400,
-                  color: const Color(0xFF6B7280),
+                  color: secondaryTextColor,
                 ),
               ),
               GestureDetector(
@@ -450,7 +458,7 @@ class _ResetPasswordFlowScreenState extends State<ResetPasswordFlowScreen> {
                     fontWeight: FontWeight.w500,
                     color: _canResend
                         ? const Color(0xFF009B56)
-                        : const Color(0xFF9CA3AF),
+                        : secondaryTextColor,
                   ),
                 ),
               ),
@@ -468,7 +476,7 @@ class _ResetPasswordFlowScreenState extends State<ResetPasswordFlowScreen> {
               fontFamily: 'Noto Sans',
               fontSize: 14.sp,
               fontWeight: FontWeight.w500,
-              color: const Color(0xFF6B7280),
+              color: secondaryTextColor,
             ),
           ),
 
@@ -481,7 +489,7 @@ class _ResetPasswordFlowScreenState extends State<ResetPasswordFlowScreen> {
               onPressed: _verifyOtp,
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF009B56),
-                foregroundColor: Colors.white,
+                foregroundColor: CitizenColors.light,
                 padding: EdgeInsets.symmetric(vertical: 16.h),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(8.r),
@@ -504,6 +512,8 @@ class _ResetPasswordFlowScreenState extends State<ResetPasswordFlowScreen> {
 
   Widget _buildPasswordStep() {
     final l10n = AppLocalizations.of(context)!;
+    final primaryTextColor = CitizenColors.textPrimary(context);
+    final secondaryTextColor = CitizenColors.textSecondary(context);
     return Padding(
       padding: EdgeInsets.all(20.r),
       child: Column(
@@ -523,7 +533,7 @@ class _ResetPasswordFlowScreenState extends State<ResetPasswordFlowScreen> {
               fontFamily: 'Noto Sans',
               fontSize: 24.sp,
               fontWeight: FontWeight.w600,
-              color: const Color(0xFF111827),
+              color: primaryTextColor,
             ),
           ),
 
@@ -536,7 +546,7 @@ class _ResetPasswordFlowScreenState extends State<ResetPasswordFlowScreen> {
               fontFamily: 'Noto Sans',
               fontSize: 16.sp,
               fontWeight: FontWeight.w400,
-              color: const Color(0xFF6B7280),
+              color: secondaryTextColor,
             ),
           ),
 
@@ -601,7 +611,7 @@ class _ResetPasswordFlowScreenState extends State<ResetPasswordFlowScreen> {
               onPressed: _setNewPassword,
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF009B56),
-                foregroundColor: Colors.white,
+                foregroundColor: CitizenColors.light,
                 padding: EdgeInsets.symmetric(vertical: 16.h),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(8.r),
@@ -637,6 +647,8 @@ class _ResetPasswordFlowScreenState extends State<ResetPasswordFlowScreen> {
     required bool isVisible,
     required VoidCallback onToggleVisibility,
   }) {
+    final primaryTextColor = CitizenColors.textPrimary(context);
+    final secondaryTextColor = CitizenColors.textSecondary(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -646,7 +658,7 @@ class _ResetPasswordFlowScreenState extends State<ResetPasswordFlowScreen> {
             fontFamily: 'Noto Sans',
             fontSize: 14.sp,
             fontWeight: FontWeight.w500,
-            color: const Color(0xFF111827),
+            color: primaryTextColor,
           ),
         ),
         SizedBox(height: 8.h),
@@ -664,17 +676,17 @@ class _ResetPasswordFlowScreenState extends State<ResetPasswordFlowScreen> {
                 fontFamily: 'Noto Sans',
                 fontSize: 16.sp,
                 fontWeight: FontWeight.w400,
-                color: const Color(0xFF9CA3AF),
+                color: secondaryTextColor,
               ),
               prefixIcon: Icon(
                 Icons.lock_outline,
-                color: const Color(0xFF6B7280),
+                color: secondaryTextColor,
                 size: 20.sp,
               ),
               suffixIcon: IconButton(
                 icon: Icon(
                   isVisible ? Icons.visibility_off : Icons.visibility,
-                  color: const Color(0xFF6B7280),
+                  color: secondaryTextColor,
                   size: 20.sp,
                 ),
                 onPressed: onToggleVisibility,
@@ -689,7 +701,7 @@ class _ResetPasswordFlowScreenState extends State<ResetPasswordFlowScreen> {
               fontFamily: 'Noto Sans',
               fontSize: 16.sp,
               fontWeight: FontWeight.w500,
-              color: const Color(0xFF111827),
+              color: primaryTextColor,
             ),
           ),
         ),

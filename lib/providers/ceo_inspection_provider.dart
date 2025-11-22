@@ -51,6 +51,32 @@ class CeoInspectionProvider extends ChangeNotifier {
     }
   }
 
+  Future<void> loadInspectionsForGp({required int gpId, int page = 1, int pageSize = 20}) async {
+    try {
+      _isLoading = true;
+      notifyListeners();
+
+      final districtId = await _authService.getDistrictId();
+
+      final inspectionResponse = await _apiService.getInspections(
+        districtId: districtId,
+        gpId: gpId,
+        page: page,
+        pageSize: pageSize,
+      );
+
+      _inspections = inspectionResponse.items;
+      _totalInspections = inspectionResponse.total;
+
+      _isLoading = false;
+      notifyListeners();
+    } catch (e) {
+      _isLoading = false;
+      notifyListeners();
+      print('❌ Error loading GP inspections: $e');
+    }
+  }
+
   // Update current month
   void updateCurrentMonth(String month) {
     _currentMonth = month;

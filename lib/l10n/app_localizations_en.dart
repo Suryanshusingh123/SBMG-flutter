@@ -98,6 +98,14 @@ class AppLocalizationsEn extends AppLocalizations {
   String get languageChanged => 'Language changed successfully';
 
   @override
+  String get gpMasterDataNotFilled =>
+      'GP Master data is not filled by the respective VDO yet. Kindly contact VDO or helpline number for further assistance.';
+
+  @override
+  String get contractorDetailsNotAvailable =>
+      'Contractor details are not available for this Gram Panchayat yet. Kindly contact VDO or helpline number for further assistance.';
+
+  @override
   String get bookmarks => 'Bookmarks';
 
   @override
@@ -141,6 +149,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get markCompleted => 'Mark Completed';
+
+  @override
+  String get resolveNow => 'Resolve now';
 
   @override
   String get seeResolution => 'See resolution';
@@ -529,7 +540,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get pleaseSelectAllFieldsForMasterData => 'Please select all fields';
 
   @override
-  String get villageMasterDataForm => 'Village Master data Form';
+  String get villageMasterDataForm => 'GP Master Data Form';
 
   @override
   String get sentOTP => 'Send OTP';
@@ -696,7 +707,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get verified => 'Verified';
 
   @override
-  String get complaintClosed => 'Closed';
+  String get complaintClosed => 'Disposed complaints';
 
   @override
   String get waitingForSupervisorToResolve =>
@@ -926,7 +937,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get updateContractorDetails => 'Update Contractor details';
 
   @override
-  String get startVillageMasterData => 'Start the Village Master data';
+  String get startVillageMasterData => 'Start the GP Master Data';
 
   @override
   String get export => 'Export';

@@ -9,6 +9,7 @@ import '../../providers/citizen_events_provider.dart';
 import '../../models/scheme_model.dart';
 import '../../models/event_model.dart';
 import '../../l10n/app_localizations.dart';
+import '../../theme/citizen_colors.dart';
 
 class BookmarksScreen extends StatefulWidget {
   const BookmarksScreen({super.key});
@@ -34,11 +35,14 @@ class _BookmarksScreenState extends State<BookmarksScreen> {
     final imageUrl = mediaUrl != null && mediaUrl.isNotEmpty
         ? _getMediaUrl(mediaUrl)
         : '';
+    final surfaceColor = CitizenColors.surface(context);
+    final primaryTextColor = CitizenColors.textPrimary(context);
+    final secondaryTextColor = CitizenColors.textSecondary(context);
 
     return Container(
       margin: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: surfaceColor,
         borderRadius: BorderRadius.circular(16.r),
         boxShadow: [
           BoxShadow(
@@ -112,7 +116,7 @@ class _BookmarksScreenState extends State<BookmarksScreen> {
                       child: Container(
                         padding: EdgeInsets.all(8.w),
                         decoration: BoxDecoration(
-                          color: isBookmarked ? Colors.black : Colors.white,
+                          color: isBookmarked ? Colors.black : surfaceColor,
                           borderRadius: BorderRadius.circular(8.r),
                           boxShadow: [
                             BoxShadow(
@@ -125,7 +129,9 @@ class _BookmarksScreenState extends State<BookmarksScreen> {
                         child: Icon(
                           isBookmarked ? Icons.bookmark : Icons.bookmark_border,
                           size: 20.sp,
-                          color: isBookmarked ? Colors.white : Colors.black,
+                          color: isBookmarked
+                              ? CitizenColors.light
+                              : primaryTextColor,
                         ),
                       ),
                     );
@@ -147,7 +153,7 @@ class _BookmarksScreenState extends State<BookmarksScreen> {
                   style: TextStyle(
                     fontSize: 16.sp,
                     fontWeight: FontWeight.w700,
-                    color: const Color(0xFF111827),
+                    color: primaryTextColor,
                     height: 1.3,
                   ),
                   maxLines: 2,
@@ -161,7 +167,7 @@ class _BookmarksScreenState extends State<BookmarksScreen> {
                     scheme.description!,
                     style: TextStyle(
                       fontSize: 13.sp,
-                      color: const Color(0xFF6B7280),
+                      color: secondaryTextColor,
                       height: 1.4,
                     ),
                     maxLines: 2,
@@ -175,7 +181,7 @@ class _BookmarksScreenState extends State<BookmarksScreen> {
     );
   }
 
-  Widget _buildTab(String label, int count, int index) {
+  Widget _buildTab(String label, int count, int index, Color inactiveColor) {
     final isSelected = _selectedTabIndex == index;
 
     return Expanded(
@@ -201,9 +207,7 @@ class _BookmarksScreenState extends State<BookmarksScreen> {
             style: TextStyle(
               fontSize: 16.sp,
               fontWeight: FontWeight.w600,
-              color: isSelected
-                  ? AppColors.primaryColor
-                  : const Color(0xFF6B7280),
+              color: isSelected ? AppColors.primaryColor : inactiveColor,
             ),
           ),
         ),
@@ -230,19 +234,22 @@ class _BookmarksScreenState extends State<BookmarksScreen> {
     int eventsCount,
   ) {
     final l10n = AppLocalizations.of(context)!;
+    final surfaceColor = CitizenColors.surface(context);
+    final primaryTextColor = CitizenColors.textPrimary(context);
+    final secondaryTextColor = CitizenColors.textSecondary(context);
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: CitizenColors.background(context),
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: surfaceColor,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.black),
+          icon: Icon(Icons.arrow_back, color: primaryTextColor),
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
           l10n.bookmarks,
-          style: const TextStyle(
-            color: Colors.black,
+          style: TextStyle(
+            color: primaryTextColor,
             fontSize: 18,
             fontWeight: FontWeight.w600,
           ),
@@ -253,8 +260,8 @@ class _BookmarksScreenState extends State<BookmarksScreen> {
           // Tabs
           Row(
             children: [
-              _buildTab(l10n.schemes, schemesCount, 0),
-              _buildTab(l10n.events, eventsCount, 1),
+              _buildTab(l10n.schemes, schemesCount, 0, secondaryTextColor),
+              _buildTab(l10n.events, eventsCount, 1, secondaryTextColor),
             ],
           ),
 
@@ -271,6 +278,7 @@ class _BookmarksScreenState extends State<BookmarksScreen> {
 
   Widget _buildSchemesList() {
     final l10n = AppLocalizations.of(context)!;
+    final secondaryTextColor = CitizenColors.textSecondary(context);
     return Consumer2<BookmarksProvider, SchemesProvider>(
       builder: (context, bookmarksProvider, schemesProvider, child) {
         // Get bookmarked scheme IDs
@@ -289,15 +297,12 @@ class _BookmarksScreenState extends State<BookmarksScreen> {
                 Icon(
                   Icons.bookmark_border,
                   size: 64.sp,
-                  color: const Color(0xFF6B7280),
+                  color: secondaryTextColor,
                 ),
                 SizedBox(height: 16.h),
                 Text(
                   l10n.noBookmarkedSchemes,
-                  style: TextStyle(
-                    fontSize: 16.sp,
-                    color: const Color(0xFF6B7280),
-                  ),
+                  style: TextStyle(fontSize: 16.sp, color: secondaryTextColor),
                 ),
               ],
             ),
@@ -317,6 +322,7 @@ class _BookmarksScreenState extends State<BookmarksScreen> {
 
   Widget _buildEventsList() {
     final l10n = AppLocalizations.of(context)!;
+    final secondaryTextColor = CitizenColors.textSecondary(context);
     return Consumer2<BookmarksProvider, EventsProvider>(
       builder: (context, bookmarksProvider, eventsProvider, child) {
         // Get bookmarked event IDs
@@ -335,15 +341,12 @@ class _BookmarksScreenState extends State<BookmarksScreen> {
                 Icon(
                   Icons.bookmark_border,
                   size: 64.sp,
-                  color: const Color(0xFF6B7280),
+                  color: secondaryTextColor,
                 ),
                 SizedBox(height: 16.h),
                 Text(
                   l10n.noBookmarkedEvents,
-                  style: TextStyle(
-                    fontSize: 16.sp,
-                    color: const Color(0xFF6B7280),
-                  ),
+                  style: TextStyle(fontSize: 16.sp, color: secondaryTextColor),
                 ),
               ],
             ),
@@ -362,6 +365,9 @@ class _BookmarksScreenState extends State<BookmarksScreen> {
   }
 
   Widget _buildEventCard(Event event) {
+    final surfaceColor = CitizenColors.surface(context);
+    final primaryTextColor = CitizenColors.textPrimary(context);
+    final secondaryTextColor = CitizenColors.textSecondary(context);
     return Container(
       margin: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
       decoration: BoxDecoration(
@@ -435,7 +441,7 @@ class _BookmarksScreenState extends State<BookmarksScreen> {
                             decoration: BoxDecoration(
                               color: isBookmarked
                                   ? const Color(0xFF009B56)
-                                  : Colors.white.withOpacity(0.9),
+                                  : surfaceColor.withOpacity(0.9),
                               borderRadius: BorderRadius.circular(8.r),
                               boxShadow: [
                                 BoxShadow(
@@ -450,7 +456,7 @@ class _BookmarksScreenState extends State<BookmarksScreen> {
                                   ? Icons.bookmark
                                   : Icons.bookmark_border,
                               color: isBookmarked
-                                  ? Colors.white
+                                  ? CitizenColors.light
                                   : const Color(0xFF4CAF50),
                               size: 20.sp,
                             ),
@@ -468,7 +474,7 @@ class _BookmarksScreenState extends State<BookmarksScreen> {
           Container(
             padding: EdgeInsets.all(12.r),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: surfaceColor,
               borderRadius: const BorderRadius.only(
                 bottomLeft: Radius.circular(12),
                 bottomRight: Radius.circular(12),
@@ -483,10 +489,10 @@ class _BookmarksScreenState extends State<BookmarksScreen> {
                     Expanded(
                       child: Text(
                         event.title,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w600,
-                          color: Color(0xFF2C3E50),
+                          color: primaryTextColor,
                         ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
@@ -507,7 +513,7 @@ class _BookmarksScreenState extends State<BookmarksScreen> {
                               '${_formatDate(event.startTime, includeYear: false)} - ${_formatDate(event.endTime)}',
                               style: TextStyle(
                                 fontSize: 12,
-                                color: Colors.grey.shade600,
+                                color: secondaryTextColor,
                               ),
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
@@ -522,7 +528,7 @@ class _BookmarksScreenState extends State<BookmarksScreen> {
                 if (event.description != null)
                   Text(
                     event.description!,
-                    style: TextStyle(fontSize: 14, color: Colors.grey.shade500),
+                    style: TextStyle(fontSize: 14, color: secondaryTextColor),
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                   ),

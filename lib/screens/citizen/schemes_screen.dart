@@ -7,6 +7,7 @@ import '../../providers/citizen_bookmarks_provider.dart';
 import '../../models/scheme_model.dart';
 import '../../widgets/common/custom_bottom_navigation.dart';
 import '../../l10n/app_localizations.dart';
+import '../../theme/citizen_colors.dart';
 import 'scheme_details_screen.dart';
 
 class SchemesScreen extends StatefulWidget {
@@ -43,6 +44,9 @@ class _SchemesScreenState extends State<SchemesScreen> {
     final imageUrl = mediaUrl != null && mediaUrl.isNotEmpty
         ? _getMediaUrl(mediaUrl)
         : '';
+    final surfaceColor = CitizenColors.surface(context);
+    final primaryTextColor = CitizenColors.textPrimary(context);
+    final secondaryTextColor = CitizenColors.textSecondary(context);
 
     return GestureDetector(
       onTap: () async {
@@ -62,7 +66,7 @@ class _SchemesScreenState extends State<SchemesScreen> {
       child: Container(
         margin: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: surfaceColor,
           borderRadius: BorderRadius.circular(16.r),
           boxShadow: [
             BoxShadow(
@@ -152,7 +156,7 @@ class _SchemesScreenState extends State<SchemesScreen> {
                                 ? Icons.bookmark
                                 : Icons.bookmark_border_outlined,
                             size: 20.sp,
-                            color: Colors.black,
+                          color: primaryTextColor,
                           ),
                         ),
                       );
@@ -174,7 +178,7 @@ class _SchemesScreenState extends State<SchemesScreen> {
                     style: TextStyle(
                       fontSize: 16.sp,
                       fontWeight: FontWeight.w700,
-                      color: const Color(0xFF111827),
+                    color: primaryTextColor,
                       height: 1.3,
                     ),
                     maxLines: 2,
@@ -188,7 +192,7 @@ class _SchemesScreenState extends State<SchemesScreen> {
                       scheme.description!,
                       style: TextStyle(
                         fontSize: 13.sp,
-                        color: const Color(0xFF6B7280),
+                      color: secondaryTextColor,
                         height: 1.4,
                       ),
                       maxLines: 2,
@@ -205,22 +209,21 @@ class _SchemesScreenState extends State<SchemesScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final primaryTextColor = CitizenColors.textPrimary(context);
+    final secondaryTextColor = CitizenColors.textSecondary(context);
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: CitizenColors.background(context),
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: CitizenColors.surface(context),
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.black),
-          onPressed: () => Navigator.pop(context),
+          icon: Icon(Icons.arrow_back, color: primaryTextColor),
+          onPressed: () =>
+              Navigator.pushReplacementNamed(context, '/citizen-dashboard'),
         ),
-        title: const Text(
+        title: Text(
           'Schemes',
-          style: TextStyle(
-            color: Colors.black,
-            fontSize: 18,
-            fontWeight: FontWeight.w600,
-          ),
+          style: TextStyle(color: primaryTextColor, fontSize: 18, fontWeight: FontWeight.w600),
         ),
         centerTitle: false,
       ),
@@ -251,9 +254,9 @@ class _SchemesScreenState extends State<SchemesScreen> {
                     onPressed: () {
                       schemesProvider.loadSchemes(limit: 1000);
                     },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primaryColor,
-                      foregroundColor: Colors.white,
+          style: ElevatedButton.styleFrom(
+            backgroundColor: AppColors.primaryColor,
+            foregroundColor: CitizenColors.light,
                     ),
                     child: const Text('Retry'),
                   ),
@@ -268,11 +271,11 @@ class _SchemesScreenState extends State<SchemesScreen> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Icon(Icons.inbox, size: 64, color: Color(0xFF6B7280)),
+                  Icon(Icons.inbox, size: 64, color: secondaryTextColor),
                   SizedBox(height: 16.h),
-                  const Text(
+                  Text(
                     'No schemes available',
-                    style: TextStyle(fontSize: 16, color: Color(0xFF6B7280)),
+                    style: TextStyle(fontSize: 16, color: secondaryTextColor),
                   ),
                 ],
               ),
@@ -321,19 +324,19 @@ class _SchemesScreenState extends State<SchemesScreen> {
         },
         items: [
           BottomNavItem(
-            icon: Icons.home,
+            iconPath: 'assets/icons/bottombar/home.png',
             label: AppLocalizations.of(context)!.home,
           ),
           BottomNavItem(
-            icon: Icons.list_alt,
+            iconPath: 'assets/icons/bottombar/complaints.png',
             label: AppLocalizations.of(context)!.myComplaint,
           ),
           BottomNavItem(
-            icon: Icons.account_balance,
+            iconPath: 'assets/icons/bottombar/schemes.png',
             label: AppLocalizations.of(context)!.schemes,
           ),
           BottomNavItem(
-            icon: Icons.settings,
+            iconPath: 'assets/icons/bottombar/settings.png',
             label: AppLocalizations.of(context)!.settings,
           ),
         ],

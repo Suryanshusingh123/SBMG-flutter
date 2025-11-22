@@ -3,6 +3,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../../config/connstants.dart';
 import '../../widgets/common/bottom_sheet_picker.dart';
 import '../../l10n/app_localizations.dart';
+import '../../theme/citizen_colors.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -67,19 +68,22 @@ class _ProfileScreenState extends State<ProfileScreen> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
+    final surfaceColor = CitizenColors.surface(context);
+    final primaryTextColor = CitizenColors.textPrimary(context);
+    final secondaryTextColor = CitizenColors.textSecondary(context);
     return Scaffold(
-      backgroundColor: const Color(0xFFF9FAFB),
+      backgroundColor: CitizenColors.background(context),
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: surfaceColor,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.black),
+          icon: Icon(Icons.arrow_back, color: primaryTextColor),
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
           l10n.profile,
-          style: const TextStyle(
-            color: Colors.black,
+          style: TextStyle(
+            color: primaryTextColor,
             fontSize: 18,
             fontWeight: FontWeight.w600,
           ),
@@ -98,13 +102,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
               style: TextStyle(
                 fontSize: 14.sp,
                 fontWeight: FontWeight.w500,
-                color: const Color(0xFF111827),
+                color: primaryTextColor,
               ),
             ),
             SizedBox(height: 8.h),
             Container(
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: surfaceColor,
                 border: Border.all(color: const Color(0xFFE5E7EB)),
                 borderRadius: BorderRadius.circular(8.r),
               ),
@@ -114,7 +118,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   hintText: l10n.name,
                   hintStyle: TextStyle(
                     fontSize: 16.sp,
-                    color: const Color(0xFF9CA3AF),
+                    color: secondaryTextColor,
                   ),
                   border: InputBorder.none,
                   contentPadding: EdgeInsets.all(16.w),
@@ -130,13 +134,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
               style: TextStyle(
                 fontSize: 14.sp,
                 fontWeight: FontWeight.w500,
-                color: const Color(0xFF111827),
+                color: primaryTextColor,
               ),
             ),
             SizedBox(height: 8.h),
             Container(
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: surfaceColor,
                 border: Border.all(color: const Color(0xFFE5E7EB)),
                 borderRadius: BorderRadius.circular(8.r),
               ),
@@ -158,13 +162,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           style: TextStyle(
                             fontSize: 16.sp,
                             fontWeight: FontWeight.w500,
-                            color: const Color(0xFF111827),
+                            color: primaryTextColor,
                           ),
                         ),
                         SizedBox(width: 4.w),
                         Icon(
                           Icons.keyboard_arrow_down,
-                          color: const Color(0xFF6B7280),
+                          color: secondaryTextColor,
                           size: 16.sp,
                         ),
                       ],
@@ -181,7 +185,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         hintText: '00000 00000',
                         hintStyle: TextStyle(
                           fontSize: 16.sp,
-                          color: const Color(0xFF9CA3AF),
+                          color: secondaryTextColor,
                         ),
                         border: InputBorder.none,
                         counterText: '',
@@ -204,7 +208,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               style: TextStyle(
                 fontSize: 14.sp,
                 fontWeight: FontWeight.w500,
-                color: const Color(0xFF111827),
+                color: primaryTextColor,
               ),
             ),
             SizedBox(height: 8.h),
@@ -227,7 +231,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 height: 50.h,
                 padding: EdgeInsets.symmetric(horizontal: 16.w),
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: surfaceColor,
                   border: Border.all(color: const Color(0xFFE5E7EB)),
                   borderRadius: BorderRadius.circular(8.r),
                 ),
@@ -236,7 +240,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     Icon(
                       Icons.person_outline,
                       size: 24.sp,
-                      color: const Color(0xFF6B7280),
+                      color: secondaryTextColor,
                     ),
                     SizedBox(width: 16.w),
                     Expanded(
@@ -245,14 +249,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         style: TextStyle(
                           fontSize: 16.sp,
                           color: selectedGender != null
-                              ? const Color(0xFF111827)
-                              : const Color(0xFF9CA3AF),
+                              ? primaryTextColor
+                              : secondaryTextColor,
                         ),
                       ),
                     ),
                     Icon(
                       Icons.keyboard_arrow_down,
-                      color: const Color(0xFF6B7280),
+                      color: secondaryTextColor,
                       size: 20.sp,
                     ),
                   ],
@@ -269,7 +273,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       bottomNavigationBar: Container(
         padding: EdgeInsets.all(16.w),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: surfaceColor,
           boxShadow: [
             BoxShadow(
               color: Colors.black.withOpacity(0.05),
@@ -285,7 +289,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             onPressed: _saveProfile,
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.primaryColor,
-              foregroundColor: Colors.white,
+              foregroundColor: CitizenColors.light,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(8.r),
               ),

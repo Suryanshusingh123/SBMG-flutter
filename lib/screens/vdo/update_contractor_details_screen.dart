@@ -353,7 +353,7 @@ class _UpdateContractorDetailsScreenState
         ),
         SizedBox(height: 8.h),
         DropdownButtonFormField<String>(
-          value: value,
+          initialValue: value,
           decoration: InputDecoration(
             hintText: placeholder,
             hintStyle: TextStyle(color: Colors.grey.shade500, fontSize: 14),

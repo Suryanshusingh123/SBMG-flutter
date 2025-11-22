@@ -4,6 +4,7 @@ import '../../models/geography_model.dart';
 import '../../services/api_services.dart';
 import '../../widgets/common/bottom_sheet_picker.dart';
 import '../../l10n/app_localizations.dart';
+import '../../theme/citizen_colors.dart';
 import 'village_master_data_form_screen.dart';
 
 class GpMasterDataDetailsScreen extends StatefulWidget {
@@ -119,22 +120,25 @@ class _GpMasterDataDetailsScreenState extends State<GpMasterDataDetailsScreen> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
+    final surfaceColor = CitizenColors.surface(context);
+    final primaryTextColor = CitizenColors.textPrimary(context);
+    final secondaryTextColor = CitizenColors.textSecondary(context);
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: CitizenColors.background(context),
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: surfaceColor,
         elevation: 0,
         leading: IconButton(
           onPressed: () => Navigator.pop(context),
-          icon: const Icon(Icons.arrow_back, color: Color(0xFF111827)),
+          icon: Icon(Icons.arrow_back, color: primaryTextColor),
         ),
         title: Text(
           l10n.masterDataDetails,
-          style: const TextStyle(
+          style: TextStyle(
             fontFamily: 'Noto Sans',
             fontSize: 18,
             fontWeight: FontWeight.w600,
-            color: Color(0xFF111827),
+            color: primaryTextColor,
           ),
         ),
         centerTitle: true,
@@ -156,11 +160,11 @@ class _GpMasterDataDetailsScreenState extends State<GpMasterDataDetailsScreen> {
                     children: [
                       Text(
                         l10n.district,
-                        style: const TextStyle(
+                    style: TextStyle(
                           fontFamily: 'Noto Sans',
                           fontSize: 14,
                           fontWeight: FontWeight.w500,
-                          color: Color(0xFF111827),
+                      color: primaryTextColor,
                         ),
                       ),
                       SizedBox(height: 8.h),
@@ -168,7 +172,7 @@ class _GpMasterDataDetailsScreenState extends State<GpMasterDataDetailsScreen> {
                         height: 50,
                         padding: const EdgeInsets.symmetric(horizontal: 12),
                         decoration: BoxDecoration(
-                          color: Colors.white,
+                          color: surfaceColor,
                           borderRadius: BorderRadius.circular(8.r),
                           border: Border.all(color: Colors.grey.shade300),
                         ),
@@ -193,6 +197,7 @@ class _GpMasterDataDetailsScreenState extends State<GpMasterDataDetailsScreen> {
                                     itemBuilder: (district) => district.name,
                                     showSearch: true,
                                     searchHint: l10n.searchDistricts,
+                                    isLoading: isLoadingDistricts,
                                     onSelected: (district) {
                                       setState(() {
                                         selectedDistrict = district;
@@ -213,8 +218,8 @@ class _GpMasterDataDetailsScreenState extends State<GpMasterDataDetailsScreen> {
                                             l10n.selectDistrict,
                                         style: TextStyle(
                                           color: selectedDistrict == null
-                                              ? Colors.grey
-                                              : Colors.black,
+                                              ? secondaryTextColor
+                                              : primaryTextColor,
                                           fontSize: 14.sp,
                                         ),
                                       ),
@@ -240,11 +245,11 @@ class _GpMasterDataDetailsScreenState extends State<GpMasterDataDetailsScreen> {
                     children: [
                       Text(
                         l10n.block,
-                        style: const TextStyle(
+                    style: TextStyle(
                           fontFamily: 'Noto Sans',
                           fontSize: 14,
                           fontWeight: FontWeight.w500,
-                          color: Color(0xFF111827),
+                      color: primaryTextColor,
                         ),
                       ),
                       SizedBox(height: 8.h),
@@ -252,7 +257,7 @@ class _GpMasterDataDetailsScreenState extends State<GpMasterDataDetailsScreen> {
                         height: 50,
                         padding: const EdgeInsets.symmetric(horizontal: 12),
                         decoration: BoxDecoration(
-                          color: Colors.white,
+                          color: surfaceColor,
                           borderRadius: BorderRadius.circular(8.r),
                           border: Border.all(color: Colors.grey.shade300),
                         ),
@@ -279,6 +284,7 @@ class _GpMasterDataDetailsScreenState extends State<GpMasterDataDetailsScreen> {
                                           itemBuilder: (block) => block.name,
                                           showSearch: true,
                                           searchHint: l10n.searchBlocks,
+                                          isLoading: isLoadingBlocks,
                                           onSelected: (block) {
                                             setState(() {
                                               selectedBlock = block;
@@ -301,8 +307,8 @@ class _GpMasterDataDetailsScreenState extends State<GpMasterDataDetailsScreen> {
                                         selectedBlock?.name ?? l10n.selectBlock,
                                         style: TextStyle(
                                           color: selectedBlock == null
-                                              ? Colors.grey
-                                              : Colors.black,
+                                              ? secondaryTextColor
+                                              : primaryTextColor,
                                           fontSize: 14.sp,
                                         ),
                                       ),
@@ -329,11 +335,11 @@ class _GpMasterDataDetailsScreenState extends State<GpMasterDataDetailsScreen> {
               children: [
                 Text(
                   l10n.gramPanchayat,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontFamily: 'Noto Sans',
                     fontSize: 14,
                     fontWeight: FontWeight.w500,
-                    color: Color(0xFF111827),
+                    color: primaryTextColor,
                   ),
                 ),
                 SizedBox(height: 8.h),
@@ -341,7 +347,7 @@ class _GpMasterDataDetailsScreenState extends State<GpMasterDataDetailsScreen> {
                   height: 50,
                   padding: const EdgeInsets.symmetric(horizontal: 12),
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: surfaceColor,
                     borderRadius: BorderRadius.circular(8.r),
                     border: Border.all(color: Colors.grey.shade300),
                   ),
@@ -368,6 +374,7 @@ class _GpMasterDataDetailsScreenState extends State<GpMasterDataDetailsScreen> {
                                     itemBuilder: (village) => village.name,
                                     showSearch: true,
                                     searchHint: l10n.searchVillages,
+                                    isLoading: isLoadingVillages,
                                     onSelected: (village) {
                                       setState(() {
                                         selectedVillage = village;
@@ -382,9 +389,9 @@ class _GpMasterDataDetailsScreenState extends State<GpMasterDataDetailsScreen> {
                                   selectedVillage?.name ??
                                       l10n.selectGramPanchayat,
                                   style: TextStyle(
-                                    color: selectedVillage == null
-                                        ? Colors.grey
-                                        : Colors.black,
+                                        color: selectedVillage == null
+                                            ? secondaryTextColor
+                                            : primaryTextColor,
                                     fontSize: 14.sp,
                                   ),
                                 ),
@@ -430,8 +437,8 @@ class _GpMasterDataDetailsScreenState extends State<GpMasterDataDetailsScreen> {
                   }
                 },
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF009B56),
-                  foregroundColor: Colors.white,
+          backgroundColor: const Color(0xFF009B56),
+          foregroundColor: CitizenColors.light,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(8.r),
                   ),

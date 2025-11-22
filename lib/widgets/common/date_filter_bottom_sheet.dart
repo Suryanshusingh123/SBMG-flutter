@@ -378,11 +378,12 @@ class _DateFilterBottomSheetState extends State<DateFilterBottomSheet> {
       0,
     );
     final firstDayOfWeek = firstDayOfMonth.weekday;
+    final firstWeekdayIndex = firstDayOfWeek % 7;
 
     List<Widget> dayWidgets = [];
 
     // Add empty cells for days before the first day of the month
-    for (int i = 1; i < firstDayOfWeek; i++) {
+    for (int i = 0; i < firstWeekdayIndex; i++) {
       dayWidgets.add(Container());
     }
 
@@ -642,7 +643,8 @@ class _DateFilterBottomSheetState extends State<DateFilterBottomSheet> {
     setState(() {
       if (isWeekSelection) {
         // For week selection, select the entire week
-        final startOfWeek = date.subtract(Duration(days: date.weekday - 1));
+        final weekdayIndex = date.weekday % 7;
+        final startOfWeek = date.subtract(Duration(days: weekdayIndex));
         _startDate = startOfWeek;
         _endDate = startOfWeek.add(const Duration(days: 6));
         _selectedDate = date;

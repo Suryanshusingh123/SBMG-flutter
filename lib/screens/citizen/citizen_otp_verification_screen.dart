@@ -3,6 +3,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../../config/connstants.dart';
 import '../../services/auth_services.dart';
 import '../../l10n/app_localizations.dart';
+import '../../theme/citizen_colors.dart';
 
 class CitizenOtpVerificationScreen extends StatefulWidget {
   final String mobileNumber;
@@ -156,13 +157,15 @@ class _CitizenOtpVerificationScreenState
 
   @override
   Widget build(BuildContext context) {
+    final primaryTextColor = CitizenColors.textPrimary(context);
+    final secondaryTextColor = CitizenColors.textSecondary(context);
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: CitizenColors.background(context),
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: CitizenColors.surface(context),
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.black),
+          icon: Icon(Icons.arrow_back, color: primaryTextColor),
           onPressed: () => Navigator.pop(context),
         ),
       ),
@@ -181,10 +184,10 @@ class _CitizenOtpVerificationScreenState
               // Title
               Text(
                 AppLocalizations.of(context)!.verifyOTP,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 28,
                   fontWeight: FontWeight.bold,
-                  color: Color(0xFF111827),
+                  color: primaryTextColor,
                 ),
               ),
               SizedBox(height: 16.h),
@@ -192,7 +195,7 @@ class _CitizenOtpVerificationScreenState
               // Subtitle
               Text(
                 AppLocalizations.of(context)!.enterOtpSentTo,
-                style: const TextStyle(fontSize: 16, color: Colors.grey),
+                style: TextStyle(fontSize: 16, color: secondaryTextColor),
               ),
               SizedBox(height: 30.h),
 
@@ -311,20 +314,20 @@ class _CitizenOtpVerificationScreenState
                   onPressed: _isLoading ? null : _verifyOtp,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.primaryColor,
-                    foregroundColor: Colors.white,
+                  foregroundColor: CitizenColors.light,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(8.r),
                     ),
                     elevation: 0,
                   ),
                   child: _isLoading
-                      ? const SizedBox(
+                    ? SizedBox(
                           height: 20,
                           width: 20,
                           child: CircularProgressIndicator(
                             strokeWidth: 2,
                             valueColor: AlwaysStoppedAnimation<Color>(
-                              Colors.white,
+                            CitizenColors.light,
                             ),
                           ),
                         )

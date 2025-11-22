@@ -7,6 +7,7 @@ import 'dart:io';
 import '../../services/api_services.dart';
 import '../../config/connstants.dart';
 import '../../l10n/app_localizations.dart';
+import '../../utils/location_display_helper.dart';
 
 class SupervisorComplaintDetailsScreen extends StatefulWidget {
   final int complaintId;
@@ -30,6 +31,8 @@ class _SupervisorComplaintDetailsScreenState
   Map<String, dynamic>? _complaintData;
   bool _isLoading = true;
   String? _errorMessage;
+  double? _latitude;
+  double? _longitude;
 
   // State for resolution bottom sheet
   final TextEditingController _resolutionCommentController =
@@ -49,17 +52,21 @@ class _SupervisorComplaintDetailsScreenState
         complaintId: widget.complaintId,
       );
 
+      final coords = LocationResolver.extractCoordinates(data);
+
       // Log the lat and long values
       print('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
       print('📍 Location Data from API:');
       print('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-      print('   - lat: ${data['lat']}');
-      print('   - long: ${data['long']}');
+      print('   - lat: ${coords.$1}');
+      print('   - long: ${coords.$2}');
       print('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
 
       setState(() {
         _complaintData = data;
         _isLoading = false;
+        _latitude = coords.$1;
+        _longitude = coords.$2;
       });
     } catch (e) {
       print('❌ Error fetching complaint details: $e');
@@ -68,6 +75,31 @@ class _SupervisorComplaintDetailsScreenState
         _errorMessage = 'Failed to load complaint details';
       });
     }
+  }
+
+  String get _getStatusHeading {
+    final status = _complaintData?['status_id'];
+    final closedAt = _complaintData?['closed_at'];
+    final verifiedAt = _complaintData?['verified_at'];
+    final resolvedAt = _complaintData?['resolved_at'];
+
+    // First check if closed
+    if (status == 4 || closedAt != null) {
+      return 'Successfully disposed';
+    }
+
+    // Then check if verified but not closed
+    if (status == 3 || (verifiedAt != null && closedAt == null)) {
+      return 'Successfully resolved, waiting for user to close';
+    }
+
+    // Then check if resolved
+    if (status == 2 || resolvedAt != null) {
+      return 'Verification pending by VDO';
+    }
+
+    // Open status
+    return 'Waiting for supervisor to resolve';
   }
 
   String get _dynamicStatusText {
@@ -232,7 +264,7 @@ class _SupervisorComplaintDetailsScreenState
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              '${AppLocalizations.of(context)!.complaintDetails} #${_complaintData!['id']}',
+              _getStatusHeading,
               style: TextStyle(
                 fontSize: 16.sp,
                 fontWeight: FontWeight.w600,
@@ -550,7 +582,7 @@ class _SupervisorComplaintDetailsScreenState
               SizedBox(width: 8.w),
               Expanded(
                 child: Text(
-                  _complaintData?['location'] ?? 'Location not available',
+                  _getLocationDisplay(),
                   style: TextStyle(
                     fontSize: 14.sp,
                     fontWeight: FontWeight.w400,
@@ -575,12 +607,12 @@ class _SupervisorComplaintDetailsScreenState
           SizedBox(height: 16.h),
 
           // Get Directions Button
-          if (_complaintData?['lat'] != null && _complaintData?['long'] != null)
+          if (_latitude != null && _longitude != null)
             GestureDetector(
               onTap: () {
                 _openGoogleMaps(
-                  _complaintData!['lat'],
-                  _complaintData!['long'],
+                  _latitude,
+                  _longitude,
                 );
               },
               child: Container(
@@ -815,6 +847,24 @@ class _SupervisorComplaintDetailsScreenState
     }
   }
 
+  String _getLocationDisplay() {
+    final l10n = AppLocalizations.of(context)!;
+    return LocationDisplayHelper.buildDisplay(
+      cacheKey: 'supervisor-detail-${widget.complaintId}',
+      latitude: _latitude,
+      longitude: _longitude,
+      locationField: _complaintData?['location'] as String?,
+      district: _complaintData?['district_name'] as String?,
+      block: _complaintData?['block_name'] as String?,
+      village: _complaintData?['village_name'] as String?,
+      scheduleUpdate: () {
+        if (!mounted) return;
+        setState(() {});
+      },
+      unavailableLabel: l10n.locationNotAvailable,
+    );
+  }
+
   Future<void> _openGoogleMaps(double? lat, double? long) async {
     if (lat == null || long == null) {
       if (mounted) {
@@ -890,7 +940,7 @@ class _SupervisorComplaintDetailsScreenState
             const Icon(Icons.check_circle_outline, color: Colors.white),
             const SizedBox(width: 8),
             Text(
-              AppLocalizations.of(context)!.markCompleted,
+              AppLocalizations.of(context)!.resolveNow,
               style: TextStyle(
                 fontFamily: 'Noto Sans',
                 fontSize: 14.sp,

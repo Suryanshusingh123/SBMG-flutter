@@ -272,6 +272,18 @@ abstract class AppLocalizations {
   /// **'Language changed successfully'**
   String get languageChanged;
 
+  /// No description provided for @gpMasterDataNotFilled.
+  ///
+  /// In en, this message translates to:
+  /// **'GP Master data is not filled by the respective VDO yet. Kindly contact VDO or helpline number for further assistance.'**
+  String get gpMasterDataNotFilled;
+
+  /// No description provided for @contractorDetailsNotAvailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Contractor details are not available for this Gram Panchayat yet. Kindly contact VDO or helpline number for further assistance.'**
+  String get contractorDetailsNotAvailable;
+
   /// No description provided for @bookmarks.
   ///
   /// In en, this message translates to:
@@ -361,6 +373,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Mark Completed'**
   String get markCompleted;
+
+  /// No description provided for @resolveNow.
+  ///
+  /// In en, this message translates to:
+  /// **'Resolve now'**
+  String get resolveNow;
 
   /// No description provided for @seeResolution.
   ///
@@ -1121,7 +1139,7 @@ abstract class AppLocalizations {
   /// No description provided for @villageMasterDataForm.
   ///
   /// In en, this message translates to:
-  /// **'Village Master data Form'**
+  /// **'GP Master Data Form'**
   String get villageMasterDataForm;
 
   /// No description provided for @sentOTP.
@@ -1445,7 +1463,7 @@ abstract class AppLocalizations {
   /// No description provided for @complaintClosed.
   ///
   /// In en, this message translates to:
-  /// **'Closed'**
+  /// **'Disposed complaints'**
   String get complaintClosed;
 
   /// No description provided for @waitingForSupervisorToResolve.
@@ -1889,7 +1907,7 @@ abstract class AppLocalizations {
   /// No description provided for @startVillageMasterData.
   ///
   /// In en, this message translates to:
-  /// **'Start the Village Master data'**
+  /// **'Start the GP Master Data'**
   String get startVillageMasterData;
 
   /// No description provided for @export.

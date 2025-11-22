@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../../l10n/app_localizations.dart';
+import '../../theme/citizen_colors.dart';
 
 class NotificationsScreen extends StatefulWidget {
   const NotificationsScreen({super.key});
@@ -64,19 +65,21 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
+    final primaryTextColor = CitizenColors.textPrimary(context);
+    final secondaryTextColor = CitizenColors.textSecondary(context);
     return Scaffold(
-      backgroundColor: const Color(0xFFF9FAFB),
+      backgroundColor: CitizenColors.background(context),
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: CitizenColors.surface(context),
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.black),
+          icon: Icon(Icons.arrow_back, color: primaryTextColor),
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
           l10n.notification,
-          style: const TextStyle(
-            color: Colors.black,
+          style: TextStyle(
+            color: primaryTextColor,
             fontSize: 18,
             fontWeight: FontWeight.w600,
           ),
@@ -87,8 +90,8 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
               onPressed: _clearAllNotifications,
               child: Text(
                 l10n.clearAll,
-                style: const TextStyle(
-                  color: Color(0xFF009B56),
+                style: TextStyle(
+                  color: const Color(0xFF009B56),
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
                 ),
@@ -104,14 +107,14 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                   Icon(
                     Icons.notifications_none,
                     size: 64.sp,
-                    color: const Color(0xFF9CA3AF),
+                  color: secondaryTextColor,
                   ),
                   SizedBox(height: 16.h),
                   Text(
                     l10n.noNotifications,
                     style: TextStyle(
                       fontSize: 16.sp,
-                      color: const Color(0xFF9CA3AF),
+                    color: secondaryTextColor,
                     ),
                   ),
                 ],
@@ -128,11 +131,13 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   }
 
   Widget _buildNotificationCard(NotificationItem notification) {
+    final primaryTextColor = CitizenColors.textPrimary(context);
+    final secondaryTextColor = CitizenColors.textSecondary(context);
     return Container(
       margin: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
       padding: EdgeInsets.all(16.w),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: CitizenColors.surface(context),
         borderRadius: BorderRadius.circular(12.r),
         boxShadow: [
           BoxShadow(
@@ -168,7 +173,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                   style: TextStyle(
                     fontSize: 16.sp,
                     fontWeight: FontWeight.w600,
-                    color: const Color(0xFF111827),
+                    color: primaryTextColor,
                   ),
                 ),
                 SizedBox(height: 4.h),
@@ -176,7 +181,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                   notification.description,
                   style: TextStyle(
                     fontSize: 14.sp,
-                    color: const Color(0xFF111827),
+                    color: secondaryTextColor,
                     height: 1.4,
                   ),
                 ),
@@ -188,7 +193,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                       notification.timeAgo,
                       style: TextStyle(
                         fontSize: 12.sp,
-                        color: const Color(0xFF9CA3AF),
+                        color: secondaryTextColor,
                       ),
                     ),
                     if (notification.isUnread)

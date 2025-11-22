@@ -40,14 +40,24 @@ class CustomBottomNavigationBar extends StatelessWidget {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    // Icon
-                    Icon(
-                      item.icon,
-                      size: 24,
-                      color: isSelected
-                          ? const Color(0xFF4CAF50)
-                          : const Color(0xFF9CA3AF),
-                    ),
+                    // Icon - Use image if provided, otherwise use IconData
+                    item.iconPath != null
+                        ? Image.asset(
+                            item.iconPath!,
+                            width: 24,
+                            height: 24,
+                            color: isSelected
+                                ? const Color(0xFF4CAF50)
+                                : const Color(0xFF9CA3AF),
+                            colorBlendMode: BlendMode.srcIn,
+                          )
+                        : Icon(
+                            item.icon,
+                            size: 24,
+                            color: isSelected
+                                ? const Color(0xFF4CAF50)
+                                : const Color(0xFF9CA3AF),
+                          ),
                     SizedBox(height: 4),
                     // Label
                     Text(
@@ -85,8 +95,13 @@ class CustomBottomNavigationBar extends StatelessWidget {
 }
 
 class BottomNavItem {
-  final IconData icon;
+  final IconData? icon;
+  final String? iconPath;
   final String label;
 
-  const BottomNavItem({required this.icon, required this.label});
+  const BottomNavItem({
+    this.icon,
+    this.iconPath,
+    required this.label,
+  }) : assert(icon != null || iconPath != null, 'Either icon or iconPath must be provided');
 }

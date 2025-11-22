@@ -107,6 +107,9 @@ class _SplashScreenState extends State<SplashScreen>
     final authService = AuthService();
 
     switch (role) {
+      case 'citizen':
+        Navigator.pushReplacementNamed(context, '/citizen-dashboard');
+        break;
       case 'worker': // WORKER role maps to supervisor
         Navigator.pushReplacementNamed(context, '/supervisor-dashboard');
         break;
@@ -217,7 +220,7 @@ class _SplashScreenState extends State<SplashScreen>
                         width: 200.w,
                         fit: BoxFit.fitWidth,
                       ),
-                      SizedBox(height: 10.h),
+                      SizedBox(height: 5.h),
                       Image.asset(
                         'assets/images/rj.png',
                         width: 200.w,
@@ -230,17 +233,17 @@ class _SplashScreenState extends State<SplashScreen>
             ),
             // Bottom - Satyamev Logo
             Positioned(
-              bottom: 40.h,
+              bottom: 0,
               left: 0,
               right: 0,
               child: FadeTransition(
                 opacity: _fadeAnimation,
-                child: Center(
+                child: ScaleTransition(
+                  scale: _scaleAnimation,
                   child: Image.asset(
-                    'assets/logos/satyamev.png',
-                    width: 100.w,
-                    height: 100.h,
-                    fit: BoxFit.contain,
+                    'assets/images/ministers.png',
+                    width: double.infinity,
+                    fit: BoxFit.fitWidth,
                   ),
                 ),
               ),

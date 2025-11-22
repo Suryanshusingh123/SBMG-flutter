@@ -341,7 +341,7 @@ class _VdoAttendanceLogScreenState extends State<VdoAttendanceLogScreen> {
             fontWeight: FontWeight.w600,
           ),
         ),
-        centerTitle: true,
+        centerTitle: false,
         actions: [
           Stack(
             children: [

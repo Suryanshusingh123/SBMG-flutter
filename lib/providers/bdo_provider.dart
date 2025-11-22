@@ -188,15 +188,12 @@ class BdoProvider extends ChangeNotifier {
       _isInspectionLoading = true;
       notifyListeners();
 
-      final districtId = await _authService.getDistrictId();
       final blockId = await _authService.getBlockId();
 
       print('📡 BDO Inspection Parameters:');
-      print('   - District ID: $districtId');
       print('   - Block ID: $blockId');
 
       final inspectionResponse = await _apiService.getInspections(
-        districtId: districtId,
         blockId: blockId,
         page: 1,
         pageSize: 100,
@@ -242,6 +239,9 @@ class BdoProvider extends ChangeNotifier {
     _toDate = toDate;
     _updateDateRangeText();
     notifyListeners();
+    // Refresh data after date change
+    loadComplaintsAnalytics();
+    loadInspectionData();
   }
 
   // Update date range text

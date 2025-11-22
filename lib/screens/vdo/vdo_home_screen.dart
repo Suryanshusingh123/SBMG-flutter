@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:provider/provider.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../config/connstants.dart';
 import '../../models/scheme_model.dart';
 import '../../models/event_model.dart';
@@ -64,7 +65,15 @@ class _VdoHomeScreenState extends State<VdoHomeScreen> {
                   child: SingleChildScrollView(
                     child: Column(
                       children: [
-                        const BannerCarousel(),
+                        const BannerCarousel(
+                          imagePaths: [
+                            'assets/images/dash1.jpeg',
+                            'assets/images/dash2.jpeg',
+                            'assets/images/dash3.jpeg',
+                            'assets/images/dash4.jpeg',
+                            'assets/images/dash5.jpeg',
+                          ],
+                        ),
                         Image.asset('assets/images/Group.png'),
 
                         SizedBox(height: 20.h),
@@ -79,7 +88,7 @@ class _VdoHomeScreenState extends State<VdoHomeScreen> {
 
                         SizedBox(height: 14.h),
 
-                        // Start Village Master Data Button
+                        // Start GP Master Data Button
                         _buildStartVillageMasterDataButton(),
 
                         SizedBox(height: 24.h),
@@ -207,6 +216,11 @@ class _VdoHomeScreenState extends State<VdoHomeScreen> {
     );
   }
 
+  void _navigateToComplaints(BuildContext context, int tabIndex) {
+    context.read<VdoProvider>().setComplaintsTab(tabIndex);
+    Navigator.pushNamed(context, '/vdo-complaints');
+  }
+
   Widget _buildOverviewSection() {
     final l10n = AppLocalizations.of(context)!;
 
@@ -301,62 +315,65 @@ class _VdoHomeScreenState extends State<VdoHomeScreen> {
           // Total Complaints Card
           Consumer<VdoProvider>(
             builder: (context, provider, child) {
-              return Container(
-                width: double.infinity,
-                padding: EdgeInsets.all(16.r),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(12.r),
-                  border: Border.all(color: Colors.grey.shade200),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.05),
-                      blurRadius: 4,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Text(
-                              l10n.totalReportedComplaint,
-                              style: TextStyle(
-                                fontFamily: 'Noto Sans',
-                                fontSize: 14.sp,
-                                fontWeight: FontWeight.w500,
-                                color: const Color(0xFF717680),
-                                letterSpacing: 0.5,
+              return GestureDetector(
+                onTap: () => _navigateToComplaints(context, 0),
+                child: Container(
+                  width: double.infinity,
+                  padding: EdgeInsets.all(16.r),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(12.r),
+                    border: Border.all(color: Colors.grey.shade200),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.05),
+                        blurRadius: 4,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Text(
+                                l10n.totalReportedComplaint,
+                                style: TextStyle(
+                                  fontFamily: 'Noto Sans',
+                                  fontSize: 14.sp,
+                                  fontWeight: FontWeight.w500,
+                                  color: const Color(0xFF717680),
+                                  letterSpacing: 0.5,
+                                ),
                               ),
-                            ),
-                            SizedBox(width: 8.w),
-                            Icon(
-                              Icons.info_outline,
-                              size: 16.sp,
-                              color: const Color(0xFF6B7280),
-                            ),
-                          ],
-                        ),
-                        SizedBox(height: 8.h),
-                        Text(
-                          provider.isComplaintsLoading
-                              ? '...'
-                              : provider.analytics['totalComplaints']
-                                    .toString(),
-                          style: TextStyle(
-                            fontSize: 32.sp,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.black,
+                              SizedBox(width: 8.w),
+                              Icon(
+                                Icons.info_outline,
+                                size: 16.sp,
+                                color: const Color(0xFF6B7280),
+                              ),
+                            ],
                           ),
-                        ),
-                      ],
-                    ),
-                  ],
+                          SizedBox(height: 8.h),
+                          Text(
+                            provider.isComplaintsLoading
+                                ? '...'
+                                : provider.analytics['totalComplaints']
+                                      .toString(),
+                            style: TextStyle(
+                              fontSize: 32.sp,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.black,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
               );
             },
@@ -378,68 +395,73 @@ class _VdoHomeScreenState extends State<VdoHomeScreen> {
   Widget _buildOverviewCard(String title, BuildContext context) {
     return Consumer<VdoProvider>(
       builder: (context, provider, child) {
-        final value = title == AppLocalizations.of(context)!.openComplaint
+        final l10n = AppLocalizations.of(context)!;
+        final value = title == l10n.openComplaint
             ? provider.analytics['openComplaints'].toString()
             : provider.analytics['resolvedComplaints'].toString();
 
-        final icon = title == AppLocalizations.of(context)!.openComplaint
+        final icon = title == l10n.openComplaint
             ? 'assets/icons/hourglass.png'
             : 'assets/icons/Icon.png';
 
         final isLoading = provider.isComplaintsLoading;
+        final targetTab = title == l10n.openComplaint ? 0 : 1;
 
-        return Container(
-          height: 100,
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(12.r),
-            border: Border.all(color: Colors.grey.shade200),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.05),
-                blurRadius: 4,
-                offset: const Offset(0, 2),
-              ),
-            ],
-          ),
-          child: Stack(
-            children: [
-              Padding(
-                padding: EdgeInsets.all(16.r),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      title,
-                      style: TextStyle(
-                        fontFamily: 'Noto Sans',
-                        fontSize: 12.sp,
-                        fontWeight: FontWeight.w500,
-                        color: const Color(0xFF717680),
-                        letterSpacing: 0.5,
-                      ),
-                    ),
-                    Text(
-                      isLoading ? '...' : value,
-                      style: TextStyle(
-                        fontSize: 24.sp,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.black,
-                      ),
-                    ),
-                  ],
+        return GestureDetector(
+          onTap: () => _navigateToComplaints(context, targetTab),
+          child: Container(
+            height: 100,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12.r),
+              border: Border.all(color: Colors.grey.shade200),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.05),
+                  blurRadius: 4,
+                  offset: const Offset(0, 2),
                 ),
-              ),
-              Positioned(
-                bottom: 0,
-                right: 8,
-                child: Opacity(
-                  opacity: 0.3,
-                  child: Image.asset(icon, width: 60, height: 60),
+              ],
+            ),
+            child: Stack(
+              children: [
+                Padding(
+                  padding: EdgeInsets.all(16.r),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        title,
+                        style: TextStyle(
+                          fontFamily: 'Noto Sans',
+                          fontSize: 12.sp,
+                          fontWeight: FontWeight.w500,
+                          color: const Color(0xFF717680),
+                          letterSpacing: 0.5,
+                        ),
+                      ),
+                      Text(
+                        isLoading ? '...' : value,
+                        style: TextStyle(
+                          fontSize: 24.sp,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.black,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-            ],
+                Positioned(
+                  bottom: 0,
+                  right: 8,
+                  child: Opacity(
+                    opacity: 0.3,
+                    child: Image.asset(icon, width: 60, height: 60),
+                  ),
+                ),
+              ],
+            ),
           ),
         );
       },
@@ -1084,33 +1106,73 @@ class _VdoHomeScreenState extends State<VdoHomeScreen> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          _buildSocialIcon(Icons.camera_alt, 'Instagram'),
+          _buildSocialIcon(
+            assetPath: 'assets/images/InstagramLogo.png',
+            platform: 'Instagram',
+            url: 'https://instagram.com/SwachhRajasthan_',
+          ),
           SizedBox(width: 20.w),
-          _buildSocialIcon(Icons.close, 'X'),
+          _buildSocialIcon(
+            assetPath: 'assets/images/XLogo.png',
+            platform: 'X',
+            url: 'https://x.com/SwachRajasthan',
+          ),
           SizedBox(width: 20.w),
-          _buildSocialIcon(Icons.facebook, 'Facebook'),
+          _buildSocialIcon(
+            assetPath: 'assets/images/FacebookLogo.png',
+            platform: 'Facebook',
+            url: 'https://www.facebook.com/share/16UZeZDuvF/',
+          ),
           SizedBox(width: 20.w),
-          _buildSocialIcon(Icons.play_circle, 'YouTube'),
+          _buildSocialIcon(
+            assetPath: 'assets/images/YoutubeLogo.png',
+            platform: 'YouTube',
+            url: 'https://youtube.com/@swachhrajasthan',
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildSocialIcon(IconData icon, String platform) {
+  Widget _buildSocialIcon({
+    required String assetPath,
+    required String platform,
+    required String url,
+  }) {
     return GestureDetector(
-      onTap: () {
-        // Handle social media navigation
-      },
-      child: Container(
-        width: 40,
-        height: 40,
-        decoration: BoxDecoration(
-          color: Colors.grey.shade100,
-          borderRadius: BorderRadius.circular(20.r),
-        ),
-        child: Icon(icon, color: const Color(0xFF6B7280), size: 20.sp),
-      ),
+      onTap: () => _launchSocialLink(url, platform),
+      child: SizedBox(width: 40, height: 40, child: Image.asset(assetPath)),
     );
+  }
+
+  Future<void> _launchSocialLink(String url, String platform) async {
+    final uri = Uri.parse(url);
+
+    try {
+      final launched = await launchUrl(
+        uri,
+        mode: LaunchMode.externalApplication,
+      );
+      if (!launched && mounted) {
+        _showLinkError(platform);
+      }
+    } catch (_) {
+      if (mounted) {
+        _showLinkError(platform);
+      }
+    }
+  }
+
+  void _showLinkError(String platform) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: Text('Could not open $platform link.'),
+          backgroundColor: Colors.red,
+        ),
+      );
   }
 
   Widget _buildBottomNavigationBar() {
@@ -1119,11 +1181,8 @@ class _VdoHomeScreenState extends State<VdoHomeScreen> {
     return CustomBottomNavigationBar(
       currentIndex: _selectedIndex,
       onTap: (index) {
-        setState(() {
-          _selectedIndex = index;
-        });
+        if (index == _selectedIndex) return;
 
-        // Navigate to different screens based on selection
         switch (index) {
           case 0:
             // Already on home
@@ -1140,10 +1199,10 @@ class _VdoHomeScreenState extends State<VdoHomeScreen> {
         }
       },
       items: [
-        BottomNavItem(icon: Icons.home, label: l10n.home),
-        BottomNavItem(icon: Icons.list_alt, label: l10n.complaints),
-        BottomNavItem(icon: Icons.assignment, label: l10n.inspection),
-        BottomNavItem(icon: Icons.settings, label: l10n.settings),
+        BottomNavItem(iconPath: 'assets/icons/bottombar/home.png', label: l10n.home),
+        BottomNavItem(iconPath: 'assets/icons/bottombar/complaints.png', label: l10n.complaints),
+        BottomNavItem(iconPath: 'assets/icons/bottombar/inspection.png', label: l10n.inspection),
+        BottomNavItem(iconPath: 'assets/icons/bottombar/settings.png', label: l10n.settings),
       ],
     );
   }
@@ -2121,7 +2180,7 @@ class _VdoContractorDetailsBottomSheetState
         ),
         SizedBox(height: 8.h),
         DropdownButtonFormField<String>(
-          value: value,
+          initialValue: value,
           decoration: InputDecoration(
             hintText: placeholder,
             hintStyle: TextStyle(color: Colors.grey.shade500, fontSize: 14),

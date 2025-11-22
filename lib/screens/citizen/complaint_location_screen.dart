@@ -7,6 +7,7 @@ import '../../models/geography_model.dart';
 import '../../models/complaint_type_model.dart';
 import '../../widgets/common/bottom_sheet_picker.dart';
 import '../../l10n/app_localizations.dart';
+import '../../theme/citizen_colors.dart';
 import 'dart:io';
 import 'raise_complaint_screen.dart';
 
@@ -36,7 +37,6 @@ class _ComplaintLocationScreenState extends State<ComplaintLocationScreen> {
   // Text controllers
   final _villageController = TextEditingController();
   final _wardAreaController = TextEditingController();
-  final _locationController = TextEditingController();
 
   // Data lists
   List<District> districts = [];
@@ -143,6 +143,7 @@ class _ComplaintLocationScreenState extends State<ComplaintLocationScreen> {
       context: context,
       barrierDismissible: false,
       builder: (context) => Dialog(
+        backgroundColor: CitizenColors.surface(context),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16.r),
         ),
@@ -159,7 +160,11 @@ class _ComplaintLocationScreenState extends State<ComplaintLocationScreen> {
                   color: Color(0xFFFFB800),
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(Icons.star, color: Colors.white, size: 32),
+                child: const Icon(
+                  Icons.star,
+                  color: CitizenColors.light,
+                  size: 32,
+                ),
               ),
               SizedBox(height: 20.h),
 
@@ -170,7 +175,7 @@ class _ComplaintLocationScreenState extends State<ComplaintLocationScreen> {
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.w600,
-                  color: Color(0xFF111827),
+                  color: CitizenColors.textPrimary(context),
                 ),
               ),
               SizedBox(height: 24.h),
@@ -189,7 +194,7 @@ class _ComplaintLocationScreenState extends State<ComplaintLocationScreen> {
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.primaryColor,
-                    foregroundColor: Colors.white,
+                    foregroundColor: CitizenColors.light,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(8.r),
                     ),
@@ -216,8 +221,7 @@ class _ComplaintLocationScreenState extends State<ComplaintLocationScreen> {
     if (selectedDistrict == null ||
         selectedBlock == null ||
         _villageController.text.isEmpty ||
-        _wardAreaController.text.isEmpty ||
-        _locationController.text.isEmpty) {
+        _wardAreaController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(l10n.pleaseFillAllFields),
@@ -265,11 +269,11 @@ class _ComplaintLocationScreenState extends State<ComplaintLocationScreen> {
 
       print('📝 Step 4: Preparing complaint data...');
       print('   - Complaint Type ID: ${widget.selectedComplaintType?.id}');
+      final resolvedGpId = selectedVillage?.gpId ?? selectedVillage?.id ?? 1;
       print('   - Selected Village: ${selectedVillage?.name}');
-      print('   - GP ID: ${selectedVillage?.gpId ?? 1}');
+      print('   - GP ID: $resolvedGpId');
       print('   - Village Text: ${_villageController.text}');
       print('   - Ward/Area: ${_wardAreaController.text}');
-      print('   - Location: ${_locationController.text}');
       print('   - Description: ${widget.description}');
 
       if (widget.selectedComplaintType == null) {
@@ -280,15 +284,16 @@ class _ComplaintLocationScreenState extends State<ComplaintLocationScreen> {
       print('📝 Step 5: Calling submitComplaint API...');
 
       // Submit complaint
+      // Location will be automatically fetched from GPS coordinates by the API
       await ApiService().submitComplaint(
         token: token,
         complaintTypeId: widget.selectedComplaintType!.id,
-        gpId: selectedVillage?.gpId ?? 1, // Use gp_id from selected village
+        gpId: resolvedGpId,
         description: widget.description,
         files: imageFiles,
         lat: firstImage.latitude,
         long: firstImage.longitude,
-        location: _locationController.text,
+        location: '', // Empty string - API will get location from GPS coordinates
       );
 
       print('✅ Complaint submitted successfully!');
@@ -318,26 +323,28 @@ class _ComplaintLocationScreenState extends State<ComplaintLocationScreen> {
   void dispose() {
     _villageController.dispose();
     _wardAreaController.dispose();
-    _locationController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
+    final surfaceColor = CitizenColors.surface(context);
+    final primaryTextColor = CitizenColors.textPrimary(context);
+    final secondaryTextColor = CitizenColors.textSecondary(context);
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: CitizenColors.background(context),
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: CitizenColors.surface(context),
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.black),
+          icon: Icon(Icons.arrow_back, color: primaryTextColor),
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
           l10n.complaintLocation,
-          style: const TextStyle(
-            color: Colors.black,
+          style: TextStyle(
+            color: primaryTextColor,
             fontSize: 18,
             fontWeight: FontWeight.w600,
           ),
@@ -357,59 +364,89 @@ class _ComplaintLocationScreenState extends State<ComplaintLocationScreen> {
                   // District
                   Text(
                     l10n.district,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w500,
-                      color: Color(0xFF111827),
+                      color: primaryTextColor,
                     ),
                   ),
                   SizedBox(height: 8.h),
                   GestureDetector(
-                    onTap: () {
-                      BottomSheetPicker.show<District>(
-                        context: context,
-                        title: l10n.selectDistrict,
-                        items: districts,
-                        selectedItem: selectedDistrict,
-                        itemBuilder: (district) => district.name,
-                        showSearch: true,
-                        searchHint: l10n.searchDistricts,
-                        onSelected: (district) {
-                          setState(() {
-                            selectedDistrict = district;
-                            selectedBlock = null;
-                            selectedVillage = null;
-                            blocks = [];
-                            villages = [];
-                          });
-                          if (selectedDistrict != null) {
-                            _loadBlocks(selectedDistrict!.id);
-                          }
-                        },
-                      );
-                    },
+                    onTap: isLoadingDistricts
+                        ? null
+                        : () {
+                            BottomSheetPicker.show<District>(
+                              context: context,
+                              title: l10n.selectDistrict,
+                              items: districts,
+                              selectedItem: selectedDistrict,
+                              itemBuilder: (district) => district.name,
+                              showSearch: true,
+                              searchHint: l10n.searchDistricts,
+                              isLoading: isLoadingDistricts,
+                              onSelected: (district) {
+                                setState(() {
+                                  selectedDistrict = district;
+                                  selectedBlock = null;
+                                  selectedVillage = null;
+                                  blocks = [];
+                                  villages = [];
+                                });
+                                if (selectedDistrict != null) {
+                                  _loadBlocks(selectedDistrict!.id);
+                                }
+                              },
+                            );
+                          },
                     child: Container(
                       height: 50.h,
                       padding: EdgeInsets.symmetric(horizontal: 12.w),
                       decoration: BoxDecoration(
                         border: Border.all(color: Colors.grey.shade300),
                         borderRadius: BorderRadius.circular(8.r),
-                        color: Colors.white,
+                        color: isLoadingDistricts
+                            ? Colors.grey.shade100
+                            : surfaceColor,
                       ),
                       child: Row(
                         children: [
                           Expanded(
-                            child: Text(
-                              selectedDistrict?.name ?? l10n.selectDistrict,
-                              style: TextStyle(
-                                color: selectedDistrict != null
-                                    ? Colors.black
-                                    : Colors.grey,
-                                fontSize: 14,
-                              ),
-                            ),
+                            child: isLoadingDistricts
+                                ? Row(
+                                    children: [
+                                      SizedBox(
+                                        width: 16.w,
+                                        height: 16.h,
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2,
+                                          valueColor:
+                                              const AlwaysStoppedAnimation<Color>(
+                                            Color(0xFF009B56),
+                                          ),
+                                        ),
+                                      ),
+                                      SizedBox(width: 8.w),
+                                      Text(
+                                        'Loading districts...',
+                                        style: TextStyle(
+                                          color: secondaryTextColor,
+                                          fontSize: 14,
+                                        ),
+                                      ),
+                                    ],
+                                  )
+                                : Text(
+                                    selectedDistrict?.name ?? l10n.selectDistrict,
+                                    style: TextStyle(
+                                      color: selectedDistrict != null
+                                          ? primaryTextColor
+                                          : secondaryTextColor,
+                                      fontSize: 14,
+                                    ),
+                                  ),
                           ),
-                          const Icon(Icons.arrow_drop_down, color: Colors.grey),
+                          if (!isLoadingDistricts)
+                            const Icon(Icons.arrow_drop_down, color: Colors.grey),
                         ],
                       ),
                     ),
@@ -419,15 +456,15 @@ class _ComplaintLocationScreenState extends State<ComplaintLocationScreen> {
                   // Block
                   Text(
                     l10n.block,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w500,
-                      color: Color(0xFF111827),
+                      color: primaryTextColor,
                     ),
                   ),
                   SizedBox(height: 8.h),
                   GestureDetector(
-                    onTap: selectedDistrict == null
+                    onTap: (selectedDistrict == null || isLoadingBlocks)
                         ? null
                         : () {
                             BottomSheetPicker.show<Block>(
@@ -438,6 +475,7 @@ class _ComplaintLocationScreenState extends State<ComplaintLocationScreen> {
                               itemBuilder: (block) => block.name,
                               showSearch: true,
                               searchHint: l10n.searchBlocks,
+                              isLoading: isLoadingBlocks,
                               onSelected: (block) {
                                 setState(() {
                                   selectedBlock = block;
@@ -459,24 +497,49 @@ class _ComplaintLocationScreenState extends State<ComplaintLocationScreen> {
                       decoration: BoxDecoration(
                         border: Border.all(color: Colors.grey.shade300),
                         borderRadius: BorderRadius.circular(8.r),
-                        color: selectedDistrict == null
+                        color: (selectedDistrict == null || isLoadingBlocks)
                             ? Colors.grey.shade100
-                            : Colors.white,
+                            : surfaceColor,
                       ),
                       child: Row(
                         children: [
                           Expanded(
-                            child: Text(
-                              selectedBlock?.name ?? l10n.selectBlock,
-                              style: TextStyle(
-                                color: selectedBlock != null
-                                    ? Colors.black
-                                    : Colors.grey,
-                                fontSize: 14,
-                              ),
-                            ),
+                            child: isLoadingBlocks
+                                ? Row(
+                                    children: [
+                                      SizedBox(
+                                        width: 16.w,
+                                        height: 16.h,
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2,
+                                          valueColor:
+                                              const AlwaysStoppedAnimation<Color>(
+                                            Color(0xFF009B56),
+                                          ),
+                                        ),
+                                      ),
+                                      SizedBox(width: 8.w),
+                                      Text(
+                                        'Loading blocks...',
+                                        style: TextStyle(
+                                          color: secondaryTextColor,
+                                          fontSize: 14,
+                                        ),
+                                      ),
+                                    ],
+                                  )
+                                : Text(
+                                    selectedBlock?.name ?? l10n.selectBlock,
+                                    style: TextStyle(
+                                      color: selectedBlock != null
+                                          ? primaryTextColor
+                                          : secondaryTextColor,
+                                      fontSize: 14,
+                                    ),
+                                  ),
                           ),
-                          const Icon(Icons.arrow_drop_down, color: Colors.grey),
+                          if (!isLoadingBlocks)
+                            const Icon(Icons.arrow_drop_down, color: Colors.grey),
                         ],
                       ),
                     ),
@@ -486,15 +549,15 @@ class _ComplaintLocationScreenState extends State<ComplaintLocationScreen> {
                   // Gram Panchayat
                   Text(
                     l10n.gramPanchayat,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w500,
-                      color: Color(0xFF111827),
+                      color: primaryTextColor,
                     ),
                   ),
                   SizedBox(height: 8.h),
                   GestureDetector(
-                    onTap: selectedBlock == null
+                    onTap: (selectedBlock == null || isLoadingVillages)
                         ? null
                         : () {
                             BottomSheetPicker.show<Village>(
@@ -505,6 +568,7 @@ class _ComplaintLocationScreenState extends State<ComplaintLocationScreen> {
                               itemBuilder: (village) => village.name,
                               showSearch: true,
                               searchHint: l10n.searchVillages,
+                              isLoading: isLoadingVillages,
                               onSelected: (village) {
                                 setState(() {
                                   selectedVillage = village;
@@ -519,24 +583,49 @@ class _ComplaintLocationScreenState extends State<ComplaintLocationScreen> {
                       decoration: BoxDecoration(
                         border: Border.all(color: Colors.grey.shade300),
                         borderRadius: BorderRadius.circular(8.r),
-                        color: selectedBlock == null
+                        color: (selectedBlock == null || isLoadingVillages)
                             ? Colors.grey.shade100
-                            : Colors.white,
+                            : surfaceColor,
                       ),
                       child: Row(
                         children: [
                           Expanded(
-                            child: Text(
-                              selectedVillage?.name ?? l10n.selectGramPanchayat,
-                              style: TextStyle(
-                                color: selectedVillage != null
-                                    ? Colors.black
-                                    : Colors.grey,
-                                fontSize: 14,
-                              ),
-                            ),
+                            child: isLoadingVillages
+                                ? Row(
+                                    children: [
+                                      SizedBox(
+                                        width: 16.w,
+                                        height: 16.h,
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2,
+                                          valueColor:
+                                              const AlwaysStoppedAnimation<Color>(
+                                            Color(0xFF009B56),
+                                          ),
+                                        ),
+                                      ),
+                                      SizedBox(width: 8.w),
+                                      Text(
+                                        'Loading villages...',
+                                        style: TextStyle(
+                                          color: secondaryTextColor,
+                                          fontSize: 14,
+                                        ),
+                                      ),
+                                    ],
+                                  )
+                                : Text(
+                                    selectedVillage?.name ?? l10n.selectGramPanchayat,
+                                    style: TextStyle(
+                                      color: selectedVillage != null
+                                          ? primaryTextColor
+                                          : secondaryTextColor,
+                                      fontSize: 14,
+                                    ),
+                                  ),
                           ),
-                          const Icon(Icons.arrow_drop_down, color: Colors.grey),
+                          if (!isLoadingVillages)
+                            const Icon(Icons.arrow_drop_down, color: Colors.grey),
                         ],
                       ),
                     ),
@@ -546,10 +635,10 @@ class _ComplaintLocationScreenState extends State<ComplaintLocationScreen> {
                   // Village
                   Text(
                     l10n.village,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w500,
-                      color: Color(0xFF111827),
+                      color: primaryTextColor,
                     ),
                   ),
                   SizedBox(height: 8.h),
@@ -578,10 +667,10 @@ class _ComplaintLocationScreenState extends State<ComplaintLocationScreen> {
                   // Ward/Area
                   Text(
                     l10n.wardArea,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w500,
-                      color: Color(0xFF111827),
+                      color: primaryTextColor,
                     ),
                   ),
                   SizedBox(height: 8.h),
@@ -589,38 +678,6 @@ class _ComplaintLocationScreenState extends State<ComplaintLocationScreen> {
                     controller: _wardAreaController,
                     decoration: InputDecoration(
                       hintText: l10n.enterWardArea,
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8.r),
-                        borderSide: BorderSide(color: Colors.grey.shade300),
-                      ),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8.r),
-                        borderSide: BorderSide(color: Colors.grey.shade300),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8.r),
-                        borderSide: const BorderSide(
-                          color: AppColors.primaryColor,
-                        ),
-                      ),
-                    ),
-                  ),
-                  SizedBox(height: 16.h),
-
-                  // Location
-                  Text(
-                    l10n.location,
-                    style: const TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w500,
-                      color: Color(0xFF111827),
-                    ),
-                  ),
-                  SizedBox(height: 8.h),
-                  TextField(
-                    controller: _locationController,
-                    decoration: InputDecoration(
-                      hintText: l10n.enterLocation,
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(8.r),
                         borderSide: BorderSide(color: Colors.grey.shade300),
@@ -646,7 +703,7 @@ class _ComplaintLocationScreenState extends State<ComplaintLocationScreen> {
           Container(
             padding: EdgeInsets.all(16.w),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: surfaceColor,
               border: Border(
                 top: BorderSide(color: Colors.grey.shade200, width: 1),
               ),
@@ -658,7 +715,7 @@ class _ComplaintLocationScreenState extends State<ComplaintLocationScreen> {
                 onPressed: isSubmitting ? null : _submitComplaint,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.primaryColor,
-                  foregroundColor: Colors.white,
+                  foregroundColor: CitizenColors.light,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(8.r),
                   ),
@@ -671,7 +728,7 @@ class _ComplaintLocationScreenState extends State<ComplaintLocationScreen> {
                         child: CircularProgressIndicator(
                           strokeWidth: 2,
                           valueColor: AlwaysStoppedAnimation<Color>(
-                            Colors.white,
+                            CitizenColors.light,
                           ),
                         ),
                       )

@@ -560,20 +560,20 @@ class _SupervisorAttendanceScreenState
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
-          _buildNavItem(Icons.home, AppLocalizations.of(context)!.home, 0),
+          _buildNavItem('assets/icons/bottombar/home.png', AppLocalizations.of(context)!.home, 0),
           _buildNavItem(
-            Icons.list_alt,
+            'assets/icons/bottombar/complaints.png',
             AppLocalizations.of(context)!.complaints,
             1,
           ),
           _buildNavItem(
-            Icons.grid_view,
+            'assets/icons/bottombar/attendance.png',
             AppLocalizations.of(context)!.attendance,
             2,
             isActive: true,
           ),
           _buildNavItem(
-            Icons.settings,
+            'assets/icons/bottombar/settings.png',
             AppLocalizations.of(context)!.settings,
             3,
           ),
@@ -583,7 +583,7 @@ class _SupervisorAttendanceScreenState
   }
 
   Widget _buildNavItem(
-    IconData icon,
+    String iconPath,
     String label,
     int index, {
     bool isActive = false,
@@ -607,12 +607,14 @@ class _SupervisorAttendanceScreenState
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(
-                icon,
-                size: 24.sp,
+              Image.asset(
+                iconPath,
+                width: 24,
+                height: 24,
                 color: isActive
                     ? const Color(0xFF4CAF50)
                     : const Color(0xFF9CA3AF),
+                colorBlendMode: BlendMode.srcIn,
               ),
               SizedBox(height: 4.h),
               Text(

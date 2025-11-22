@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:intl/intl.dart';
 import '../../services/api_services.dart';
@@ -77,10 +78,232 @@ class _VillageMasterDataFormScreenState
   bool _villagesExpanded = false;
 
   // Village data
-  List<Map<String, dynamic>> _villages = [];
+  final List<Map<String, dynamic>> _villages = [];
 
   // Loading state
   bool _isSubmitting = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _setupAutoExpandListeners();
+  }
+
+  void _setupAutoExpandListeners() {
+    // Listen to VDO Name and Contact Number to auto-expand Sarpanch section
+    _vdoNameController.addListener(_checkAndAutoExpandBasicInfo);
+    _contactNumberController.addListener(_checkAndAutoExpandBasicInfo);
+
+    // Listen to Sarpanch fields to auto-expand Contractor section
+    _sarpanchNameController.addListener(_checkAndAutoExpandSarpanch);
+    _sarpanchContactController.addListener(_checkAndAutoExpandSarpanch);
+
+    // Listen to Contractor field to auto-expand Work Order section
+    _contractorNameController.addListener(_checkAndAutoExpandContractor);
+
+    // Listen to Work Order fields to auto-expand Fund section
+    _workOrderNoController.addListener(_checkAndAutoExpandWorkOrder);
+    _workOrderDateController.addListener(_checkAndAutoExpandWorkOrder);
+    _workOrderAmountController.addListener(_checkAndAutoExpandWorkOrder);
+
+    // Listen to Fund fields to auto-expand Collection section
+    _fundAmountController.addListener(_checkAndAutoExpandFund);
+
+    // Listen to Collection fields to auto-expand Road Sweeping section
+    _householdsController.addListener(_checkAndAutoExpandCollection);
+    _shopsController.addListener(_checkAndAutoExpandCollection);
+
+    // Listen to Road Sweeping fields to auto-expand Drain Cleaning section
+    _roadWidthController.addListener(_checkAndAutoExpandRoadSweeping);
+    _roadLengthController.addListener(_checkAndAutoExpandRoadSweeping);
+
+    // Listen to Drain Cleaning fields to auto-expand CSC section
+    _drainLengthController.addListener(_checkAndAutoExpandDrainCleaning);
+
+    // Listen to CSC fields to auto-expand SWM Assets section
+    _cscNumbersController.addListener(_checkAndAutoExpandCsc);
+
+    // Listen to SWM Assets fields to auto-expand SBMG Targets section
+    _rrcController.addListener(_checkAndAutoExpandSwmAssets);
+    _pwmuController.addListener(_checkAndAutoExpandSwmAssets);
+    _compositPitController.addListener(_checkAndAutoExpandSwmAssets);
+    _collectionVehicleController.addListener(_checkAndAutoExpandSwmAssets);
+
+    // Listen to SBMG Targets fields to auto-expand Villages section
+    _ihhlController.addListener(_checkAndAutoExpandSbmgTargets);
+    _sbmgCscController.addListener(_checkAndAutoExpandSbmgTargets);
+    _sbmgRrcController.addListener(_checkAndAutoExpandSbmgTargets);
+    _sbmgPwmuController.addListener(_checkAndAutoExpandSbmgTargets);
+    _soakPitController.addListener(_checkAndAutoExpandSbmgTargets);
+    _magicPitController.addListener(_checkAndAutoExpandSbmgTargets);
+    _leachPitController.addListener(_checkAndAutoExpandSbmgTargets);
+    _wspController.addListener(_checkAndAutoExpandSbmgTargets);
+    _dewatsController.addListener(_checkAndAutoExpandSbmgTargets);
+  }
+
+  void _checkAndAutoExpandBasicInfo() {
+    if (_vdoNameController.text.trim().isNotEmpty &&
+        _contactNumberController.text.trim().length == 10) {
+      _autoExpandNextSection('basic');
+    }
+  }
+
+  void _checkAndAutoExpandSarpanch() {
+    if (_sarpanchNameController.text.trim().isNotEmpty &&
+        _sarpanchContactController.text.trim().length == 10) {
+      _autoExpandNextSection('sarpanch');
+    }
+  }
+
+  void _checkAndAutoExpandContractor() {
+    if (_contractorNameController.text.trim().isNotEmpty) {
+      _autoExpandNextSection('contractor');
+    }
+  }
+
+  void _checkAndAutoExpandWorkOrder() {
+    if (_workOrderNoController.text.trim().isNotEmpty &&
+        _workOrderDateController.text.trim().isNotEmpty &&
+        _workOrderAmountController.text.trim().isNotEmpty) {
+      _autoExpandNextSection('workOrder');
+    }
+  }
+
+  void _checkAndAutoExpandFund() {
+    if (_fundAmountController.text.trim().isNotEmpty &&
+        _selectedFundHead != null) {
+      _autoExpandNextSection('fund');
+    }
+  }
+
+  void _checkAndAutoExpandCollection() {
+    if (_householdsController.text.trim().isNotEmpty &&
+        _shopsController.text.trim().isNotEmpty &&
+        _selectedCollectionFrequency != null) {
+      _autoExpandNextSection('collection');
+    }
+  }
+
+  void _checkAndAutoExpandRoadSweeping() {
+    if (_roadWidthController.text.trim().isNotEmpty &&
+        _roadLengthController.text.trim().isNotEmpty &&
+        _selectedRoadCleaningFrequency != null) {
+      _autoExpandNextSection('roadSweeping');
+    }
+  }
+
+  void _checkAndAutoExpandDrainCleaning() {
+    if (_drainLengthController.text.trim().isNotEmpty &&
+        _selectedDrainCleaningFrequency != null) {
+      _autoExpandNextSection('drainCleaning');
+    }
+  }
+
+  void _checkAndAutoExpandCsc() {
+    if (_cscNumbersController.text.trim().isNotEmpty &&
+        _selectedCscCleaningFrequency != null) {
+      _autoExpandNextSection('csc');
+    }
+  }
+
+  void _checkAndAutoExpandSwmAssets() {
+    if (_rrcController.text.trim().isNotEmpty &&
+        _pwmuController.text.trim().isNotEmpty &&
+        _compositPitController.text.trim().isNotEmpty &&
+        _collectionVehicleController.text.trim().isNotEmpty) {
+      _autoExpandNextSection('swmAssets');
+    }
+  }
+
+  void _checkAndAutoExpandSbmgTargets() {
+    if (_ihhlController.text.trim().isNotEmpty &&
+        _sbmgCscController.text.trim().isNotEmpty &&
+        _sbmgRrcController.text.trim().isNotEmpty &&
+        _sbmgPwmuController.text.trim().isNotEmpty &&
+        _soakPitController.text.trim().isNotEmpty &&
+        _magicPitController.text.trim().isNotEmpty &&
+        _leachPitController.text.trim().isNotEmpty &&
+        _wspController.text.trim().isNotEmpty &&
+        _dewatsController.text.trim().isNotEmpty) {
+      _autoExpandNextSection('sbmgTargets');
+    }
+  }
+
+  void _autoExpandNextSection(String currentSection) {
+    if (!mounted) return;
+
+    setState(() {
+      // Close current section and open next one
+      switch (currentSection) {
+        case 'basic':
+          // Don't close basic info as it's always visible
+          if (!_sarpanchExpanded) {
+            _sarpanchExpanded = true;
+          }
+          break;
+        case 'sarpanch':
+          _sarpanchExpanded = false;
+          if (!_contractorExpanded) {
+            _contractorExpanded = true;
+          }
+          break;
+        case 'contractor':
+          _contractorExpanded = false;
+          if (!_workOrderExpanded) {
+            _workOrderExpanded = true;
+          }
+          break;
+        case 'workOrder':
+          _workOrderExpanded = false;
+          if (!_fundExpanded) {
+            _fundExpanded = true;
+          }
+          break;
+        case 'fund':
+          _fundExpanded = false;
+          if (!_collectionExpanded) {
+            _collectionExpanded = true;
+          }
+          break;
+        case 'collection':
+          _collectionExpanded = false;
+          if (!_roadSweepingExpanded) {
+            _roadSweepingExpanded = true;
+          }
+          break;
+        case 'roadSweeping':
+          _roadSweepingExpanded = false;
+          if (!_drainCleaningExpanded) {
+            _drainCleaningExpanded = true;
+          }
+          break;
+        case 'drainCleaning':
+          _drainCleaningExpanded = false;
+          if (!_cscExpanded) {
+            _cscExpanded = true;
+          }
+          break;
+        case 'csc':
+          _cscExpanded = false;
+          if (!_swmAssetsExpanded) {
+            _swmAssetsExpanded = true;
+          }
+          break;
+        case 'swmAssets':
+          _swmAssetsExpanded = false;
+          if (!_sbmgTargetsExpanded) {
+            _sbmgTargetsExpanded = true;
+          }
+          break;
+        case 'sbmgTargets':
+          _sbmgTargetsExpanded = false;
+          if (!_villagesExpanded) {
+            _villagesExpanded = true;
+          }
+          break;
+      }
+    });
+  }
 
   @override
   void dispose() {
@@ -140,7 +363,7 @@ class _VillageMasterDataFormScreenState
           onPressed: () => Navigator.pop(context),
         ),
         title: const Text(
-          'Village Master data Form',
+          'GP Master Data Form',
           style: TextStyle(
             color: Colors.black,
             fontSize: 18,
@@ -172,8 +395,9 @@ class _VillageMasterDataFormScreenState
                     _buildFormField(
                       label: 'Contact Number',
                       controller: _contactNumberController,
-                      placeholder: 'Contact Number',
+                      placeholder: 'Contact Number (10 digits)',
                       keyboardType: TextInputType.phone,
+                      isContactField: true,
                     ),
 
                     SizedBox(height: 20.h),
@@ -195,8 +419,9 @@ class _VillageMasterDataFormScreenState
                         _buildFormField(
                           label: 'Contact Number',
                           controller: _sarpanchContactController,
-                          placeholder: 'Number',
+                          placeholder: 'Number (10 digits)',
                           keyboardType: TextInputType.phone,
+                          isContactField: true,
                         ),
                       ],
                     ),
@@ -303,6 +528,10 @@ class _VillageMasterDataFormScreenState
                             setState(
                               () => _selectedCollectionFrequency = value,
                             );
+                            // Check if section is complete and auto-expand next
+                            Future.microtask(
+                              () => _checkAndAutoExpandCollection(),
+                            );
                           },
                         ),
                       ],
@@ -339,6 +568,10 @@ class _VillageMasterDataFormScreenState
                             setState(
                               () => _selectedRoadCleaningFrequency = value,
                             );
+                            // Check if section is complete and auto-expand next
+                            Future.microtask(
+                              () => _checkAndAutoExpandRoadSweeping(),
+                            );
                           },
                         ),
                       ],
@@ -368,6 +601,10 @@ class _VillageMasterDataFormScreenState
                             setState(
                               () => _selectedDrainCleaningFrequency = value,
                             );
+                            // Check if section is complete and auto-expand next
+                            Future.microtask(
+                              () => _checkAndAutoExpandDrainCleaning(),
+                            );
                           },
                         ),
                       ],
@@ -396,6 +633,8 @@ class _VillageMasterDataFormScreenState
                             setState(
                               () => _selectedCscCleaningFrequency = value,
                             );
+                            // Check if section is complete and auto-expand next
+                            Future.microtask(() => _checkAndAutoExpandCsc());
                           },
                         ),
                       ],
@@ -581,6 +820,7 @@ class _VillageMasterDataFormScreenState
     TextInputType? keyboardType,
     VoidCallback? onTap,
     IconData? suffixIcon,
+    bool isContactField = false,
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -596,9 +836,18 @@ class _VillageMasterDataFormScreenState
         SizedBox(height: 8.h),
         TextFormField(
           controller: controller,
-          keyboardType: keyboardType,
+          keyboardType:
+              keyboardType ??
+              (isContactField ? TextInputType.phone : TextInputType.text),
           onTap: onTap,
           readOnly: onTap != null,
+          maxLength: isContactField ? 10 : null,
+          inputFormatters: isContactField
+              ? [
+                  FilteringTextInputFormatter.digitsOnly,
+                  LengthLimitingTextInputFormatter(10),
+                ]
+              : null,
           decoration: InputDecoration(
             hintText: placeholder,
             hintStyle: TextStyle(color: Colors.grey.shade500, fontSize: 14),
@@ -623,10 +872,18 @@ class _VillageMasterDataFormScreenState
             suffixIcon: suffixIcon != null
                 ? Icon(suffixIcon, color: Colors.grey.shade600, size: 20)
                 : null,
+            counterText: isContactField
+                ? ''
+                : null, // Hide counter for contact fields
           ),
           validator: (value) {
             if (value == null || value.isEmpty) {
               return 'This field is required';
+            }
+            if (isContactField) {
+              if (value.length != 10) {
+                return 'Contact number must be exactly 10 digits';
+              }
             }
             return null;
           },
@@ -693,6 +950,12 @@ class _VillageMasterDataFormScreenState
                 vertical: 12,
               ),
             ),
+            validator: (value) {
+              if (value == null || value.isEmpty) {
+                return 'Please select ${label.toLowerCase()}';
+              }
+              return null;
+            },
             items: frequencyOptions.map((String value) {
               return DropdownMenuItem<String>(
                 value: value,
@@ -728,38 +991,59 @@ class _VillageMasterDataFormScreenState
   }
 
   Widget _buildFundHeadRadioGroup() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Head',
-          style: const TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.w500,
-            color: Color(0xFF374151),
-          ),
-        ),
-        SizedBox(height: 8.h),
-        Column(
+    return FormField<String>(
+      validator: (_) {
+        if (_selectedFundHead == null || _selectedFundHead!.isEmpty) {
+          return 'Please select a fund head';
+        }
+        return null;
+      },
+      builder: (state) {
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _buildRadioOption('FFC'),
-            SizedBox(height: 12.h),
-            _buildRadioOption('SFC'),
-            SizedBox(height: 12.h),
-            _buildRadioOption('CSR'),
-            SizedBox(height: 12.h),
-            _buildRadioOption('Own income'),
-            SizedBox(height: 12.h),
-            _buildRadioOption('Other'),
+            Text(
+              'Head',
+              style: const TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+                color: Color(0xFF374151),
+              ),
+            ),
+            SizedBox(height: 8.h),
+            Column(
+              children: [
+                _buildRadioOption('FFC', state),
+                SizedBox(height: 12.h),
+                _buildRadioOption('SFC', state),
+                SizedBox(height: 12.h),
+                _buildRadioOption('CSR', state),
+                SizedBox(height: 12.h),
+                _buildRadioOption('Own income', state),
+                SizedBox(height: 12.h),
+                _buildRadioOption('Other', state),
+              ],
+            ),
+            if (state.hasError)
+              Padding(
+                padding: EdgeInsets.only(top: 8.h),
+                child: Text(
+                  state.errorText ?? '',
+                  style: const TextStyle(fontSize: 12, color: Colors.red),
+                ),
+              ),
           ],
-        ),
-      ],
+        );
+      },
     );
   }
 
-  Widget _buildRadioOption(String value) {
+  Widget _buildRadioOption(String value, FormFieldState<String> state) {
     return InkWell(
-      onTap: () => setState(() => _selectedFundHead = value),
+      onTap: () {
+        setState(() => _selectedFundHead = value);
+        state.didChange(value);
+      },
       child: Row(
         children: [
           Radio<String>(
@@ -767,6 +1051,11 @@ class _VillageMasterDataFormScreenState
             groupValue: _selectedFundHead,
             onChanged: (String? newValue) {
               setState(() => _selectedFundHead = newValue);
+              if (newValue != null) {
+                state.didChange(newValue);
+              }
+              // Check if section is complete and auto-expand next
+              Future.microtask(() => _checkAndAutoExpandFund());
             },
             activeColor: const Color(0xFF009B56),
           ),
@@ -851,14 +1140,37 @@ class _VillageMasterDataFormScreenState
   }
 
   Widget _buildVillageSection() {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(8.r),
-        border: Border.all(color: Colors.grey.shade300),
-      ),
-      child: Column(
-        children: [
+    return Column(
+      children: [
+        // Add Village Button - Always visible
+        Container(
+          padding: EdgeInsets.all(15.r),
+          child: SizedBox(
+            width: double.infinity,
+            height: 46.h,
+            child: ElevatedButton.icon(
+              onPressed: _addVillage,
+              icon: const Icon(Icons.add, color: Colors.white, size: 24),
+              label: const Text(
+                'Add Village',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+              ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF009B56),
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8.r),
+                ),
+                elevation: 0,
+                padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 1.h),
+              ),
+            ),
+          ),
+        ),
+
+        // Village List Section (Expandable if there are villages)
+        if (_villages.isNotEmpty) ...[
+          Divider(height: 1, color: Colors.grey.shade300),
           // Header
           InkWell(
             onTap: () => setState(() => _villagesExpanded = !_villagesExpanded),
@@ -869,7 +1181,7 @@ class _VillageMasterDataFormScreenState
                 children: [
                   Expanded(
                     child: Text(
-                      'Add Village',
+                      'Villages (${_villages.length})',
                       style: const TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
@@ -888,32 +1200,13 @@ class _VillageMasterDataFormScreenState
             ),
           ),
 
-          // Content
+          // Village List Content
           if (_villagesExpanded)
             Container(
               padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Add Village Button
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton.icon(
-                      onPressed: _addVillage,
-                      icon: const Icon(Icons.add, color: Colors.white),
-                      label: const Text('Add Village'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF009B56),
-                        foregroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8.r),
-                        ),
-                        elevation: 0,
-                      ),
-                    ),
-                  ),
-                  SizedBox(height: 16.h),
-
                   // Village List
                   ...List.generate(_villages.length, (index) {
                     return _buildVillageEntry(index);
@@ -922,7 +1215,7 @@ class _VillageMasterDataFormScreenState
               ),
             ),
         ],
-      ),
+      ],
     );
   }
 
@@ -1094,11 +1387,335 @@ class _VillageMasterDataFormScreenState
     );
   }
 
+  bool _validateAllFieldsFilled() {
+    final missingFields = <String>[];
+
+    bool expandSarpanch = false;
+    bool expandContractor = false;
+    bool expandWorkOrder = false;
+    bool expandFund = false;
+    bool expandCollection = false;
+    bool expandRoad = false;
+    bool expandDrain = false;
+    bool expandCsc = false;
+    bool expandSwm = false;
+    bool expandTargets = false;
+    bool expandVillages = false;
+
+    void checkController(
+      TextEditingController? controller,
+      String label, {
+      VoidCallback? markSection,
+    }) {
+      if (controller == null || controller.text.trim().isEmpty) {
+        missingFields.add(label);
+        markSection?.call();
+      }
+    }
+
+    void checkSelection(
+      String? value,
+      String label, {
+      VoidCallback? markSection,
+    }) {
+      if (value == null || value.trim().isEmpty) {
+        missingFields.add(label);
+        markSection?.call();
+      }
+    }
+
+    checkController(_vdoNameController, 'VDO name');
+    // Validate contact number - must be exactly 10 digits
+    if (_contactNumberController.text.trim().isEmpty) {
+      missingFields.add('Contact number');
+    } else if (_contactNumberController.text.trim().length != 10) {
+      missingFields.add('Contact number must be exactly 10 digits');
+    }
+
+    checkController(
+      _sarpanchNameController,
+      'Sarpanch name',
+      markSection: () => expandSarpanch = true,
+    );
+    // Validate sarpanch contact number - must be exactly 10 digits
+    if (_sarpanchContactController.text.trim().isEmpty) {
+      missingFields.add('Sarpanch contact number');
+      expandSarpanch = true;
+    } else if (_sarpanchContactController.text.trim().length != 10) {
+      missingFields.add('Sarpanch contact number must be exactly 10 digits');
+      expandSarpanch = true;
+    }
+
+    checkController(
+      _contractorNameController,
+      'Contractor name',
+      markSection: () => expandContractor = true,
+    );
+
+    checkController(
+      _workOrderNoController,
+      'Work order number',
+      markSection: () => expandWorkOrder = true,
+    );
+    checkController(
+      _workOrderDateController,
+      'Work order date',
+      markSection: () => expandWorkOrder = true,
+    );
+    checkController(
+      _workOrderAmountController,
+      'Work order amount',
+      markSection: () => expandWorkOrder = true,
+    );
+
+    checkController(
+      _fundAmountController,
+      'Fund amount',
+      markSection: () => expandFund = true,
+    );
+    checkSelection(
+      _selectedFundHead,
+      'Fund head',
+      markSection: () => expandFund = true,
+    );
+
+    checkController(
+      _householdsController,
+      'Number of households',
+      markSection: () => expandCollection = true,
+    );
+    checkController(
+      _shopsController,
+      'Number of shops',
+      markSection: () => expandCollection = true,
+    );
+    checkSelection(
+      _selectedCollectionFrequency,
+      'Collection frequency',
+      markSection: () => expandCollection = true,
+    );
+
+    checkController(
+      _roadWidthController,
+      'Road width',
+      markSection: () => expandRoad = true,
+    );
+    checkController(
+      _roadLengthController,
+      'Road length',
+      markSection: () => expandRoad = true,
+    );
+    checkSelection(
+      _selectedRoadCleaningFrequency,
+      'Road cleaning frequency',
+      markSection: () => expandRoad = true,
+    );
+
+    checkController(
+      _drainLengthController,
+      'Drain length',
+      markSection: () => expandDrain = true,
+    );
+    checkSelection(
+      _selectedDrainCleaningFrequency,
+      'Drain cleaning frequency',
+      markSection: () => expandDrain = true,
+    );
+
+    checkController(
+      _cscNumbersController,
+      'CSC numbers',
+      markSection: () => expandCsc = true,
+    );
+    checkSelection(
+      _selectedCscCleaningFrequency,
+      'CSC cleaning frequency',
+      markSection: () => expandCsc = true,
+    );
+
+    checkController(
+      _rrcController,
+      'SWM RRC count',
+      markSection: () => expandSwm = true,
+    );
+    checkController(
+      _pwmuController,
+      'SWM PWMU count',
+      markSection: () => expandSwm = true,
+    );
+    checkController(
+      _compositPitController,
+      'SWM composite pit count',
+      markSection: () => expandSwm = true,
+    );
+    checkController(
+      _collectionVehicleController,
+      'Collection vehicle count',
+      markSection: () => expandSwm = true,
+    );
+
+    checkController(
+      _ihhlController,
+      'SBMG IHHL target',
+      markSection: () => expandTargets = true,
+    );
+    checkController(
+      _sbmgCscController,
+      'SBMG CSC target',
+      markSection: () => expandTargets = true,
+    );
+    checkController(
+      _sbmgRrcController,
+      'SBMG RRC target',
+      markSection: () => expandTargets = true,
+    );
+    checkController(
+      _sbmgPwmuController,
+      'SBMG PWMU target',
+      markSection: () => expandTargets = true,
+    );
+    checkController(
+      _soakPitController,
+      'SBMG soak pit target',
+      markSection: () => expandTargets = true,
+    );
+    checkController(
+      _magicPitController,
+      'SBMG magic pit target',
+      markSection: () => expandTargets = true,
+    );
+    checkController(
+      _leachPitController,
+      'SBMG leach pit target',
+      markSection: () => expandTargets = true,
+    );
+    checkController(
+      _wspController,
+      'SBMG WSP target',
+      markSection: () => expandTargets = true,
+    );
+    checkController(
+      _dewatsController,
+      'SBMG DEWATS target',
+      markSection: () => expandTargets = true,
+    );
+
+    if (_villages.isEmpty) {
+      missingFields.add('Village details');
+      expandVillages = true;
+    } else {
+      for (int i = 0; i < _villages.length; i++) {
+        final village = _villages[i];
+        String fieldLabel(String name) => 'Village ${i + 1} $name';
+        TextEditingController? controllerFor(String key) =>
+            village[key] as TextEditingController?;
+
+        checkController(
+          controllerFor('villageName'),
+          fieldLabel('name'),
+          markSection: () => expandVillages = true,
+        );
+        checkController(
+          controllerFor('population'),
+          fieldLabel('population'),
+          markSection: () => expandVillages = true,
+        );
+        checkController(
+          controllerFor('households'),
+          fieldLabel('households'),
+          markSection: () => expandVillages = true,
+        );
+        checkController(
+          controllerFor('ihhl'),
+          fieldLabel('IHHL'),
+          markSection: () => expandVillages = true,
+        );
+        checkController(
+          controllerFor('csc'),
+          fieldLabel('CSC'),
+          markSection: () => expandVillages = true,
+        );
+        checkController(
+          controllerFor('soakPit'),
+          fieldLabel('soak pit'),
+          markSection: () => expandVillages = true,
+        );
+        checkController(
+          controllerFor('magicPit'),
+          fieldLabel('magic pit'),
+          markSection: () => expandVillages = true,
+        );
+        checkController(
+          controllerFor('leachPit'),
+          fieldLabel('leach pit'),
+          markSection: () => expandVillages = true,
+        );
+        checkController(
+          controllerFor('wsp'),
+          fieldLabel('WSP'),
+          markSection: () => expandVillages = true,
+        );
+        checkController(
+          controllerFor('dewats'),
+          fieldLabel('DEWATS'),
+          markSection: () => expandVillages = true,
+        );
+      }
+    }
+
+    if (missingFields.isNotEmpty) {
+      setState(() {
+        if (expandSarpanch) _sarpanchExpanded = true;
+        if (expandContractor) _contractorExpanded = true;
+        if (expandWorkOrder) _workOrderExpanded = true;
+        if (expandFund) _fundExpanded = true;
+        if (expandCollection) _collectionExpanded = true;
+        if (expandRoad) _roadSweepingExpanded = true;
+        if (expandDrain) _drainCleaningExpanded = true;
+        if (expandCsc) _cscExpanded = true;
+        if (expandSwm) _swmAssetsExpanded = true;
+        if (expandTargets) _sbmgTargetsExpanded = true;
+        if (expandVillages) _villagesExpanded = true;
+      });
+
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          _formKey.currentState!.validate();
+        }
+      });
+
+      if (mounted) {
+        final preview = missingFields.take(3).join(', ');
+        final suffix = missingFields.length > 3 ? '…' : '';
+        ScaffoldMessenger.of(context)
+          ..hideCurrentSnackBar()
+          ..showSnackBar(
+            SnackBar(
+              content: Text(
+                missingFields.length == 1
+                    ? 'Please fill ${missingFields.first} before submitting.'
+                    : 'Please fill all required fields (e.g. $preview$suffix).',
+              ),
+              backgroundColor: Colors.red,
+            ),
+          );
+      }
+      return false;
+    }
+
+    return true;
+  }
+
   Future<void> _submitForm() async {
     print('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
     print('🔵 FORM SUBMISSION STARTED');
     print('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
     print('⏰ Timestamp: ${DateTime.now()}');
+
+    if (!_validateAllFieldsFilled()) {
+      print('❌ Form validation failed - missing required fields');
+      return;
+    }
 
     if (!_formKey.currentState!.validate()) {
       print('❌ Form validation failed');

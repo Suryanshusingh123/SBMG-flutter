@@ -99,6 +99,14 @@ class AppLocalizationsHi extends AppLocalizations {
   String get languageChanged => 'भाषा सफलतापूर्वक बदल दी गई';
 
   @override
+  String get gpMasterDataNotFilled =>
+      'जीपी मास्टर डेटा संबंधित वीडीओ द्वारा अभी भरा नहीं गया है। कृपया अधिक सहायता के लिए वीडीओ या हेल्पलाइन नंबर से संपर्क करें।';
+
+  @override
+  String get contractorDetailsNotAvailable =>
+      'इस ग्राम पंचायत के लिए ठेकेदार विवरण अभी उपलब्ध नहीं है। कृपया अधिक सहायता के लिए वीडीओ या हेल्पलाइन नंबर से संपर्क करें।';
+
+  @override
   String get bookmarks => 'बुकमार्क';
 
   @override
@@ -144,6 +152,9 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String get markCompleted => 'पूर्ण चिह्नित करें';
+
+  @override
+  String get resolveNow => 'अभी हल करें';
 
   @override
   String get seeResolution => 'समाधान देखें';
@@ -533,7 +544,7 @@ class AppLocalizationsHi extends AppLocalizations {
   String get pleaseSelectAllFieldsForMasterData => 'कृपया सभी फ़ील्ड चुनें';
 
   @override
-  String get villageMasterDataForm => 'गाँव मास्टर डेटा फॉर्म';
+  String get villageMasterDataForm => 'जीपी मास्टर डेटा फॉर्म';
 
   @override
   String get sentOTP => 'OTP भेजें';
@@ -701,7 +712,7 @@ class AppLocalizationsHi extends AppLocalizations {
   String get verified => 'सत्यापित';
 
   @override
-  String get complaintClosed => 'बंद';
+  String get complaintClosed => 'निपटाई गई शिकायतें';
 
   @override
   String get waitingForSupervisorToResolve =>
@@ -933,7 +944,7 @@ class AppLocalizationsHi extends AppLocalizations {
   String get updateContractorDetails => 'ठेकेदार विवरण अपडेट करें';
 
   @override
-  String get startVillageMasterData => 'गांव मास्टर डेटा शुरू करें';
+  String get startVillageMasterData => 'जीपी मास्टर डेटा शुरू करें';
 
   @override
   String get export => 'निर्यात';

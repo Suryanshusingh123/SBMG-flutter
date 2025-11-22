@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:geocoding/geocoding.dart';
 import 'package:provider/provider.dart';
 import '../../config/connstants.dart';
 import '../../l10n/app_localizations.dart';
@@ -7,6 +8,7 @@ import '../../models/complaint_model.dart';
 import '../../providers/citizen_auth_provider.dart';
 import '../../providers/citizen_complaints_provider.dart';
 import '../../widgets/common/auth_required_screen.dart';
+import '../../theme/citizen_colors.dart';
 import '../../widgets/common/custom_bottom_navigation.dart';
 import '../../widgets/common/date_filter_bottom_sheet.dart';
 import 'complaint_details_screen.dart';
@@ -27,6 +29,9 @@ class _MyComplaintsScreenState extends State<MyComplaintsScreen> {
   DateTime? _filterDate;
   DateTime? _filterStartDate;
   DateTime? _filterEndDate;
+  final Map<String, String> _reverseGeocodedAddresses = {};
+  final Set<String> _pendingReverseGeocode = {};
+  final Set<String> _failedReverseGeocode = {};
 
   @override
   void initState() {
@@ -86,9 +91,9 @@ class _MyComplaintsScreenState extends State<MyComplaintsScreen> {
 
         // Show loading while checking authentication
         if (authProvider.isCheckingAuth) {
-          return const Scaffold(
-            backgroundColor: Colors.white,
-            body: Center(
+          return Scaffold(
+            backgroundColor: CitizenColors.background(context),
+            body: const Center(
               child: CircularProgressIndicator(color: Color(0xFF009B56)),
             ),
           );
@@ -111,7 +116,7 @@ class _MyComplaintsScreenState extends State<MyComplaintsScreen> {
     // Show loading indicator while complaints are being fetched
     if (complaintsProvider.isLoadingComplaints) {
       return Scaffold(
-        backgroundColor: Colors.white,
+        backgroundColor: CitizenColors.background(context),
         body: const Center(
           child: CircularProgressIndicator(color: Color(0xFF009B56)),
         ),
@@ -135,38 +140,53 @@ class _MyComplaintsScreenState extends State<MyComplaintsScreen> {
 
       // Filter by date if single date filter is applied (Day)
       if (_filterDate != null) {
-        final complaintDate = DateTime(
-          complaint.createdAt.year,
-          complaint.createdAt.month,
-          complaint.createdAt.day,
-        );
-        final filterDate = DateTime(
-          _filterDate!.year,
-          _filterDate!.month,
-          _filterDate!.day,
-        );
-        return complaintDate.isAtSameMomentAs(filterDate);
+        final complaintDate = complaint.createdAt.toUtc();
+        final filterDate = _filterDate!.toUtc();
+        return complaintDate.year == filterDate.year &&
+            complaintDate.month == filterDate.month &&
+            complaintDate.day == filterDate.day;
       }
 
       // Filter by date range if range filter is applied (Week, Month, Year, Custom)
       if (_filterStartDate != null && _filterEndDate != null) {
-        final complaintDate = complaint.createdAt;
-        return complaintDate.isAfter(
-              _filterStartDate!.subtract(const Duration(days: 1)),
-            ) &&
-            complaintDate.isBefore(
-              _filterEndDate!.add(const Duration(days: 1)),
-            );
+        final complaintDate = complaint.createdAt.toUtc();
+        final startDate = DateTime.utc(
+          _filterStartDate!.year,
+          _filterStartDate!.month,
+          _filterStartDate!.day,
+        );
+        final endDate = DateTime.utc(
+          _filterEndDate!.year,
+          _filterEndDate!.month,
+          _filterEndDate!.day,
+          23,
+          59,
+          59,
+        );
+        return (complaintDate.isAfter(startDate.subtract(const Duration(seconds: 1))) ||
+                complaintDate.isAtSameMomentAs(startDate)) &&
+            (complaintDate.isBefore(endDate) ||
+                complaintDate.isAtSameMomentAs(endDate));
       }
 
       return true;
     }).toList();
 
-    // Sort complaints based on sort order
+    // Sort complaints based on sort order (including time)
     if (_sortOrder == 'newest') {
-      filteredComplaints.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      filteredComplaints.sort((a, b) {
+        // createdAt is already DateTime, compare with time included
+        final dateA = a.createdAt.toUtc();
+        final dateB = b.createdAt.toUtc();
+        return dateB.compareTo(dateA); // Newest first (descending)
+      });
     } else {
-      filteredComplaints.sort((a, b) => a.createdAt.compareTo(b.createdAt));
+      filteredComplaints.sort((a, b) {
+        // createdAt is already DateTime, compare with time included
+        final dateA = a.createdAt.toUtc();
+        final dateB = b.createdAt.toUtc();
+        return dateA.compareTo(dateB); // Oldest first (ascending)
+      });
     }
 
     print('📊 Total complaints: ${complaintsProvider.complaints.length}');
@@ -175,7 +195,7 @@ class _MyComplaintsScreenState extends State<MyComplaintsScreen> {
     print('📊 Sort order: $_sortOrder');
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: CitizenColors.background(context),
       body: SafeArea(
         child: Column(
           children: [
@@ -230,19 +250,19 @@ class _MyComplaintsScreenState extends State<MyComplaintsScreen> {
         },
         items: [
           BottomNavItem(
-            icon: Icons.home,
+            iconPath: 'assets/icons/bottombar/home.png',
             label: AppLocalizations.of(context)!.home,
           ),
           BottomNavItem(
-            icon: Icons.list_alt,
+            iconPath: 'assets/icons/bottombar/complaints.png',
             label: AppLocalizations.of(context)!.myComplaint,
           ),
           BottomNavItem(
-            icon: Icons.account_balance,
+            iconPath: 'assets/icons/bottombar/schemes.png',
             label: AppLocalizations.of(context)!.schemes,
           ),
           BottomNavItem(
-            icon: Icons.settings,
+            iconPath: 'assets/icons/bottombar/settings.png',
             label: AppLocalizations.of(context)!.settings,
           ),
         ],
@@ -252,6 +272,8 @@ class _MyComplaintsScreenState extends State<MyComplaintsScreen> {
 
   Widget _buildHeader() {
     final l10n = AppLocalizations.of(context)!;
+    final primaryTextColor = CitizenColors.textPrimary(context);
+    final secondaryTextColor = CitizenColors.textSecondary(context);
     return Container(
       padding: EdgeInsets.all(16.r),
       child: Row(
@@ -259,11 +281,11 @@ class _MyComplaintsScreenState extends State<MyComplaintsScreen> {
         children: [
           Text(
             l10n.myComplaint,
-            style: const TextStyle(
+            style: TextStyle(
               fontFamily: 'Noto Sans',
               fontSize: 20,
               fontWeight: FontWeight.w600,
-              color: Color(0xFF111827),
+              color: primaryTextColor,
             ),
           ),
           Row(
@@ -274,14 +296,18 @@ class _MyComplaintsScreenState extends State<MyComplaintsScreen> {
                 child: Icon(
                   Icons.calendar_today,
                   size: 24.sp,
-                  color: Colors.black,
+                  color: secondaryTextColor,
                 ),
               ),
               SizedBox(width: 12.w),
               // Sort icon
               GestureDetector(
                 onTap: _showSortOptions,
-                child: Icon(Icons.swap_vert, size: 24.sp, color: Colors.black),
+                child: Icon(
+                  Icons.swap_vert,
+                  size: 24.sp,
+                  color: secondaryTextColor,
+                ),
               ),
             ],
           ),
@@ -292,14 +318,56 @@ class _MyComplaintsScreenState extends State<MyComplaintsScreen> {
 
   Widget _buildStatusTabs(ComplaintsProvider complaintsProvider) {
     final l10n = AppLocalizations.of(context)!;
+    
+    // Filter complaints by date range first
+    List<ComplaintModel> dateFilteredComplaints = complaintsProvider.complaints.where((complaint) {
+      // Filter by date if single date filter is applied (Day)
+      if (_filterDate != null) {
+        final complaintDate = complaint.createdAt.toUtc();
+        final filterDate = _filterDate!.toUtc();
+        return complaintDate.year == filterDate.year &&
+            complaintDate.month == filterDate.month &&
+            complaintDate.day == filterDate.day;
+      }
+
+      // Filter by date range if range filter is applied (Week, Month, Year, Custom)
+      if (_filterStartDate != null && _filterEndDate != null) {
+        final complaintDate = complaint.createdAt.toUtc();
+        final startDate = DateTime.utc(
+          _filterStartDate!.year,
+          _filterStartDate!.month,
+          _filterStartDate!.day,
+        );
+        final endDate = DateTime.utc(
+          _filterEndDate!.year,
+          _filterEndDate!.month,
+          _filterEndDate!.day,
+          23,
+          59,
+          59,
+        );
+        return (complaintDate.isAfter(startDate.subtract(const Duration(seconds: 1))) ||
+                complaintDate.isAtSameMomentAs(startDate)) &&
+            (complaintDate.isBefore(endDate) ||
+                complaintDate.isAtSameMomentAs(endDate));
+      }
+
+      return true;
+    }).toList();
+    
     // Count: open, verified, and resolved are all considered "open"
-    final openCount = complaintsProvider.complaints.where((c) {
-      final status = c.status.toLowerCase();
-      return status == 'open' || status == 'verified' || status == 'resolved';
-    }).length;
-    final closedCount = complaintsProvider.complaints
-        .where((c) => c.status.toLowerCase() == 'closed')
-        .length;
+    // Ensure count is always calculated, even when list is empty
+    final openCount = dateFilteredComplaints.isEmpty
+        ? 0
+        : dateFilteredComplaints.where((c) {
+            final status = c.status.toLowerCase();
+            return status == 'open' || status == 'verified' || status == 'resolved';
+          }).length;
+    final closedCount = dateFilteredComplaints.isEmpty
+        ? 0
+        : dateFilteredComplaints
+            .where((c) => c.status.toLowerCase() == 'closed')
+            .length;
 
     return Container(
       margin: EdgeInsets.symmetric(horizontal: 16.w),
@@ -315,6 +383,7 @@ class _MyComplaintsScreenState extends State<MyComplaintsScreen> {
 
   Widget _buildStatusTab(String status, int count, int index) {
     final isSelected = _selectedStatusIndex == index;
+    final secondaryTextColor = CitizenColors.textSecondary(context);
 
     return GestureDetector(
       onTap: () {
@@ -354,7 +423,7 @@ class _MyComplaintsScreenState extends State<MyComplaintsScreen> {
                 fontWeight: FontWeight.w600,
                 color: isSelected
                     ? const Color(0xFF009B56)
-                    : const Color(0xFF6B7280),
+                    : secondaryTextColor,
               ),
             ),
             SizedBox(width: 8.w),
@@ -365,7 +434,7 @@ class _MyComplaintsScreenState extends State<MyComplaintsScreen> {
                 fontWeight: FontWeight.w600,
                 color: isSelected
                     ? const Color(0xFF009B56)
-                    : const Color(0xFF6B7280),
+                    : secondaryTextColor,
               ),
             ),
           ],
@@ -375,6 +444,8 @@ class _MyComplaintsScreenState extends State<MyComplaintsScreen> {
   }
 
   Widget _buildComplaintCard(ComplaintModel complaint) {
+    final primaryTextColor = CitizenColors.textPrimary(context);
+    final secondaryTextColor = CitizenColors.textSecondary(context);
     return GestureDetector(
       onTap: () {
         Navigator.push(
@@ -388,6 +459,7 @@ class _MyComplaintsScreenState extends State<MyComplaintsScreen> {
       child: Container(
         margin: const EdgeInsets.only(bottom: 16),
         decoration: BoxDecoration(
+          color: CitizenColors.surface(context),
           borderRadius: BorderRadius.circular(12.r),
           boxShadow: [
             BoxShadow(
@@ -478,15 +550,15 @@ class _MyComplaintsScreenState extends State<MyComplaintsScreen> {
                         vertical: 4,
                       ),
                       decoration: BoxDecoration(
-                        color: Colors.white,
+                        color: CitizenColors.surface(context),
                         borderRadius: BorderRadius.circular(6.r),
                       ),
                       child: Text(
                         _formatDate(complaint.createdAt),
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w600,
-                          color: Color(0xFF111827),
+                          color: primaryTextColor,
                         ),
                       ),
                     ),
@@ -498,9 +570,9 @@ class _MyComplaintsScreenState extends State<MyComplaintsScreen> {
             // Complaint Details
             Container(
               padding: EdgeInsets.all(16.r),
-              decoration: const BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.only(
+              decoration: BoxDecoration(
+                color: CitizenColors.surface(context),
+                borderRadius: const BorderRadius.only(
                   bottomLeft: Radius.circular(12),
                   bottomRight: Radius.circular(12),
                 ),
@@ -522,10 +594,10 @@ class _MyComplaintsScreenState extends State<MyComplaintsScreen> {
                       SizedBox(width: 8.w),
                       Text(
                         complaint.type,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
-                          color: Color(0xFF111827),
+                          color: primaryTextColor,
                         ),
                       ),
                       SizedBox(width: 8.w),
@@ -533,7 +605,7 @@ class _MyComplaintsScreenState extends State<MyComplaintsScreen> {
                         '| ${_getUpdateCount(complaint)} Update${_getUpdateCount(complaint) > 1 ? 's' : ''}',
                         style: TextStyle(
                           fontSize: 14,
-                          color: Colors.grey.shade600,
+                          color: secondaryTextColor,
                         ),
                       ),
                     ],
@@ -544,10 +616,10 @@ class _MyComplaintsScreenState extends State<MyComplaintsScreen> {
                   // Location
                   Row(
                     children: [
-                      const Icon(
+                      Icon(
                         Icons.location_on,
                         size: 16,
-                        color: Color(0xFF6B7280),
+                        color: secondaryTextColor,
                       ),
                       SizedBox(width: 4.w),
                       Expanded(
@@ -555,7 +627,7 @@ class _MyComplaintsScreenState extends State<MyComplaintsScreen> {
                           _getLocationDisplay(complaint),
                           style: TextStyle(
                             fontSize: 14,
-                            color: Colors.grey.shade600,
+                            color: secondaryTextColor,
                           ),
                         ),
                       ),
@@ -568,7 +640,7 @@ class _MyComplaintsScreenState extends State<MyComplaintsScreen> {
                     complaint.description,
                     style: TextStyle(
                       fontSize: 14.sp,
-                      color: Colors.grey.shade700,
+                      color: secondaryTextColor,
                     ),
                   ),
                 ],
@@ -615,19 +687,116 @@ class _MyComplaintsScreenState extends State<MyComplaintsScreen> {
     }
   }
 
+  bool _hasValidCoordinates(ComplaintModel complaint) {
+    if (complaint.imageLocations.isEmpty) {
+      return false;
+    }
+
+    final loc = complaint.imageLocations.first;
+    final lat = loc.latitude;
+    final long = loc.longitude;
+
+    return !lat.isNaN &&
+        !long.isNaN &&
+        lat != 0.0 &&
+        long != 0.0 &&
+        lat <= 90 &&
+        lat >= -90 &&
+        long <= 180 &&
+        long >= -180;
+  }
+
+  Future<void> _fetchReverseGeocodedAddress(ComplaintModel complaint) async {
+    if (!_hasValidCoordinates(complaint)) {
+      return;
+    }
+
+    if (_reverseGeocodedAddresses.containsKey(complaint.id) ||
+        _failedReverseGeocode.contains(complaint.id) ||
+        _pendingReverseGeocode.contains(complaint.id)) {
+      return;
+    }
+
+    final loc = complaint.imageLocations.first;
+    _pendingReverseGeocode.add(complaint.id);
+
+    try {
+      final placemarks = await placemarkFromCoordinates(
+        loc.latitude,
+        loc.longitude,
+      );
+
+      if (!mounted) return;
+
+      if (placemarks.isEmpty) {
+        _failedReverseGeocode.add(complaint.id);
+        return;
+      }
+
+      final place = placemarks.first;
+      final parts = <String>[];
+
+      void addIfNotEmpty(String? value) {
+        if (value != null) {
+          final trimmed = value.trim();
+          if (trimmed.isNotEmpty && !parts.contains(trimmed)) {
+            parts.add(trimmed);
+          }
+        }
+      }
+
+      addIfNotEmpty(place.street);
+      addIfNotEmpty(place.subLocality);
+      addIfNotEmpty(place.locality);
+      addIfNotEmpty(place.subAdministrativeArea);
+      addIfNotEmpty(place.administrativeArea);
+      addIfNotEmpty(place.postalCode);
+      addIfNotEmpty(place.country);
+
+      final formattedAddress = parts.isNotEmpty
+          ? parts.join(', ')
+          : '${loc.latitude}, ${loc.longitude}';
+
+      setState(() {
+        _reverseGeocodedAddresses[complaint.id] = formattedAddress;
+        _failedReverseGeocode.remove(complaint.id);
+      });
+    } catch (e) {
+      debugPrint('❌ Error reverse geocoding complaint ${complaint.id}: $e');
+      _failedReverseGeocode.add(complaint.id);
+    } finally {
+      _pendingReverseGeocode.remove(complaint.id);
+    }
+  }
+
   String _getLocationDisplay(ComplaintModel complaint) {
-    print('📍 Location field: ${complaint.location}');
+    print('📍 Incoming complaint: ${complaint.id}');
+    print('📍 Stored address: ${_reverseGeocodedAddresses[complaint.id]}');
+    print('📍 Raw location field: ${complaint.location}');
     print('📍 District: ${complaint.districtName}');
     print('📍 Block: ${complaint.blockName}');
     print('📍 Village: ${complaint.villageName}');
 
-    // Priority 1: Check location field first (from API)
+    // Priority 1: Reverse geocode if coordinates are available
+    if (_hasValidCoordinates(complaint)) {
+      final cachedAddress = _reverseGeocodedAddresses[complaint.id];
+
+      if (cachedAddress != null && cachedAddress.isNotEmpty) {
+        print('✅ Using cached reverse-geocoded address: $cachedAddress');
+        return cachedAddress;
+      }
+
+      _fetchReverseGeocodedAddress(complaint);
+      print('⏳ Reverse geocoding in progress for complaint ${complaint.id}');
+    }
+
+    // Priority 2: Display location field value
     if (complaint.location != null && complaint.location!.isNotEmpty) {
       print('✅ Using location field: ${complaint.location}');
       return complaint.location!;
     }
 
-    // Priority 2: Display district, block, and village name
+    // Priority 3: Display district, block, and village name
     final parts = <String>[];
     if (complaint.districtName != null && complaint.districtName!.isNotEmpty) {
       parts.add(complaint.districtName!);
@@ -640,17 +809,15 @@ class _MyComplaintsScreenState extends State<MyComplaintsScreen> {
     }
 
     if (parts.isNotEmpty) {
-      print('✅ Using district|block|village: ${parts.join(' | ')}');
-      return parts.join(' | ');
+      final fallback = parts.join(' | ');
+      print('✅ Using district|block|village: $fallback');
+      return fallback;
     }
 
-    // Priority 3: Display lat/long (last resort)
-    if (complaint.imageLocations.isNotEmpty) {
-      final loc = complaint.imageLocations.first;
-      final display =
-          'Lat: ${loc.latitude.toStringAsFixed(6)}, Long: ${loc.longitude.toStringAsFixed(6)}';
-      print('✅ Using lat/long: $display');
-      return display;
+    // If reverse geocoding is underway, show placeholder
+    if (_hasValidCoordinates(complaint)) {
+      print('⌛ Showing address placeholder while reverse geocoding');
+      return 'Fetching address...';
     }
 
     // Fallback
@@ -664,9 +831,9 @@ class _MyComplaintsScreenState extends State<MyComplaintsScreen> {
       context: context,
       backgroundColor: Colors.transparent,
       builder: (context) => Container(
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.only(
+        decoration: BoxDecoration(
+          color: CitizenColors.surface(context),
+          borderRadius: const BorderRadius.only(
             topLeft: Radius.circular(20),
             topRight: Radius.circular(20),
           ),

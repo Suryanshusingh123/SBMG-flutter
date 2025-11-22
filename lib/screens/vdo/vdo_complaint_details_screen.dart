@@ -5,6 +5,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../services/api_services.dart';
 import '../../config/connstants.dart';
 import '../../l10n/app_localizations.dart';
+import '../../utils/location_display_helper.dart';
 
 class VdoComplaintDetailsScreen extends StatefulWidget {
   final int complaintId;
@@ -24,6 +25,8 @@ class _VdoComplaintDetailsScreenState extends State<VdoComplaintDetailsScreen> {
   Map<String, dynamic>? _complaintData;
   bool _isLoading = true;
   String? _errorMessage;
+  double? _latitude;
+  double? _longitude;
 
   // State for resolution bottom sheet
   final TextEditingController _resolutionCommentController =
@@ -42,17 +45,21 @@ class _VdoComplaintDetailsScreenState extends State<VdoComplaintDetailsScreen> {
         complaintId: widget.complaintId,
       );
 
+      final coords = LocationResolver.extractCoordinates(data);
+
       // Log the lat and long values
       print('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
       print('📍 Location Data from API:');
       print('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-      print('   - lat: ${data['lat']}');
-      print('   - long: ${data['long']}');
+      print('   - lat: ${coords.$1}');
+      print('   - long: ${coords.$2}');
       print('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
 
       setState(() {
         _complaintData = data;
         _isLoading = false;
+        _latitude = coords.$1;
+        _longitude = coords.$2;
       });
     } catch (e) {
       print('❌ Error fetching complaint details: $e');
@@ -61,6 +68,31 @@ class _VdoComplaintDetailsScreenState extends State<VdoComplaintDetailsScreen> {
         _errorMessage = 'Failed to load complaint details';
       });
     }
+  }
+
+  String get _getStatusHeading {
+    final status = _complaintData?['status_id'];
+    final closedAt = _complaintData?['closed_at'];
+    final verifiedAt = _complaintData?['verified_at'];
+    final resolvedAt = _complaintData?['resolved_at'];
+
+    // First check if closed
+    if (status == 4 || closedAt != null) {
+      return 'Successfully disposed';
+    }
+
+    // Then check if verified but not closed
+    if (status == 3 || (verifiedAt != null && closedAt == null)) {
+      return 'Successfully resolved, waiting for user to close';
+    }
+
+    // Then check if resolved
+    if (status == 2 || resolvedAt != null) {
+      return 'Verification pending by VDO';
+    }
+
+    // Open status
+    return 'Waiting for supervisor to resolve';
   }
 
   String get _dynamicStatusText {
@@ -184,7 +216,10 @@ class _VdoComplaintDetailsScreenState extends State<VdoComplaintDetailsScreen> {
       );
     }
 
-    if (_errorMessage != null || _complaintData == null) {
+    // Only show error screen if we don't have complaint data
+    // If we have data but error message exists, it's likely from a refresh failure
+    // and we should still show the complaint details
+    if (_complaintData == null && _errorMessage != null) {
       return Scaffold(
         backgroundColor: Colors.white,
         appBar: AppBar(
@@ -225,7 +260,7 @@ class _VdoComplaintDetailsScreenState extends State<VdoComplaintDetailsScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              '${AppLocalizations.of(context)!.complaintDetails} #${_complaintData!['id']}',
+              _getStatusHeading,
               style: TextStyle(
                 fontSize: 16.sp,
                 fontWeight: FontWeight.w600,
@@ -543,7 +578,7 @@ class _VdoComplaintDetailsScreenState extends State<VdoComplaintDetailsScreen> {
               SizedBox(width: 8.w),
               Expanded(
                 child: Text(
-                  _complaintData?['location'] ?? 'Location not available',
+                  _getLocationDisplay(),
                   style: TextStyle(
                     fontSize: 12.sp,
                     fontWeight: FontWeight.w400,
@@ -568,6 +603,24 @@ class _VdoComplaintDetailsScreenState extends State<VdoComplaintDetailsScreen> {
           SizedBox(height: 16.h),
         ],
       ),
+    );
+  }
+
+  String _getLocationDisplay() {
+    final l10n = AppLocalizations.of(context)!;
+    return LocationDisplayHelper.buildDisplay(
+      cacheKey: 'vdo-detail-${widget.complaintId}',
+      latitude: _latitude,
+      longitude: _longitude,
+      locationField: _complaintData?['location'] as String?,
+      district: _complaintData?['district_name'] as String?,
+      block: _complaintData?['block_name'] as String?,
+      village: _complaintData?['village_name'] as String?,
+      scheduleUpdate: () {
+        if (!mounted) return;
+        setState(() {});
+      },
+      unavailableLabel: l10n.locationNotAvailable,
     );
   }
 
@@ -751,12 +804,13 @@ class _VdoComplaintDetailsScreenState extends State<VdoComplaintDetailsScreen> {
       final dateTime = DateTime.parse(date);
       // Convert to IST (UTC+5:30)
       final istDate = dateTime.add(const Duration(hours: 5, minutes: 30));
-      return DateFormat('MMM d, yyyy, h:mm a').format(istDate);
+      return DateFormat('MMM d, yyyy').format(istDate);
     } catch (e) {
       return date;
     }
   }
 
+  // ignore: unused_element
   Future<void> _openGoogleMaps(double? lat, double? long) async {
     if (lat == null || long == null) {
       if (mounted) {
@@ -995,10 +1049,35 @@ class _VdoComplaintDetailsScreenState extends State<VdoComplaintDetailsScreen> {
           ),
         );
 
+        // Clear any previous error message before refreshing
+        setState(() {
+          _errorMessage = null;
+        });
+
         // Refresh complaint details
         print('🔄 Refreshing complaint details...');
-        await _fetchComplaintDetails();
-        print('✅ Complaint details refreshed');
+        try {
+          await _fetchComplaintDetails();
+          print('✅ Complaint details refreshed');
+        } catch (refreshError) {
+          print('⚠️ Failed to refresh complaint details: $refreshError');
+          // If refresh fails but we have existing data, don't show error screen
+          // Just show a warning snackbar
+          if (_complaintData != null) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Complaint verified, but failed to refresh details'),
+                backgroundColor: Colors.orange,
+                behavior: SnackBarBehavior.floating,
+                duration: const Duration(seconds: 2),
+              ),
+            );
+            // Don't set error message if we have existing data
+            setState(() {
+              _errorMessage = null;
+            });
+          }
+        }
       }
     } catch (e) {
       print('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');

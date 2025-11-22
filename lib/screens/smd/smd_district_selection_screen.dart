@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../../services/api_services.dart';
-import '../../services/storage_service.dart';
+import '../../services/auth_services.dart';
 import '../../models/geography_model.dart';
 
 class SmdDistrictSelectionScreen extends StatefulWidget {
@@ -15,7 +14,7 @@ class SmdDistrictSelectionScreen extends StatefulWidget {
 class _SmdDistrictSelectionScreenState
     extends State<SmdDistrictSelectionScreen> {
   final ApiService _apiService = ApiService();
-  final StorageService _storageService = StorageService();
+  final AuthService _authService = AuthService();
   List<District> _districts = [];
   bool _isLoading = true;
   String _searchQuery = '';
@@ -58,11 +57,7 @@ class _SmdDistrictSelectionScreenState
   }
 
   void _selectDistrict(District district) async {
-    // Store the selected district_id for SMD
-    await _storageService.saveString(
-      'smd_selected_district_id',
-      district.id.toString(),
-    );
+    await _authService.setSmdSelectedDistrictId(district.id);
 
     print('✅ SMD selected district: ${district.name} (ID: ${district.id})');
 

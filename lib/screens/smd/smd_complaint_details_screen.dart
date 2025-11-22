@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:intl/intl.dart';
 import '../../services/api_services.dart';
 import '../../config/connstants.dart';
+import '../../l10n/app_localizations.dart';
+import '../../utils/location_display_helper.dart';
 
 class SmdComplaintDetailsScreen extends StatefulWidget {
   final Map<String, dynamic> complaint;
@@ -21,6 +22,8 @@ class _SmdComplaintDetailsScreenState extends State<SmdComplaintDetailsScreen> {
   // State for fetching complaint details
   Map<String, dynamic>? _complaintData;
   bool _isLoading = true;
+  double? _latitude;
+  double? _longitude;
 
   // Store original media data
   List<dynamic>? _originalMediaUrls;
@@ -50,6 +53,7 @@ class _SmdComplaintDetailsScreenState extends State<SmdComplaintDetailsScreen> {
         _originalMediaUrls = [firstMediaUrl];
       }
     }
+    _updateCoordinatesFromData(widget.complaint);
     _fetchComplaintDetails();
   }
 
@@ -64,6 +68,7 @@ class _SmdComplaintDetailsScreenState extends State<SmdComplaintDetailsScreen> {
         setState(() {
           _complaintData = data;
           _isLoading = false;
+          _updateCoordinatesFromData(data);
         });
       } else {
         setState(() => _isLoading = false);
@@ -72,6 +77,38 @@ class _SmdComplaintDetailsScreenState extends State<SmdComplaintDetailsScreen> {
       print('❌ Error fetching complaint details: $e');
       setState(() => _isLoading = false);
     }
+  }
+
+  void _updateCoordinatesFromData(Map<String, dynamic> data) {
+    final coords = LocationResolver.extractCoordinates(data);
+    _latitude = coords.$1 ?? _latitude;
+    _longitude = coords.$2 ?? _longitude;
+  }
+
+  // Get status-based heading for AppBar
+  String get _getStatusHeading {
+    final status = _data['status']?.toString().toUpperCase() ?? 'OPEN';
+    final closedAt = _data['closed_at'];
+    final verifiedAt = _data['verified_at'];
+    final resolvedAt = _data['resolved_at'];
+
+    // First check if closed
+    if (status == 'CLOSED' || closedAt != null) {
+      return 'Successfully disposed';
+    }
+
+    // Then check if verified but not closed
+    if (status == 'VERIFIED' || (verifiedAt != null && closedAt == null)) {
+      return 'Successfully resolved, waiting for user to close';
+    }
+
+    // Then check if resolved
+    if (status == 'RESOLVED' || resolvedAt != null) {
+      return 'Verification pending by VDO';
+    }
+
+    // Open status
+    return 'Waiting for supervisor to resolve';
   }
 
   // Dynamic status text based on API fields
@@ -94,22 +131,29 @@ class _SmdComplaintDetailsScreenState extends State<SmdComplaintDetailsScreen> {
 
   // Dynamic location text based on API fields
   String _getLocationText() {
-    final location = _data['location'];
-    final lat = _data['lat'];
-    final long = _data['long'];
-
-    // First priority: Use location field if available
-    if (location != null && location.toString().isNotEmpty) {
-      return location.toString();
+    final l10n = AppLocalizations.of(context)!;
+    String? _readString(List<String> keys) {
+      for (final key in keys) {
+        final value = _data[key];
+        if (value is String && value.trim().isNotEmpty) return value;
+      }
+      return null;
     }
 
-    // Second priority: Use lat/long coordinates if available
-    if (lat != null && long != null) {
-      return '${lat.toStringAsFixed(6)}, ${long.toStringAsFixed(6)}';
-    }
-
-    // Fallback: No location data available
-    return 'Location not available';
+    return LocationDisplayHelper.buildDisplay(
+      cacheKey: 'smd-detail-${_data['id']}',
+      latitude: _latitude,
+      longitude: _longitude,
+      locationField: _readString(['location', 'Location']),
+      district: _readString(['district_name', 'districtName']),
+      block: _readString(['block_name', 'blockName']),
+      village: _readString(['village_name', 'villageName']),
+      scheduleUpdate: () {
+        if (!mounted) return;
+        setState(() {});
+      },
+      unavailableLabel: l10n.locationNotAvailable,
+    );
   }
 
   // Dynamic status color based on current state
@@ -169,7 +213,7 @@ class _SmdComplaintDetailsScreenState extends State<SmdComplaintDetailsScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Complaint ID #${_data['id']}',
+              _getStatusHeading,
               style: const TextStyle(
                 fontFamily: 'Noto Sans',
                 fontSize: 18,
@@ -595,7 +639,7 @@ class _SmdComplaintDetailsScreenState extends State<SmdComplaintDetailsScreen> {
     // Add closed item if closed_at is present
     if (closedAt != null) {
       items.add({
-        'title': 'Closed',
+        'title': AppLocalizations.of(context)!.closed,
         'subtitle': _formatTimelineSubtitle('Citizen', closedAt),
         'isCompleted': true,
         'showLine': false, // Last item, no line needed

@@ -309,8 +309,11 @@ class ComplaintsService {
 
       // Use stored village ID if gpId not provided
       if (gpId == null) {
+        print('🔍 [ComplaintsService] gpId not provided, fetching from auth...');
         gpId = await _authService.getVillageId();
+        print('🏷️ [ComplaintsService] Resolved gpId: $gpId');
         if (gpId == null) {
+          print('⚠️ [ComplaintsService] Aborting request: Village ID not found');
           return {'success': false, 'message': 'Village ID not found'};
         }
       }
@@ -370,6 +373,96 @@ class ComplaintsService {
     } catch (e) {
       print('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
       print('❌ COMPLAINTS API ERROR: GET FOR SUPERVISOR');
+      print('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+      print('💥 Exception: $e');
+      print('⏰ Timestamp: ${DateTime.now()}');
+      print('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+      return {'success': false, 'message': 'Network error. Please try again.'};
+    }
+  }
+
+  /// Get complaints for BDO complaints screen (district/block level)
+  Future<Map<String, dynamic>> getComplaintsForBdo({
+    int? districtId,
+    int? blockId,
+    int limit = 500,
+    String orderBy = 'newest',
+    DateTime? fromDate,
+    DateTime? toDate,
+  }) async {
+    try {
+      final token = await _authService.getToken();
+      if (token == null) {
+        return {'success': false, 'message': 'No authentication token found'};
+      }
+
+      // If not provided, resolve from auth context
+      districtId ??= await _authService.getDistrictId();
+      blockId ??= await _authService.getBlockId();
+
+      final queryParams = <String, String>{
+        'limit': limit.toString(),
+        'order_by': orderBy,
+      };
+
+      if (districtId != null) queryParams['district_id'] = districtId.toString();
+      if (blockId != null) queryParams['block_id'] = blockId.toString();
+      if (fromDate != null) {
+        queryParams['from_date'] = fromDate.toIso8601String().split('T')[0];
+      }
+      if (toDate != null) {
+        queryParams['to_date'] = toDate.toIso8601String().split('T')[0];
+      }
+
+      final url = Uri.parse(
+        '${ApiConstants.baseUrl}${ApiConstants.complaintsEndpoint}',
+      ).replace(queryParameters: queryParams);
+
+      print('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+      print('🔵 COMPLAINTS API REQUEST: GET FOR BDO');
+      print('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+      print('📍 URL: $url');
+      if (districtId != null) print('🏛️ District ID: $districtId');
+      if (blockId != null) print('📦 Block ID: $blockId');
+      print('📊 Limit: $limit');
+      print('📅 Order By: $orderBy');
+      if (fromDate != null) print('📅 From Date: $fromDate');
+      if (toDate != null) print('📅 To Date: $toDate');
+      print('🔑 Headers: ${await _authService.getAuthHeaders()}');
+      print('⏰ Timestamp: ${DateTime.now()}');
+      print('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+
+      final response = await http.get(
+        url,
+        headers: await _authService.getAuthHeaders(),
+      );
+
+      print('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+      print('🟢 COMPLAINTS API RESPONSE: GET FOR BDO');
+      print('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+      print('📊 Status Code: ${response.statusCode}');
+      print('📦 Response Body: ${response.body}');
+      print('⏰ Timestamp: ${DateTime.now()}');
+      print('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        final complaints = (data as List)
+            .map((json) => ApiComplaintModel.fromJson(json))
+            .toList();
+        print('✅ SUCCESS: BDO complaints retrieved and parsed');
+        print('📊 Total complaints: ${complaints.length}');
+        return {'success': true, 'complaints': complaints};
+      } else {
+        final error = json.decode(response.body);
+        final errorMsg =
+            error['message'] ?? error['detail'] ?? 'Failed to get complaints';
+        print('❌ ERROR: Status ${response.statusCode} - $errorMsg');
+        return {'success': false, 'message': errorMsg};
+      }
+    } catch (e) {
+      print('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+      print('❌ COMPLAINTS API ERROR: GET FOR BDO');
       print('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
       print('💥 Exception: $e');
       print('⏰ Timestamp: ${DateTime.now()}');

@@ -1,5 +1,4 @@
 import 'dart:convert';
-import 'dart:convert' show base64, utf8;
 import 'package:http/http.dart' as http;
 import '../config/connstants.dart';
 import 'storage_service.dart';
@@ -17,6 +16,8 @@ class AuthService {
   static const String _blockIdKey = 'user_block_id';
   static const String _districtIdKey = 'user_district_id';
   static const String _smdSelectedDistrictKey = 'smd_selected_district_id';
+  static const String _smdSelectedBlockKey = 'smd_selected_block_id';
+  static const String _smdSelectedGpKey = 'smd_selected_gp_id';
 
   /// Send OTP to mobile number
   Future<String> sendOtp(String mobileNumber) async {
@@ -336,6 +337,26 @@ class AuthService {
     }
   }
 
+  Future<void> setSmdSelectedDistrictId(int districtId) async {
+    try {
+      await _storageService.saveString(
+        _smdSelectedDistrictKey,
+        districtId.toString(),
+      );
+      print('💾 Saved SMD selected district: $districtId');
+    } catch (e) {
+      print('❌ Error saving SMD selected district ID: $e');
+    }
+  }
+
+  Future<void> clearSmdSelectedDistrictId() async {
+    try {
+      await _storageService.remove(_smdSelectedDistrictKey);
+    } catch (e) {
+      print('❌ Error clearing SMD selected district ID: $e');
+    }
+  }
+
   /// Check if SMD has selected a district
   Future<bool> hasSmdSelectedDistrict() async {
     try {
@@ -343,6 +364,66 @@ class AuthService {
     } catch (e) {
       print('❌ Error checking SMD selected district: $e');
       return false;
+    }
+  }
+
+  /// Get SMD selected block ID
+  Future<int?> getSmdSelectedBlockId() async {
+    try {
+      final blockId = await _storageService.getString(_smdSelectedBlockKey);
+      return blockId != null ? int.tryParse(blockId) : null;
+    } catch (e) {
+      print('❌ Error getting SMD selected block ID: $e');
+      return null;
+    }
+  }
+
+  /// Set SMD selected block ID
+  Future<void> setSmdSelectedBlockId(int blockId) async {
+    try {
+      await _storageService.saveString(_smdSelectedBlockKey, blockId.toString());
+      print('💾 Saved SMD selected block: $blockId');
+    } catch (e) {
+      print('❌ Error saving SMD selected block ID: $e');
+    }
+  }
+
+  /// Clear SMD selected block ID
+  Future<void> clearSmdSelectedBlockId() async {
+    try {
+      await _storageService.remove(_smdSelectedBlockKey);
+    } catch (e) {
+      print('❌ Error clearing SMD selected block ID: $e');
+    }
+  }
+
+  /// Get SMD selected GP ID
+  Future<int?> getSmdSelectedGpId() async {
+    try {
+      final gpId = await _storageService.getString(_smdSelectedGpKey);
+      return gpId != null ? int.tryParse(gpId) : null;
+    } catch (e) {
+      print('❌ Error getting SMD selected GP ID: $e');
+      return null;
+    }
+  }
+
+  /// Set SMD selected GP ID
+  Future<void> setSmdSelectedGpId(int gpId) async {
+    try {
+      await _storageService.saveString(_smdSelectedGpKey, gpId.toString());
+      print('💾 Saved SMD selected GP: $gpId');
+    } catch (e) {
+      print('❌ Error saving SMD selected GP ID: $e');
+    }
+  }
+
+  /// Clear SMD selected GP ID
+  Future<void> clearSmdSelectedGpId() async {
+    try {
+      await _storageService.remove(_smdSelectedGpKey);
+    } catch (e) {
+      print('❌ Error clearing SMD selected GP ID: $e');
     }
   }
 
@@ -399,6 +480,8 @@ class AuthService {
             data['village_id'].toString(),
           );
           print('💾 Village ID saved: ${data['village_id']}');
+        } else {
+          await _storageService.remove(_villageIdKey);
         }
         if (data['block_id'] != null) {
           await _storageService.saveString(
@@ -406,6 +489,8 @@ class AuthService {
             data['block_id'].toString(),
           );
           print('💾 Block ID saved: ${data['block_id']}');
+        } else {
+          await _storageService.remove(_blockIdKey);
         }
         if (data['district_id'] != null) {
           await _storageService.saveString(
@@ -413,6 +498,9 @@ class AuthService {
             data['district_id'].toString(),
           );
           print('💾 District ID saved: ${data['district_id']}');
+        } else {
+          await _storageService.remove(_districtIdKey);
+          await clearSmdSelectedDistrictId();
         }
 
         // Store role if provided by API

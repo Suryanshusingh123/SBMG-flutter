@@ -1,3 +1,5 @@
+import '../utils/location_display_helper.dart';
+
 class ApiComplaintModel {
   final int id;
   final String description;
@@ -195,6 +197,34 @@ class ApiComplaintModel {
     print('   - map long: ${map['long']} (${map['long'].runtimeType})');
 
     return map;
+  }
+}
+
+extension ApiComplaintModelLocationExtension on ApiComplaintModel {
+  bool get hasValidCoordinates =>
+      LocationResolver.hasValidCoordinates(latitude, longitude);
+
+  String? get trimmedLocation {
+    final value = location?.trim();
+    if (value == null || value.isEmpty) return null;
+    return value;
+  }
+
+  String get administrativeLocationSummary {
+    final parts = <String>[];
+
+    void addPart(String? value) {
+      if (value == null) return;
+      final trimmed = value.trim();
+      if (trimmed.isEmpty) return;
+      parts.add(trimmed);
+    }
+
+    addPart(districtName);
+    addPart(blockName);
+    addPart(villageName);
+
+    return parts.join(' | ');
   }
 }
 

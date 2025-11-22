@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import '../models/api_complaint_model.dart';
 import '../services/complaints_service.dart';
+import '../services/auth_services.dart';
 
 class SmdComplaintsProvider extends ChangeNotifier {
   final ComplaintsService _complaintsService = ComplaintsService();
+  final AuthService _authService = AuthService();
 
   List<ApiComplaintModel> _complaints = [];
   bool _isLoading = true;
@@ -36,7 +38,20 @@ class SmdComplaintsProvider extends ChangeNotifier {
       _errorMessage = null;
       notifyListeners();
 
-      final response = await _complaintsService.getComplaintsForSupervisor();
+      // Get district ID from SMD selected district (similar to CEO)
+      final districtId = await _authService.getSmdSelectedDistrictId();
+      if (districtId == null) {
+        _errorMessage = 'District information not found';
+        _isLoading = false;
+        notifyListeners();
+        return;
+      }
+
+      // Use getComplaintsForBdo to load complaints by district (same as CEO)
+      final response = await _complaintsService.getComplaintsForBdo(
+        districtId: districtId,
+        blockId: null, // Load all complaints for the district
+      );
 
       if (response['success'] == true) {
         final complaints = response['complaints'] as List<ApiComplaintModel>;

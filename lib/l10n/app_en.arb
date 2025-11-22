@@ -29,6 +29,8 @@
   "english": "English",
   "hindi": "हिंदी (Hindi)",
   "languageChanged": "Language changed successfully",
+  "gpMasterDataNotFilled": "GP Master data is not filled by the respective VDO yet. Kindly contact VDO or helpline number for further assistance.",
+  "contractorDetailsNotAvailable": "Contractor details are not available for this Gram Panchayat yet. Kindly contact VDO or helpline number for further assistance.",
   
   "bookmarks": "Bookmarks",
   "noBookmarkedSchemes": "No bookmarked schemes",
@@ -47,6 +49,7 @@
   "timeline": "Timeline",
   "notSatisfied": "Not satisfied",
   "markCompleted": "Mark Completed",
+  "resolveNow": "Resolve now",
   "seeResolution": "See resolution",
   
   "uploadImage": "Upload Image",
@@ -188,7 +191,7 @@
   "masterDataDetails": "Master Data Details",
   "continueButton": "Continue",
   "pleaseSelectAllFieldsForMasterData": "Please select all fields",
-  "villageMasterDataForm": "Village Master data Form",
+  "villageMasterDataForm": "GP Master Data Form",
   "sentOTP": "Send OTP",
   "verifyOTP": "Verify OTP",
   "didntReceiveCode": "Didn't receive the code?",
@@ -279,7 +282,7 @@
   "complaintCreated": "Complaint created",
   "resolved": "Resolved",
   "verified": "Verified",
-  "complaintClosed": "Closed",
+  "complaintClosed": "Disposed complaints",
   "underProcess": "Under Process",
   "waitingForSupervisorToResolve": "Waiting for supervisor to resolve",
   "verificationPending": "Verification Pending",
@@ -402,7 +405,7 @@
   "total": "Total",
   "checkVendorSupervisorAttendance": "Check Vender / Supervisor attendance",
   "updateContractorDetails": "Update Contractor details",
-  "startVillageMasterData": "Start the Village Master data",
+  "startVillageMasterData": "Start the GP Master Data",
   "export": "Export",
   "supportedBy": "Supported by",
   "noComplaintsAvailable": "No complaints available"

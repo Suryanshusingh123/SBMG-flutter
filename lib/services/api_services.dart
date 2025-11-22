@@ -121,9 +121,11 @@ class ApiService {
     int limit = 100,
     bool active = true,
   }) async {
+    // API restricts limit to a maximum of 100
+    final int sanitizedLimit = limit > 100 ? 100 : limit;
     try {
       final endpoint =
-          '${ApiConstants.schemesEndpoint}?skip=$skip&limit=$limit&active=$active';
+          '${ApiConstants.schemesEndpoint}?skip=$skip&limit=$sanitizedLimit&active=$active';
       print('🔵 API Request: GET ${ApiConstants.baseUrl}$endpoint');
 
       final response = await _makeRequest(
@@ -925,7 +927,7 @@ class ApiService {
 
   // Annual Survey APIs
 
-  /// Submit village master data form
+  /// Submit GP Master Data form
   Future<Map<String, dynamic>> submitVillageMasterData({
     required Map<String, dynamic> formData,
   }) async {
@@ -933,7 +935,7 @@ class ApiService {
       final endpoint = ApiConstants.annualSurveyFillEndpoint;
 
       print('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-      print('🔵 VILLAGE MASTER DATA API REQUEST: SUBMIT FORM');
+      print('🔵 GP MASTER DATA API REQUEST: SUBMIT FORM');
       print('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
       print('📍 URL: ${ApiConstants.baseUrl}$endpoint');
       print('📋 Form Data: $formData');
@@ -960,7 +962,7 @@ class ApiService {
       );
 
       print('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-      print('🟢 VILLAGE MASTER DATA API RESPONSE: SUBMIT FORM');
+      print('🟢 GP MASTER DATA API RESPONSE: SUBMIT FORM');
       print('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
       print('📊 Status Code: ${response.statusCode}');
       print('📦 Response Body: ${response.body}');
@@ -970,13 +972,13 @@ class ApiService {
 
       final data = _handleResponse(response);
 
-      print('✅ SUCCESS: Village master data submitted');
+      print('✅ SUCCESS: GP Master Data submitted');
       print('📋 Response Data: $data');
 
       return {'success': true, 'data': data};
     } catch (e) {
       print('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-      print('❌ VILLAGE MASTER DATA API ERROR: SUBMIT FORM');
+      print('❌ GP MASTER DATA API ERROR: SUBMIT FORM');
       print('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
       print('📍 Endpoint: ${ApiConstants.annualSurveyFillEndpoint}');
       print('🔍 Error Details:');
@@ -987,7 +989,7 @@ class ApiService {
       print('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
       return {
         'success': false,
-        'message': 'Failed to submit village master data: $e',
+        'message': 'Failed to submit GP Master Data: $e',
       };
     }
   }
@@ -1545,7 +1547,7 @@ class ApiService {
       }
     } catch (e) {
       print('❌ Error submitting annual survey: $e');
-      throw e;
+      rethrow;
     }
   }
 }
