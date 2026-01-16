@@ -72,6 +72,20 @@ class ComplaintModel {
   }
 
   factory ComplaintModel.fromJson(Map<String, dynamic> json) {
+    // Helper function to parse date strings as UTC
+    DateTime parseUTC(String dateString) {
+      DateTime dateTime;
+      if (dateString.endsWith('Z') || dateString.contains('+') || dateString.contains('-', dateString.indexOf('T'))) {
+        // Has timezone info, parse as is
+        dateTime = DateTime.parse(dateString);
+      } else {
+        // No timezone info, assume UTC and add 'Z'
+        dateTime = DateTime.parse('${dateString}Z');
+      }
+      // Ensure it's in UTC
+      return dateTime.isUtc ? dateTime : dateTime.toUtc();
+    }
+
     return ComplaintModel(
       id: json['id'].toString(),
       type: json['complaint_type'] ?? json['type'] ?? 'Unknown',
@@ -81,9 +95,9 @@ class ComplaintModel {
           : [],
       imageLocations: _createImageLocationsFromJson(json),
       status: json['status_name'] ?? json['status'] ?? 'unknown',
-      createdAt: DateTime.parse(json['created_at']),
+      createdAt: parseUTC(json['created_at']),
       updatedAt: json['updated_at'] != null
-          ? DateTime.parse(json['updated_at'])
+          ? parseUTC(json['updated_at'])
           : null,
       userId: json['mobile_number'] ?? json['userId'] ?? '',
       assignedTo: json['assignedTo'],
@@ -96,13 +110,13 @@ class ComplaintModel {
       villageName: json['village_name'],
       location: json['location'],
       resolvedAt: json['resolved_at'] != null
-          ? DateTime.parse(json['resolved_at'])
+          ? parseUTC(json['resolved_at'])
           : null,
       verifiedAt: json['verified_at'] != null
-          ? DateTime.parse(json['verified_at'])
+          ? parseUTC(json['verified_at'])
           : null,
       closedAt: json['closed_at'] != null
-          ? DateTime.parse(json['closed_at'])
+          ? parseUTC(json['closed_at'])
           : null,
     );
   }
@@ -121,13 +135,24 @@ class ComplaintModel {
         : null;
 
     if (lat != null && long != null) {
+      // Helper function to parse date strings as UTC
+      DateTime parseUTC(String dateString) {
+        DateTime dateTime;
+        if (dateString.endsWith('Z') || dateString.contains('+') || dateString.contains('-', dateString.indexOf('T'))) {
+          dateTime = DateTime.parse(dateString);
+        } else {
+          dateTime = DateTime.parse('${dateString}Z');
+        }
+        return dateTime.isUtc ? dateTime : dateTime.toUtc();
+      }
+
       locations.add(
         ComplaintLocation(
           latitude: lat,
           longitude: long,
           address:
               null, // Don't use location here, use it directly from complaint.location
-          timestamp: DateTime.parse(json['created_at']),
+          timestamp: parseUTC(json['created_at']),
         ),
       );
     }
@@ -159,11 +184,22 @@ class ComplaintLocation {
   }
 
   factory ComplaintLocation.fromJson(Map<String, dynamic> json) {
+    // Helper function to parse date strings as UTC
+    DateTime parseUTC(String dateString) {
+      DateTime dateTime;
+      if (dateString.endsWith('Z') || dateString.contains('+') || dateString.contains('-', dateString.indexOf('T'))) {
+        dateTime = DateTime.parse(dateString);
+      } else {
+        dateTime = DateTime.parse('${dateString}Z');
+      }
+      return dateTime.isUtc ? dateTime : dateTime.toUtc();
+    }
+
     return ComplaintLocation(
       latitude: json['latitude'],
       longitude: json['longitude'],
       address: json['address'],
-      timestamp: DateTime.parse(json['timestamp']),
+      timestamp: parseUTC(json['timestamp']),
     );
   }
 }

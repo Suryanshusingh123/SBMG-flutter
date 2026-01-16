@@ -159,24 +159,41 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     SizedBox(height: 16.h),
 
                     // Logout
-                    Container(
-                      margin: EdgeInsets.symmetric(horizontal: 16.w),
-                      decoration: BoxDecoration(
-                        color: CitizenColors.surface(context),
-                        borderRadius: BorderRadius.circular(12.r),
-                        border: Border.all(
-                          color: Colors.red.withOpacity(0.3),
-                          width: 1,
+                    InkWell(
+                      onTap: () {
+                        _showLogoutDialog(context);
+                      },
+                      borderRadius: BorderRadius.circular(12.r),
+                      child: Container(
+                        margin: EdgeInsets.symmetric(horizontal: 16.w),
+                        decoration: BoxDecoration(
+                          color: CitizenColors.surface(context),
+                          borderRadius: BorderRadius.circular(12.r),
+                          border: Border.all(
+                            color: Colors.red.withOpacity(0.3),
+                            width: 1,
+                          ),
                         ),
-                      ),
-                      child: _buildSettingItem(
-                        icon: Icons.logout,
-                        title: l10n.logout,
-                        showDivider: false,
-                        iconColor: Colors.red,
-                        onTap: () {
-                          _showLogoutDialog(context);
-                        },
+                        child: Container(
+                          padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 16.h),
+                          color: CitizenColors.surface(context),
+                          child: Row(
+                            children: [
+                              Icon(Icons.logout, size: 24.sp, color: Colors.red),
+                              SizedBox(width: 16.w),
+                              Expanded(
+                                child: Text(
+                                  l10n.logout,
+                                  style: TextStyle(
+                                    fontSize: 16.sp,
+                                    fontWeight: FontWeight.w400,
+                                    color: Colors.red,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
                       ),
                     ),
 

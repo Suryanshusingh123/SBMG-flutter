@@ -3,6 +3,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:geolocator/geolocator.dart';
 import 'dart:io';
 import '../../services/api_services.dart';
 import '../../config/connstants.dart';
@@ -38,6 +39,8 @@ class _SupervisorComplaintDetailsScreenState
   final TextEditingController _resolutionCommentController =
       TextEditingController();
   File? _resolutionImage;
+  double? _resolutionImageLatitude;
+  double? _resolutionImageLongitude;
 
   @override
   void initState() {
@@ -958,6 +961,8 @@ class _SupervisorComplaintDetailsScreenState
     _resolutionCommentController.clear();
     setState(() {
       _resolutionImage = null;
+      _resolutionImageLatitude = null;
+      _resolutionImageLongitude = null;
     });
 
     showModalBottomSheet(
@@ -968,9 +973,11 @@ class _SupervisorComplaintDetailsScreenState
         builder: (context, setSheetState) => _ResolutionBottomSheet(
           commentController: _resolutionCommentController,
           image: _resolutionImage,
-          onImagePicked: (image) {
+          onImagePicked: (image, latitude, longitude) {
             setState(() {
               _resolutionImage = image;
+              _resolutionImageLatitude = latitude;
+              _resolutionImageLongitude = longitude;
             });
             setSheetState(() {});
           },
@@ -994,8 +1001,13 @@ class _SupervisorComplaintDetailsScreenState
           await _apiService.uploadComplaintMedia(
             complaintId: widget.complaintId,
             imageFile: _resolutionImage!,
+            latitude: _resolutionImageLatitude,
+            longitude: _resolutionImageLongitude,
           );
           print('✅ Media uploaded successfully');
+          if (_resolutionImageLatitude != null && _resolutionImageLongitude != null) {
+            print('📍 Geotagged at: ${_resolutionImageLatitude}, ${_resolutionImageLongitude}');
+          }
         } catch (e) {
           print('⚠️ Media upload failed, but continuing with resolve: $e');
           // Continue regardless of media upload result
@@ -1045,7 +1057,7 @@ class _SupervisorComplaintDetailsScreenState
 class _ResolutionBottomSheet extends StatelessWidget {
   final TextEditingController commentController;
   final File? image;
-  final Function(File) onImagePicked;
+  final Function(File, double?, double?) onImagePicked;
   final VoidCallback onSubmitted;
 
   const _ResolutionBottomSheet({
@@ -1111,12 +1123,83 @@ class _ResolutionBottomSheet extends StatelessWidget {
 
               GestureDetector(
                 onTap: () async {
-                  final ImagePicker picker = ImagePicker();
-                  final XFile? pickedImage = await picker.pickImage(
-                    source: ImageSource.gallery,
+                  // Show bottom sheet to choose camera or gallery
+                  final ImageSource? source = await showModalBottomSheet<ImageSource>(
+                    context: context,
+                    backgroundColor: Colors.transparent,
+                    builder: (context) => Container(
+                      decoration: const BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.only(
+                          topLeft: Radius.circular(20),
+                          topRight: Radius.circular(20),
+                        ),
+                      ),
+                      child: SafeArea(
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            ListTile(
+                              leading: const Icon(Icons.camera_alt),
+                              title: Text(AppLocalizations.of(context)!.camera),
+                              onTap: () => Navigator.pop(context, ImageSource.camera),
+                            ),
+                            ListTile(
+                              leading: const Icon(Icons.photo_library),
+                              title: Text(AppLocalizations.of(context)!.gallery),
+                              onTap: () => Navigator.pop(context, ImageSource.gallery),
+                            ),
+                            SizedBox(height: MediaQuery.of(context).padding.bottom),
+                          ],
+                        ),
+                      ),
+                    ),
                   );
-                  if (pickedImage != null) {
-                    onImagePicked(File(pickedImage.path));
+
+                  if (source == null) return;
+
+                  try {
+                    final ImagePicker picker = ImagePicker();
+                    final XFile? pickedImage = await picker.pickImage(
+                      source: source,
+                      imageQuality: 80,
+                    );
+                    
+                    if (pickedImage != null) {
+                      double? latitude;
+                      double? longitude;
+                      
+                      // If captured from camera, get location for geotagging
+                      if (source == ImageSource.camera) {
+                        try {
+                          final position = await Geolocator.getCurrentPosition(
+                            locationSettings: const LocationSettings(
+                              accuracy: LocationAccuracy.high,
+                            ),
+                          );
+                          latitude = position.latitude;
+                          longitude = position.longitude;
+                          print('📸 Image captured with geotag: $latitude, $longitude');
+                        } catch (e) {
+                          print('⚠️ Failed to get location for geotagging: $e');
+                          // Continue without location if permission denied
+                        }
+                      }
+                      
+                      onImagePicked(File(pickedImage.path), latitude, longitude);
+                    }
+                  } catch (e) {
+                    print('❌ Error picking image: $e');
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            AppLocalizations.of(context)!.errorPickingImage,
+                          ),
+                          backgroundColor: Colors.red,
+                        ),
+                      );
+                    }
                   }
                 },
                 child: Container(

@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 
 class ApiConstants {
-  // Base API URL
-  static const String baseUrl = 'http://139.59.34.99:8000';
+  // Base API URL - Using secure HTTPS with proper domain
+  static const String baseUrl = 'https://sbmgrajasthan.com';
 
   // API Endpoints
   static const String schemesEndpoint = '/api/v1/schemes/';

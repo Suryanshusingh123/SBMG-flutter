@@ -9,7 +9,8 @@ import '../../widgets/common/custom_bottom_navigation.dart';
 import '../../widgets/common/date_filter_bottom_sheet.dart';
 import '../../l10n/app_localizations.dart';
 import '../../models/inspection_model.dart';
-import 'ceo_select_gp_screen.dart';
+import '../../services/auth_services.dart';
+import '../common/unified_select_location_screen.dart';
 
 class CeoInspectionScreen extends StatefulWidget {
   const CeoInspectionScreen({super.key});
@@ -21,19 +22,60 @@ class CeoInspectionScreen extends StatefulWidget {
 class _CeoInspectionScreenState extends State<CeoInspectionScreen> {
   int _selectedIndex = 2; // Inspection tab
   bool _hasLoadedInspections = false;
+  bool _hasCheckedLocation = false;
+  Map<String, dynamic>? _inspectionLocation;
   DateTime? _filterDate;
   DateTime? _filterStartDate;
   DateTime? _filterEndDate;
+  final AuthService _authService = AuthService();
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!_hasLoadedInspections) {
-        _hasLoadedInspections = true;
+      _checkAndLoadLocation();
+    });
+  }
+
+  Future<void> _checkAndLoadLocation() async {
+    if (_hasCheckedLocation) return;
+
+    // Check if inspection location exists
+    final location = await _authService.getInspectionLocation('ceo');
+    
+    if (location == null || location['gpId'] == null) {
+      // Show location selection screen once
+      if (!mounted) return;
+      final result = await Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => const UnifiedSelectLocationScreen(userRole: 'ceo'),
+        ),
+      );
+
+      if (result is Map<String, dynamic> && result['gpId'] != null) {
+        setState(() {
+          _inspectionLocation = result;
+        });
+      } else {
+        // User cancelled, go back
+        Navigator.pop(context);
+        return;
+      }
+    } else {
+      setState(() {
+        _inspectionLocation = location;
+      });
+    }
+
+    _hasCheckedLocation = true;
+    
+    if (!_hasLoadedInspections) {
+      _hasLoadedInspections = true;
+      if (mounted) {
         context.read<CeoInspectionProvider>().loadInspections();
       }
-    });
+    }
   }
 
   String _formatDate(String dateString) {
@@ -145,19 +187,49 @@ class _CeoInspectionScreenState extends State<CeoInspectionScreen> {
                   color: const Color(0xFF111827),
                 ),
               ),
-              GestureDetector(
-                onTap: _showDateFilter,
-                child: const Icon(
-                  Icons.calendar_today,
-                  size: 18,
-                  color: Colors.black,
-                ),
+              Row(
+                children: [
+                  if (_inspectionLocation != null)
+                    GestureDetector(
+                      onTap: () async {
+                        final result = await Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const UnifiedSelectLocationScreen(userRole: 'ceo'),
+                          ),
+                        );
+                        if (result is Map<String, dynamic> && result['gpId'] != null) {
+                          setState(() {
+                            _inspectionLocation = result;
+                          });
+                        }
+                      },
+                      child: Padding(
+                        padding: EdgeInsets.only(right: 12.w),
+                        child: Icon(
+                          Icons.location_on,
+                          size: 18,
+                          color: AppColors.primaryColor,
+                        ),
+                      ),
+                    ),
+                  GestureDetector(
+                    onTap: _showDateFilter,
+                    child: const Icon(
+                      Icons.calendar_today,
+                      size: 18,
+                      color: Colors.black,
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
           SizedBox(height: 4.h),
           Text(
-            '${ceoProvider.districtName} • ${_displayMonth()}',
+            _inspectionLocation != null
+                ? '${_inspectionLocation!['districtName']} • ${_inspectionLocation!['blockName']} • ${_inspectionLocation!['gpName']} • ${_displayMonth()}'
+                : '${ceoProvider.districtName} • ${_displayMonth()}',
             style: TextStyle(fontSize: 11.sp, color: const Color(0xFF6B7280)),
           ),
         ],
@@ -199,27 +271,19 @@ class _CeoInspectionScreenState extends State<CeoInspectionScreen> {
             ],
           ),
           SizedBox(height: 12.h),
-          SizedBox(
+            SizedBox(
             width: double.infinity,
             child: ElevatedButton(
-              onPressed: () {
-                Navigator.push(
+              onPressed: _inspectionLocation == null ? null : () {
+                // Use stored location for new inspection
+                Navigator.pushNamed(
                   context,
-                  MaterialPageRoute(
-                    builder: (_) => const CeoSelectGpScreen(returnOnTap: true),
-                  ),
-                ).then((result) {
-                  if (result is Map && result['gpId'] != null) {
-                    Navigator.pushNamed(
-                      context,
-                      '/ceo-new-inspection',
-                      arguments: {
-                        'gpId': result['gpId'],
-                        'gpName': result['gpName'] ?? '',
-                      },
-                    );
-                  }
-                });
+                  '/ceo-new-inspection',
+                  arguments: {
+                    'gpId': _inspectionLocation!['gpId'],
+                    'gpName': _inspectionLocation!['gpName'] ?? '',
+                  },
+                );
               },
               style: ElevatedButton.styleFrom(
                 padding: EdgeInsets.symmetric(vertical: 12.h),
@@ -458,30 +522,22 @@ class _CeoInspectionScreenState extends State<CeoInspectionScreen> {
 
   Widget _buildViewGpsInspectionButton(BuildContext context) {
     return GestureDetector(
-      onTap: () async {
-        final result = await Navigator.push(
+      onTap: _inspectionLocation == null ? null : () async {
+        // Use stored location
+        final int gpId = _inspectionLocation!['gpId'] as int;
+        final String gpName = _inspectionLocation!['gpName'] as String;
+        final int? blockId = _inspectionLocation!['blockId'] as int?;
+        if (!mounted) return;
+        Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (_) => const CeoSelectGpScreen(returnOnTap: true),
+            builder: (_) => _CeoGpInspectionScreen(
+              gpId: gpId,
+              gpName: gpName,
+              blockId: blockId,
+            ),
           ),
         );
-
-        if (result is Map && result['gpId'] != null) {
-          final int gpId = result['gpId'] as int;
-          final String gpName = (result['gpName'] ?? '') as String;
-          final int? blockId = result['blockId'] as int?;
-          if (!mounted) return;
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (_) => _CeoGpInspectionScreen(
-                gpId: gpId,
-                gpName: gpName,
-                blockId: blockId,
-              ),
-            ),
-          );
-        }
       },
       child: Container(
         padding: EdgeInsets.all(16.r),

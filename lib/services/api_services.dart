@@ -10,6 +10,7 @@ import '../models/complaint_type_model.dart';
 import '../models/inspection_model.dart';
 import '../models/contractor_model.dart';
 import 'auth_services.dart';
+import '../utils/image_compression.dart';
 
 /// Custom exception for when survey is already filled
 class SurveyAlreadyFilledException implements Exception {
@@ -526,15 +527,20 @@ class ApiService {
       request.fields['long'] = long.toString();
       request.fields['location'] = locationString;
 
-      // Add files
+      // Compress and add files
       print('📁 Processing ${files.length} files...');
       if (files.isEmpty) {
         print('⚠️  Warning: No files to upload');
       }
 
-      for (var i = 0; i < files.length; i++) {
-        var file = files[i];
-        print('📎 File ${i + 1}/${files.length}: ${file.path}');
+      // Compress images before upload to prevent 413 errors
+      print('🔄 Compressing images before upload...');
+      final compressedFiles = await compressImages(files);
+      print('✅ Compression complete: ${compressedFiles.length} files');
+
+      for (var i = 0; i < compressedFiles.length; i++) {
+        var file = compressedFiles[i];
+        print('📎 File ${i + 1}/${compressedFiles.length}: ${file.path}');
         print('   - File exists: ${await file.exists()}');
 
         if (!await file.exists()) {
@@ -544,7 +550,7 @@ class ApiService {
 
         var stream = http.ByteStream(file.openRead());
         var length = await file.length();
-        print('   - File size: $length bytes');
+        print('   - File size: ${(length / 1024).toStringAsFixed(2)} KB');
 
         var multipartFile = http.MultipartFile(
           'files',
@@ -676,18 +682,25 @@ class ApiService {
       // Add comment
       request.fields['comment'] = comment;
 
-      // Add media files if provided
+      // Add media files if provided (compress before upload)
       if (mediaFiles != null && mediaFiles.isNotEmpty) {
-        for (int i = 0; i < mediaFiles.length; i++) {
-          final file = mediaFiles[i];
+        print('🔄 Compressing ${mediaFiles.length} media files before upload...');
+        final compressedFiles = await compressImages(mediaFiles);
+        print('✅ Compression complete: ${compressedFiles.length} files');
+        
+        for (int i = 0; i < compressedFiles.length; i++) {
+          final file = compressedFiles[i];
           if (await file.exists()) {
+            final fileSize = await file.length();
+            print('📎 Adding compressed media file: ${file.path.split('/').last} (${(fileSize / 1024).toStringAsFixed(2)} KB)');
+            
             final multipartFile = await http.MultipartFile.fromPath(
               'media',
               file.path,
               filename: file.path.split('/').last,
             );
             request.files.add(multipartFile);
-            print('📎 Added media file: ${file.path.split('/').last}');
+            print('✅ Added media file: ${file.path.split('/').last}');
           }
         }
       }
@@ -1352,6 +1365,8 @@ class ApiService {
   Future<Map<String, dynamic>> uploadComplaintMedia({
     required int complaintId,
     required File imageFile,
+    double? latitude,
+    double? longitude,
   }) async {
     try {
       final token = await _getAuthToken();
@@ -1360,6 +1375,14 @@ class ApiService {
 
       print('🔵 Upload Media API Request: POST $url');
       print('📎 File: ${imageFile.path}');
+      if (latitude != null && longitude != null) {
+        print('📍 Location: $latitude, $longitude');
+      }
+
+      // Compress image before upload to prevent 413 errors
+      print('🔄 Compressing image before upload...');
+      final compressedFile = await compressImage(imageFile);
+      print('✅ Compression complete');
 
       final request = http.MultipartRequest('POST', url);
 
@@ -1369,11 +1392,29 @@ class ApiService {
         'Authorization': 'Bearer $token',
       });
 
-      // Add file
+      // Add location fields if provided (for geotagging)
+      if (latitude != null && longitude != null) {
+        request.fields['lat'] = latitude.toString();
+        request.fields['long'] = longitude.toString();
+        
+        // Optionally get location string from coordinates
+        try {
+          final locationString = await _getLocationFromCoordinates(latitude, longitude);
+          request.fields['location'] = locationString;
+          print('📍 Location string: $locationString');
+        } catch (e) {
+          print('⚠️ Could not get location string: $e');
+        }
+      }
+
+      // Add compressed file
+      final fileSize = await compressedFile.length();
+      print('📦 Compressed file size: ${(fileSize / 1024).toStringAsFixed(2)} KB');
+      
       final multipartFile = await http.MultipartFile.fromPath(
         'file',
-        imageFile.path,
-        filename: imageFile.path.split('/').last,
+        compressedFile.path,
+        filename: compressedFile.path.split('/').last,
       );
       request.files.add(multipartFile);
 

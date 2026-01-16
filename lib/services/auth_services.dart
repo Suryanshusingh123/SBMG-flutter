@@ -440,6 +440,43 @@ class AuthService {
     };
   }
 
+  /// Get inspection location for a specific role
+  Future<Map<String, dynamic>?> getInspectionLocation(String role) async {
+    try {
+      final storageKey = 'inspection_location_$role';
+      final locationJson = await _storageService.getString(storageKey);
+      if (locationJson != null) {
+        return json.decode(locationJson) as Map<String, dynamic>;
+      }
+      return null;
+    } catch (e) {
+      print('❌ Error getting inspection location: $e');
+      return null;
+    }
+  }
+
+  /// Save inspection location for a specific role
+  Future<void> saveInspectionLocation(String role, Map<String, dynamic> location) async {
+    try {
+      final storageKey = 'inspection_location_$role';
+      await _storageService.saveString(storageKey, json.encode(location));
+      print('💾 Saved inspection location for $role');
+    } catch (e) {
+      print('❌ Error saving inspection location: $e');
+    }
+  }
+
+  /// Clear inspection location for a specific role
+  Future<void> clearInspectionLocation(String role) async {
+    try {
+      final storageKey = 'inspection_location_$role';
+      await _storageService.remove(storageKey);
+      print('🗑️ Cleared inspection location for $role');
+    } catch (e) {
+      print('❌ Error clearing inspection location: $e');
+    }
+  }
+
   /// Get current user information
   Future<Map<String, dynamic>> getCurrentUser() async {
     try {

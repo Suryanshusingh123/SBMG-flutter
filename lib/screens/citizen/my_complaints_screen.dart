@@ -11,6 +11,7 @@ import '../../widgets/common/auth_required_screen.dart';
 import '../../theme/citizen_colors.dart';
 import '../../widgets/common/custom_bottom_navigation.dart';
 import '../../widgets/common/date_filter_bottom_sheet.dart';
+import '../../utils/date_time_utils.dart';
 import 'complaint_details_screen.dart';
 
 class MyComplaintsScreen extends StatefulWidget {
@@ -592,12 +593,15 @@ class _MyComplaintsScreenState extends State<MyComplaintsScreen> {
                         ),
                       ),
                       SizedBox(width: 8.w),
-                      Text(
-                        complaint.type,
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: primaryTextColor,
+                      Flexible(
+                        child: Text(
+                          complaint.type,
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: primaryTextColor,
+                          ),
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ),
                       SizedBox(width: 8.w),
@@ -652,22 +656,10 @@ class _MyComplaintsScreenState extends State<MyComplaintsScreen> {
     );
   }
 
+  /// Formats date and time in IST (Indian Standard Time)
+  /// Format: "MMM d, yyyy, h:mm a" (e.g., "Jan 15, 2024, 2:30 PM")
   String _formatDate(DateTime date) {
-    const months = [
-      'Jan',
-      'Feb',
-      'Mar',
-      'Apr',
-      'May',
-      'Jun',
-      'Jul',
-      'Aug',
-      'Sep',
-      'Oct',
-      'Nov',
-      'Dec',
-    ];
-    return '${months[date.month - 1]} ${date.day}, ${date.year}';
+    return DateTimeUtils.formatDateTimeIST(date);
   }
 
   int _getUpdateCount(ComplaintModel complaint) {

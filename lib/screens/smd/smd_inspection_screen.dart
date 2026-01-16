@@ -10,7 +10,7 @@ import '../../widgets/common/date_filter_bottom_sheet.dart';
 import '../../l10n/app_localizations.dart';
 import '../../models/inspection_model.dart';
 import '../../services/auth_services.dart';
-import 'smd_select_gp_screen.dart';
+import '../common/unified_select_location_screen.dart';
 
 class SmdInspectionScreen extends StatefulWidget {
   const SmdInspectionScreen({super.key});
@@ -22,29 +22,66 @@ class SmdInspectionScreen extends StatefulWidget {
 class _SmdInspectionScreenState extends State<SmdInspectionScreen> {
   int _selectedIndex = 2; // Inspection tab
   bool _hasLoadedInspections = false;
+  bool _hasCheckedLocation = false;
+  Map<String, dynamic>? _inspectionLocation;
   DateTime? _filterDate;
   DateTime? _filterStartDate;
   DateTime? _filterEndDate;
+  final AuthService _authService = AuthService();
 
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) => _ensureDistrictSelected());
+    WidgetsBinding.instance.addPostFrameCallback((_) => _checkAndLoadLocation());
   }
 
-  Future<void> _ensureDistrictSelected() async {
-    if (_hasLoadedInspections) return;
-
-    final authService = AuthService();
-    final districtId = await authService.getSmdSelectedDistrictId();
-
+  Future<void> _checkAndLoadLocation() async {
+    // First ensure district is selected
+    final districtId = await _authService.getSmdSelectedDistrictId();
     if (!mounted) return;
 
     if (districtId == null) {
       Navigator.pushReplacementNamed(context, '/smd-district-selection');
+      return;
+    }
+
+    if (_hasCheckedLocation) return;
+
+    // Check if inspection location exists
+    final location = await _authService.getInspectionLocation('smd');
+    
+    if (location == null || location['gpId'] == null) {
+      // Show location selection screen once
+      if (!mounted) return;
+      final result = await Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => const UnifiedSelectLocationScreen(userRole: 'smd'),
+        ),
+      );
+
+      if (result is Map<String, dynamic> && result['gpId'] != null) {
+        setState(() {
+          _inspectionLocation = result;
+        });
+      } else {
+        // User cancelled, stay on screen but don't load inspections
+        _hasCheckedLocation = true;
+        return;
+      }
     } else {
+      setState(() {
+        _inspectionLocation = location;
+      });
+    }
+
+    _hasCheckedLocation = true;
+    
+    if (!_hasLoadedInspections) {
       _hasLoadedInspections = true;
-      context.read<SmdInspectionProvider>().loadInspections();
+      if (mounted) {
+        context.read<SmdInspectionProvider>().loadInspections();
+      }
     }
   }
 
@@ -157,19 +194,49 @@ class _SmdInspectionScreenState extends State<SmdInspectionScreen> {
                   color: const Color(0xFF111827),
                 ),
               ),
-              GestureDetector(
-                onTap: _showDateFilter,
-                child: const Icon(
-                  Icons.calendar_today,
-                  size: 18,
-                  color: Colors.black,
-                ),
+              Row(
+                children: [
+                  if (_inspectionLocation != null)
+                    GestureDetector(
+                      onTap: () async {
+                        final result = await Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const UnifiedSelectLocationScreen(userRole: 'smd'),
+                          ),
+                        );
+                        if (result is Map<String, dynamic> && result['gpId'] != null) {
+                          setState(() {
+                            _inspectionLocation = result;
+                          });
+                        }
+                      },
+                      child: Padding(
+                        padding: EdgeInsets.only(right: 12.w),
+                        child: Icon(
+                          Icons.location_on,
+                          size: 18,
+                          color: AppColors.primaryColor,
+                        ),
+                      ),
+                    ),
+                  GestureDetector(
+                    onTap: _showDateFilter,
+                    child: const Icon(
+                      Icons.calendar_today,
+                      size: 18,
+                      color: Colors.black,
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
           SizedBox(height: 4.h),
           Text(
-            '${smdProvider.districtName} • ${_displayMonth()}',
+            _inspectionLocation != null
+                ? '${_inspectionLocation!['districtName']} • ${_inspectionLocation!['blockName']} • ${_inspectionLocation!['gpName']} • ${_displayMonth()}'
+                : '${smdProvider.districtName} • ${_displayMonth()}',
             style: TextStyle(fontSize: 11.sp, color: const Color(0xFF6B7280)),
           ),
         ],
@@ -214,24 +281,16 @@ class _SmdInspectionScreenState extends State<SmdInspectionScreen> {
           SizedBox(
             width: double.infinity,
             child: ElevatedButton(
-              onPressed: () {
-                Navigator.push(
+              onPressed: _inspectionLocation == null ? null : () {
+                // Use stored location for new inspection
+                Navigator.pushNamed(
                   context,
-                  MaterialPageRoute(
-                    builder: (_) => const SmdSelectGpScreen(returnOnTap: true),
-                  ),
-                ).then((result) {
-                  if (result is Map && result['gpId'] != null) {
-                    Navigator.pushNamed(
-                      context,
-                      '/smd-new-inspection',
-                      arguments: {
-                        'gpId': result['gpId'],
-                        'gpName': result['gpName'] ?? '',
-                      },
-                    );
-                  }
-                });
+                  '/smd-new-inspection',
+                  arguments: {
+                    'gpId': _inspectionLocation!['gpId'],
+                    'gpName': _inspectionLocation!['gpName'] ?? '',
+                  },
+                );
               },
               style: ElevatedButton.styleFrom(
                 padding: EdgeInsets.symmetric(vertical: 12.h),
@@ -470,26 +529,18 @@ class _SmdInspectionScreenState extends State<SmdInspectionScreen> {
 
   Widget _buildViewGpsInspectionButton(BuildContext context) {
     return GestureDetector(
-      onTap: () async {
-        final result = await Navigator.push(
+      onTap: _inspectionLocation == null ? null : () async {
+        // Use stored location
+        final int gpId = _inspectionLocation!['gpId'] as int;
+        final String gpName = _inspectionLocation!['gpName'] as String;
+        if (!mounted) return;
+        Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (_) => const SmdSelectGpScreen(returnOnTap: true),
+            builder: (_) =>
+                _SmdGpInspectionScreen(gpId: gpId, gpName: gpName),
           ),
         );
-
-        if (result is Map && result['gpId'] != null) {
-          final int gpId = result['gpId'] as int;
-          final String gpName = (result['gpName'] ?? '') as String;
-          if (!mounted) return;
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (_) =>
-                  _SmdGpInspectionScreen(gpId: gpId, gpName: gpName),
-            ),
-          );
-        }
       },
       child: Container(
         padding: EdgeInsets.all(16.r),

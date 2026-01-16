@@ -84,14 +84,26 @@ class ComplaintsProvider with ChangeNotifier {
           final address =
               'Lat: ${lat.toStringAsFixed(6)}, Long: ${long.toStringAsFixed(6)}';
           print('📍 Displaying coordinates: $address');
+          
+          // Helper function to parse date strings as UTC
+          DateTime parseUTC(String dateString) {
+            DateTime dateTime;
+            if (dateString.endsWith('Z') || dateString.contains('+') || dateString.contains('-', dateString.indexOf('T'))) {
+              dateTime = DateTime.parse(dateString);
+            } else {
+              dateTime = DateTime.parse('${dateString}Z');
+            }
+            return dateTime.isUtc ? dateTime : dateTime.toUtc();
+          }
+          
           imageLocations.add(
             ComplaintLocation(
               latitude: lat,
               longitude: long,
               address: address,
               timestamp: complaintData['created_at'] != null
-                  ? DateTime.parse(complaintData['created_at'])
-                  : DateTime.now(),
+                  ? parseUTC(complaintData['created_at'])
+                  : DateTime.now().toUtc(),
             ),
           );
         } else {

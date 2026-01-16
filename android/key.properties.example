@@ -1,0 +1,8 @@
+# Keystore properties for release signing
+# Copy this file to key.properties and fill in your actual values
+# IMPORTANT: key.properties is in .gitignore - never commit it to version control
+
+storePassword=your-keystore-password
+keyPassword=your-key-password
+keyAlias=your-key-alias
+storeFile=../path/to/your/keystore.jks
