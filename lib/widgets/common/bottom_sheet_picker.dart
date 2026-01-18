@@ -66,6 +66,8 @@ class _BottomSheetPickerState<T> extends State<BottomSheetPicker<T>> {
   final TextEditingController _searchController = TextEditingController();
   List<T> _filteredItems = [];
 
+  final FocusNode _searchFocusNode = FocusNode();
+
   @override
   void initState() {
     super.initState();
@@ -74,9 +76,19 @@ class _BottomSheetPickerState<T> extends State<BottomSheetPicker<T>> {
   }
 
   @override
+  void didUpdateWidget(BottomSheetPicker<T> oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // Update filtered items when items change
+    if (widget.items != oldWidget.items) {
+      _filterItems();
+    }
+  }
+
+  @override
   void dispose() {
     _searchController.removeListener(_filterItems);
     _searchController.dispose();
+    _searchFocusNode.dispose();
     super.dispose();
   }
 
@@ -163,9 +175,11 @@ class _BottomSheetPickerState<T> extends State<BottomSheetPicker<T>> {
             // Search bar
             if (widget.showSearch)
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
                 child: TextField(
                   controller: _searchController,
+                  focusNode: _searchFocusNode,
+                  autofocus: false,
                   decoration: InputDecoration(
                     hintText: widget.searchHint ?? 'Search...',
                     hintStyle: TextStyle(

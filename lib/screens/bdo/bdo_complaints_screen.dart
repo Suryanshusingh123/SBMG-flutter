@@ -424,7 +424,12 @@ class _BdoComplaintsScreenState extends State<BdoComplaintsScreen> {
       filteredComplaints = filteredComplaints.where((complaint) {
         try {
           final complaintDate = DateTime.parse(complaint.createdAt).toUtc();
-          final filterDate = _filterDate!.toUtc();
+          // Create UTC date using just the year, month, day components to avoid timezone issues
+          final filterDate = DateTime.utc(
+            _filterDate!.year,
+            _filterDate!.month,
+            _filterDate!.day,
+          );
           return complaintDate.year == filterDate.year &&
               complaintDate.month == filterDate.month &&
               complaintDate.day == filterDate.day;

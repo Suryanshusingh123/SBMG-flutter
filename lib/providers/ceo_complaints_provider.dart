@@ -49,9 +49,11 @@ class CeoComplaintsProvider extends ChangeNotifier {
       }
 
       debugPrint('📡 [CEO Complaints] Fetching complaints for districtId=$districtId');
+      // Use a very high limit to ensure we get all complaints for accurate counts
       final response = await _complaintsService.getComplaintsForBdo(
         districtId: districtId,
         blockId: null,
+        limit: 10000, // High limit to get all complaints for accurate total count
       );
 
       if (response['success'] == true) {

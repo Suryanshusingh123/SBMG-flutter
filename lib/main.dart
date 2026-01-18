@@ -13,6 +13,7 @@ import 'screens/citizen/citizen_login_screen.dart';
 import 'screens/citizen/raise_complaint_screen.dart';
 import 'screens/citizen/my_complaints_screen.dart';
 import 'screens/citizen/schemes_screen.dart';
+import 'screens/citizen/events_screen.dart';
 import 'screens/citizen/settings_screen.dart';
 import 'screens/supervisor/supervisor_home_screen.dart';
 import 'screens/supervisor/supervisor_complaints_screen.dart';
@@ -274,6 +275,7 @@ class MyApp extends StatelessWidget {
               },
               '/my-complaints': (context) => const MyComplaintsScreen(),
               '/schemes': (context) => const SchemesScreen(),
+              '/events': (context) => const EventsScreen(),
               '/settings': (context) => const SettingsScreen(),
               '/profile': (context) =>
                   Scaffold(body: Center(child: Text('Profile'))),

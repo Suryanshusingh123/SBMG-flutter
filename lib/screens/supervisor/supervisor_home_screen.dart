@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:url_launcher/url_launcher.dart';
-// import 'package:sbmg/screens/citizen/scheme_details_screen.dart';
+import 'package:sbmg/screens/citizen/scheme_details_screen.dart';
 import '../../config/connstants.dart';
 import '../../models/scheme_model.dart';
 import '../../models/event_model.dart';
@@ -516,6 +516,9 @@ class _SupervisorHomeScreenState extends State<SupervisorHomeScreen> {
     dynamic icon, // Can be IconData or String (asset path)
     Color color,
   ) {
+    final bool isResolvedCard = title.toLowerCase().contains('resolved') || 
+                                 title.toLowerCase().contains('disposed');
+    
     return Container(
       height: 100, // Fixed height for consistent sizing
       decoration: BoxDecoration(
@@ -538,15 +541,33 @@ class _SupervisorHomeScreenState extends State<SupervisorHomeScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(
-                  title,
-                  style: TextStyle(
-                    fontFamily: 'Noto Sans',
-                    fontSize: 12.sp,
-                    fontWeight: FontWeight.w500,
-                    color: const Color(0xFF717680),
-                    letterSpacing: 0.5,
-                  ),
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        title,
+                        style: TextStyle(
+                          fontFamily: 'Noto Sans',
+                          fontSize: 12.sp,
+                          fontWeight: FontWeight.w500,
+                          color: const Color(0xFF717680),
+                          letterSpacing: 0.5,
+                        ),
+                      ),
+                    ),
+                    if (isResolvedCard) ...[
+                      SizedBox(width: 4.w),
+                      Tooltip(
+                        message: 'Resolved count includes: Resolved + Verified + Closed complaints',
+                        preferBelow: false,
+                        child: Icon(
+                          Icons.info_outline,
+                          size: 14.sp,
+                          color: const Color(0xFF6B7280),
+                        ),
+                      ),
+                    ],
+                  ],
                 ),
                 Text(
                   value,
@@ -906,15 +927,8 @@ class _SupervisorHomeScreenState extends State<SupervisorHomeScreen> {
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (context) => Scaffold(
-              appBar: AppBar(
-                title: Text(AppLocalizations.of(context)!.schemeDetails),
-              ),
-              body: Center(
-                child: Text(
-                  '${AppLocalizations.of(context)!.viewing} ${scheme.name}',
-                ),
-              ),
+            builder: (context) => SchemeDetailsScreen(
+              scheme: scheme,
             ),
           ),
         );
@@ -1049,8 +1063,12 @@ class _SupervisorHomeScreenState extends State<SupervisorHomeScreen> {
   }
 
   Widget _buildEventCard(Event event, int index) {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+    return GestureDetector(
+      onTap: () {
+        _showEventDetails(event);
+      },
+      child: Container(
+        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(12.r),
         boxShadow: [
@@ -1219,7 +1237,122 @@ class _SupervisorHomeScreenState extends State<SupervisorHomeScreen> {
             ),
           ),
         ],
+        ),
       ),
+    );
+  }
+
+  void _showEventDetails(Event event) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return Dialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16.r),
+          ),
+          child: Container(
+            constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.8),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Event Image
+                Container(
+                  height: 200.h,
+                  width: double.infinity,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.only(
+                      topLeft: Radius.circular(16.r),
+                      topRight: Radius.circular(16.r),
+                    ),
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.only(
+                      topLeft: Radius.circular(16.r),
+                      topRight: Radius.circular(16.r),
+                    ),
+                    child: event.media.isNotEmpty
+                        ? Image.network(
+                            ApiConstants.getMediaUrl(event.media.first.mediaUrl),
+                            fit: BoxFit.cover,
+                            errorBuilder: (context, error, stackTrace) {
+                              return Image.asset(
+                                'assets/images/eventbanner.png',
+                                fit: BoxFit.cover,
+                              );
+                            },
+                          )
+                        : Image.asset(
+                            'assets/images/eventbanner.png',
+                            fit: BoxFit.cover,
+                          ),
+                  ),
+                ),
+                // Event Details
+                Flexible(
+                  child: SingleChildScrollView(
+                    padding: EdgeInsets.all(16.r),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Expanded(
+                              child: Text(
+                                event.title,
+                                style: TextStyle(
+                                  fontSize: 20.sp,
+                                  fontWeight: FontWeight.w600,
+                                  color: const Color(0xFF111827),
+                                ),
+                              ),
+                            ),
+                            IconButton(
+                              icon: Icon(Icons.close, color: Colors.grey.shade600),
+                              onPressed: () => Navigator.pop(context),
+                            ),
+                          ],
+                        ),
+                        SizedBox(height: 12.h),
+                        Row(
+                          children: [
+                            Icon(
+                              Icons.calendar_today,
+                              size: 18.sp,
+                              color: const Color(0xFF009B56),
+                            ),
+                            SizedBox(width: 8.w),
+                            Expanded(
+                              child: Text(
+                                '${_formatDate(event.startTime)} - ${_formatDate(event.endTime)}',
+                                style: TextStyle(
+                                  fontSize: 14.sp,
+                                  color: Colors.grey.shade600,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        if (event.description != null && event.description!.isNotEmpty) ...[
+                          SizedBox(height: 16.h),
+                          Text(
+                            event.description!,
+                            style: TextStyle(
+                              fontSize: 14.sp,
+                              color: const Color(0xFF111827),
+                              height: 1.5,
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 

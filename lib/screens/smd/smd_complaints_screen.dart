@@ -6,6 +6,7 @@ import '../../models/api_complaint_model.dart';
 import '../../providers/smd_complaints_provider.dart';
 import '../../utils/location_display_helper.dart';
 import '../../widgets/common/custom_bottom_navigation.dart';
+import '../../widgets/common/date_filter_bottom_sheet.dart';
 import '../../config/connstants.dart';
 import '../../services/auth_services.dart';
 import '../../l10n/app_localizations.dart';
@@ -22,6 +23,10 @@ class _SmdComplaintsScreenState extends State<SmdComplaintsScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
   int _currentIndex = 1; // Complaint tab is selected
+  DateTime? _filterDate;
+  DateTime? _filterStartDate;
+  DateTime? _filterEndDate;
+  String _sortOrder = 'newest';
 
   @override
   void initState() {
@@ -157,7 +162,18 @@ class _SmdComplaintsScreenState extends State<SmdComplaintsScreen>
     );
   }
 
+  String _getDisplayMonth() {
+    if (_filterDate != null) {
+      return DateFormat('MMMM').format(_filterDate!);
+    }
+    if (_filterStartDate != null) {
+      return DateFormat('MMMM').format(_filterStartDate!);
+    }
+    return DateFormat('MMMM').format(DateTime.now());
+  }
+
   Widget _buildHeader(SmdComplaintsProvider provider) {
+    final totalComplaints = provider.complaints.length;
     return Container(
       padding: EdgeInsets.all(16.r),
       child: Column(
@@ -170,7 +186,7 @@ class _SmdComplaintsScreenState extends State<SmdComplaintsScreen>
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Complaint (23)',
+                    'Complaint ($totalComplaints)',
                     style: TextStyle(
                       fontFamily: 'Noto Sans',
                       fontSize: 22.sp,
@@ -180,7 +196,7 @@ class _SmdComplaintsScreenState extends State<SmdComplaintsScreen>
                   ),
                   SizedBox(height: 2.h),
                   Text(
-                    '${provider.villageName} • ${DateFormat('MMMM').format(DateTime.now())}',
+                    '${provider.villageName} • ${_getDisplayMonth()}',
                     style: TextStyle(
                       fontFamily: 'Noto Sans',
                       fontSize: 14.sp,
@@ -195,13 +211,23 @@ class _SmdComplaintsScreenState extends State<SmdComplaintsScreen>
               ),
               Row(
                 children: [
-                  const Row(
-                    children: [
-                      Icon(Icons.calendar_today, size: 24, color: Colors.black),
-                    ],
+                  GestureDetector(
+                    onTap: _showDateFilter,
+                    child: Icon(
+                      Icons.calendar_today,
+                      size: 24.sp,
+                      color: Colors.black,
+                    ),
                   ),
                   SizedBox(width: 8.w),
-                  const Icon(Icons.swap_vert, size: 24, color: Colors.black),
+                  GestureDetector(
+                    onTap: _showSortOptions,
+                    child: Icon(
+                      Icons.swap_vert,
+                      size: 24.sp,
+                      color: Colors.black,
+                    ),
+                  ),
                 ],
               ),
             ],
@@ -283,7 +309,89 @@ class _SmdComplaintsScreenState extends State<SmdComplaintsScreen>
     List<dynamic> complaints,
     SmdComplaintsProvider provider,
   ) {
-    if (complaints.isEmpty) {
+    // Apply date filters
+    List<ApiComplaintModel> filteredComplaints = List<ApiComplaintModel>.from(complaints);
+
+    // Remove duplicate complaints based on ID
+    final Map<int, ApiComplaintModel> uniqueComplaints = {};
+    for (final complaint in filteredComplaints) {
+      if (!uniqueComplaints.containsKey(complaint.id)) {
+        uniqueComplaints[complaint.id] = complaint;
+      }
+    }
+    filteredComplaints = uniqueComplaints.values.toList();
+
+    // Apply date filters
+    if (_filterDate != null) {
+      filteredComplaints = filteredComplaints.where((complaint) {
+        try {
+          final complaintDate = DateTime.parse(complaint.createdAt).toUtc();
+          // Create UTC date using just the year, month, day components to avoid timezone issues
+          final filterDate = DateTime.utc(
+            _filterDate!.year,
+            _filterDate!.month,
+            _filterDate!.day,
+          );
+          return complaintDate.year == filterDate.year &&
+              complaintDate.month == filterDate.month &&
+              complaintDate.day == filterDate.day;
+        } catch (e) {
+          return false;
+        }
+      }).toList();
+    }
+
+    if (_filterStartDate != null && _filterEndDate != null) {
+      filteredComplaints = filteredComplaints.where((complaint) {
+        try {
+          final complaintDate = DateTime.parse(complaint.createdAt).toUtc();
+          final startDate = DateTime.utc(
+            _filterStartDate!.year,
+            _filterStartDate!.month,
+            _filterStartDate!.day,
+          );
+          final endDate = DateTime.utc(
+            _filterEndDate!.year,
+            _filterEndDate!.month,
+            _filterEndDate!.day,
+            23,
+            59,
+            59,
+          );
+          return (complaintDate.isAfter(startDate.subtract(const Duration(seconds: 1))) ||
+                  complaintDate.isAtSameMomentAs(startDate)) &&
+              (complaintDate.isBefore(endDate) ||
+                  complaintDate.isAtSameMomentAs(endDate));
+        } catch (e) {
+          return false;
+        }
+      }).toList();
+    }
+
+    // Sort complaints based on sort order
+    if (_sortOrder == 'newest') {
+      filteredComplaints.sort((a, b) {
+        try {
+          final dateA = DateTime.parse(a.createdAt).toUtc();
+          final dateB = DateTime.parse(b.createdAt).toUtc();
+          return dateB.compareTo(dateA); // Newest first (descending)
+        } catch (e) {
+          return b.createdAt.compareTo(a.createdAt); // Fallback to string comparison
+        }
+      });
+    } else {
+      filteredComplaints.sort((a, b) {
+        try {
+          final dateA = DateTime.parse(a.createdAt).toUtc();
+          final dateB = DateTime.parse(b.createdAt).toUtc();
+          return dateA.compareTo(dateB); // Oldest first (ascending)
+        } catch (e) {
+          return a.createdAt.compareTo(b.createdAt); // Fallback to string comparison
+        }
+      });
+    }
+
+    if (filteredComplaints.isEmpty) {
       return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -310,9 +418,9 @@ class _SmdComplaintsScreenState extends State<SmdComplaintsScreen>
 
     return ListView.builder(
       padding: EdgeInsets.all(16.r),
-      itemCount: complaints.length,
+      itemCount: filteredComplaints.length,
       itemBuilder: (context, index) {
-        return _buildComplaintCard(complaints[index], provider);
+        return _buildComplaintCard(filteredComplaints[index], provider);
       },
     );
   }
@@ -496,6 +604,107 @@ class _SmdComplaintsScreenState extends State<SmdComplaintsScreen>
                 ],
               ),
             ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showDateFilter() {
+    showDateFilterBottomSheet(
+      context: context,
+      onApply: (filterType, selectedDate, startDate, endDate) {
+        setState(() {
+          _filterDate = selectedDate;
+          _filterStartDate = startDate;
+          _filterEndDate = endDate;
+        });
+      },
+    );
+  }
+
+  void _showSortOptions() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.only(
+            topLeft: Radius.circular(20),
+            topRight: Radius.circular(20),
+          ),
+        ),
+        padding: EdgeInsets.all(20.w),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 40.w,
+              height: 4.h,
+              decoration: BoxDecoration(
+                color: Colors.grey.shade300,
+                borderRadius: BorderRadius.circular(2.r),
+              ),
+            ),
+            SizedBox(height: 20.h),
+            _buildSortOption('Newest First', _sortOrder == 'newest', () {
+              setState(() {
+                _sortOrder = 'newest';
+              });
+              Navigator.pop(context);
+            }),
+            SizedBox(height: 12.h),
+            _buildSortOption('Oldest First', _sortOrder == 'oldest', () {
+              setState(() {
+                _sortOrder = 'oldest';
+              });
+              Navigator.pop(context);
+            }),
+            SizedBox(height: 20.h),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSortOption(String label, bool isSelected, VoidCallback onTap) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: EdgeInsets.symmetric(vertical: 16.h, horizontal: 20.w),
+        decoration: BoxDecoration(
+          color: isSelected
+              ? const Color(0xFF009B56).withOpacity(0.1)
+              : Colors.transparent,
+          borderRadius: BorderRadius.circular(8.r),
+          border: Border.all(
+            color: isSelected
+                ? const Color(0xFF009B56)
+                : Colors.grey.shade300,
+            width: isSelected ? 2 : 1,
+          ),
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child: Text(
+                label,
+                style: TextStyle(
+                  fontSize: 16.sp,
+                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                  color: isSelected
+                      ? const Color(0xFF009B56)
+                      : const Color(0xFF111827),
+                ),
+              ),
+            ),
+            if (isSelected)
+              Icon(
+                Icons.check,
+                color: const Color(0xFF009B56),
+                size: 20.sp,
+              ),
           ],
         ),
       ),

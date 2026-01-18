@@ -5,7 +5,7 @@ import '../../config/connstants.dart';
 import '../../widgets/common/custom_bottom_navigation.dart';
 import '../../l10n/app_localizations.dart';
 import '../../providers/locale_provider.dart';
-import '../../providers/auth_provider.dart';
+import '../../providers/citizen_auth_provider.dart';
 import '../../services/auth_services.dart';
 import '../../screens/auth/admin_login_screen.dart';
 import '../../theme/citizen_colors.dart';
@@ -156,48 +156,57 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     ),
                     _buildDivider(),
 
-                    SizedBox(height: 16.h),
-
-                    // Logout
-                    InkWell(
-                      onTap: () {
-                        _showLogoutDialog(context);
-                      },
-                      borderRadius: BorderRadius.circular(12.r),
-                      child: Container(
-                        margin: EdgeInsets.symmetric(horizontal: 16.w),
-                        decoration: BoxDecoration(
-                          color: CitizenColors.surface(context),
-                          borderRadius: BorderRadius.circular(12.r),
-                          border: Border.all(
-                            color: Colors.red.withOpacity(0.3),
-                            width: 1,
-                          ),
-                        ),
-                        child: Container(
-                          padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 16.h),
-                          color: CitizenColors.surface(context),
-                          child: Row(
+                    // Logout - Only show when user is logged in
+                    Consumer<AuthProvider>(
+                      builder: (context, authProvider, child) {
+                        if (authProvider.isLoggedIn) {
+                          return Column(
                             children: [
-                              Icon(Icons.logout, size: 24.sp, color: Colors.red),
-                              SizedBox(width: 16.w),
-                              Expanded(
-                                child: Text(
-                                  l10n.logout,
-                                  style: TextStyle(
-                                    fontSize: 16.sp,
-                                    fontWeight: FontWeight.w400,
-                                    color: Colors.red,
+                              SizedBox(height: 16.h),
+                              InkWell(
+                                onTap: () {
+                                  _showLogoutDialog(context);
+                                },
+                                borderRadius: BorderRadius.circular(12.r),
+                                child: Container(
+                                  margin: EdgeInsets.symmetric(horizontal: 16.w),
+                                  decoration: BoxDecoration(
+                                    color: CitizenColors.surface(context),
+                                    borderRadius: BorderRadius.circular(12.r),
+                                    border: Border.all(
+                                      color: Colors.red.withOpacity(0.3),
+                                      width: 1,
+                                    ),
+                                  ),
+                                  child: Container(
+                                    padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 16.h),
+                                    color: CitizenColors.surface(context),
+                                    child: Row(
+                                      children: [
+                                        Icon(Icons.logout, size: 24.sp, color: Colors.red),
+                                        SizedBox(width: 16.w),
+                                        Expanded(
+                                          child: Text(
+                                            l10n.logout,
+                                            style: TextStyle(
+                                              fontSize: 16.sp,
+                                              fontWeight: FontWeight.w400,
+                                              color: Colors.red,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
                                   ),
                                 ),
                               ),
+                              SizedBox(height: 16.h),
                             ],
-                          ),
-                        ),
-                      ),
+                          );
+                        }
+                        return const SizedBox.shrink();
+                      },
                     ),
-
-                    SizedBox(height: 16.h),
 
                     // Login as Admin
                     Container(
@@ -762,6 +771,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           return;
                         }
 
+                        // Check if user is authenticated
+                        final authProvider = context.read<AuthProvider>();
+                        if (!authProvider.isLoggedIn) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('Please login to submit feedback'),
+                              backgroundColor: Colors.red,
+                              duration: const Duration(seconds: 3),
+                            ),
+                          );
+                          return;
+                        }
+
                         // Show success dialog
                         Navigator.pop(context);
                         _showFeedbackSuccessDialog(context);
@@ -881,6 +903,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final l10n = AppLocalizations.of(context)!;
     final primaryTextColor = CitizenColors.textPrimary(context);
     final secondaryTextColor = CitizenColors.textSecondary(context);
+    
+    // Check if user is logged in before showing dialog
+    final authProvider = context.read<AuthProvider>();
+    if (!authProvider.isLoggedIn) {
+      // User is not logged in, just navigate to landing page
+      Navigator.pushNamedAndRemoveUntil(
+        context,
+        '/landing',
+        (route) => false,
+      );
+      return;
+    }
     
     showDialog(
       context: context,

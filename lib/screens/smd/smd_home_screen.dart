@@ -2,13 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:provider/provider.dart';
-// import 'package:sbmg/screens/citizen/scheme_details_screen.dart';
-import 'package:sbmg/services/bookmark_service.dart';
+import 'package:sbmg/screens/citizen/scheme_details_screen.dart';
 import 'package:sbmg/widgets/common/banner_carousel.dart';
+import '../../providers/citizen_bookmarks_provider.dart';
 import 'package:intl/intl.dart';
 import 'package:csv/csv.dart';
-import 'dart:io';
-import 'package:path_provider/path_provider.dart';
+import '../../utils/download_helper.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../config/connstants.dart';
 import '../../widgets/common/custom_bottom_navigation.dart';
@@ -18,6 +17,7 @@ import '../../models/event_model.dart';
 import '../../models/contractor_model.dart';
 import '../../services/api_services.dart';
 import '../../services/auth_services.dart';
+import '../../screens/common/unified_select_location_screen.dart';
 import 'smd_select_location_screen.dart';
 import 'smd_gp_attendance_screen.dart';
 import 'smd_gp_ranking_screen.dart';
@@ -31,7 +31,6 @@ class SmdHomeScreen extends StatefulWidget {
 
 class _SmdHomeScreenState extends State<SmdHomeScreen> {
   int _selectedIndex = 0;
-  final BookmarkService _bookmarkService = BookmarkService();
   final ApiService _apiService = ApiService();
   BuildContext? _parentContext;
   bool _hasLoadedData = false;
@@ -78,6 +77,9 @@ class _SmdHomeScreenState extends State<SmdHomeScreen> {
 
   Future<void> _exportToCSV(SmdProvider provider) async {
     try {
+      // Request storage permission for Android
+      await DownloadHelper.requestStoragePermission();
+
       // Create CSV data
       final csvData = [
         ['Metric', 'Count', 'Date Range'],
@@ -104,42 +106,31 @@ class _SmdHomeScreenState extends State<SmdHomeScreen> {
       // Convert to CSV string
       final csvString = const ListToCsvConverter().convert(csvData);
 
-      // Get downloads directory
-      Directory? downloadsDir;
-      if (Platform.isAndroid) {
-        downloadsDir = Directory('/storage/emulated/0/Download');
-        if (!await downloadsDir.exists()) {
-          downloadsDir = await getExternalStorageDirectory();
-        }
-      } else if (Platform.isIOS) {
-        downloadsDir = await getApplicationDocumentsDirectory();
-      } else {
-        downloadsDir = await getDownloadsDirectory();
-      }
-
-      if (downloadsDir == null) {
-        throw Exception('Could not access downloads directory');
-      }
-
       // Create filename with timestamp
       final timestamp = DateFormat('yyyyMMdd_HHmmss').format(DateTime.now());
       final fileName = 'smd_complaints_report_$timestamp.csv';
-      final file = File('${downloadsDir.path}/$fileName');
 
-      // Write CSV file
-      await file.writeAsString(csvString);
+      // Download to Downloads folder
+      final filePath = await DownloadHelper.downloadToDownloadsFolder(
+        fileName: fileName,
+        content: csvString,
+      );
 
       // Show success message
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              'CSV file exported successfully to Downloads folder: $fileName',
+        if (filePath != null) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                'CSV file exported successfully to Downloads folder: $fileName',
+              ),
+              backgroundColor: const Color(0xFF009B56),
+              duration: const Duration(seconds: 3),
             ),
-            backgroundColor: const Color(0xFF009B56),
-            duration: const Duration(seconds: 3),
-          ),
-        );
+          );
+        } else {
+          throw Exception('Failed to save file to Downloads folder');
+        }
       }
     } catch (e) {
       if (mounted) {
@@ -282,6 +273,33 @@ class _SmdHomeScreenState extends State<SmdHomeScreen> {
           ),
           Row(
             children: [
+              GestureDetector(
+                onTap: () async {
+                  final result = await Navigator.push<Map<String, dynamic>>(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const UnifiedSelectLocationScreen(userRole: 'smd'),
+                    ),
+                  );
+
+                  if (result != null && result['districtId'] != null) {
+                    final authService = AuthService();
+                    await authService.setSmdSelectedDistrictId(result['districtId'] as int);
+                    // Reload data based on new location
+                    if (mounted) {
+                      context.read<SmdProvider>().loadAllData();
+                    }
+                  }
+                },
+                child: Padding(
+                  padding: EdgeInsets.only(right: 8.w),
+                  child: Icon(
+                    Icons.location_on,
+                    size: 24,
+                    color: AppColors.primaryColor,
+                  ),
+                ),
+              ),
               IconButton(
                 onPressed: () {},
                 icon: Image.asset(
@@ -673,6 +691,9 @@ class _SmdHomeScreenState extends State<SmdHomeScreen> {
     dynamic icon, // Can be IconData or String (asset path)
     Color color,
   ) {
+    final bool isResolvedCard = title.toLowerCase().contains('resolved') || 
+                                 title.toLowerCase().contains('disposed');
+    
     return Container(
       height: 100.h, // Fixed height for consistent sizing
       decoration: BoxDecoration(
@@ -695,15 +716,33 @@ class _SmdHomeScreenState extends State<SmdHomeScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(
-                  title,
-                  style: TextStyle(
-                    fontFamily: 'Noto Sans',
-                    fontSize: 12.sp,
-                    fontWeight: FontWeight.w500,
-                    color: const Color(0xFF717680),
-                    letterSpacing: 0.5,
-                  ),
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        title,
+                        style: TextStyle(
+                          fontFamily: 'Noto Sans',
+                          fontSize: 12.sp,
+                          fontWeight: FontWeight.w500,
+                          color: const Color(0xFF717680),
+                          letterSpacing: 0.5,
+                        ),
+                      ),
+                    ),
+                    if (isResolvedCard) ...[
+                      SizedBox(width: 4.w),
+                      Tooltip(
+                        message: 'Resolved count includes: Resolved + Verified + Closed complaints',
+                        preferBelow: false,
+                        child: Icon(
+                          Icons.info_outline,
+                          size: 14.sp,
+                          color: const Color(0xFF6B7280),
+                        ),
+                      ),
+                    ],
+                  ],
                 ),
                 Text(
                   value,
@@ -802,10 +841,14 @@ class _SmdHomeScreenState extends State<SmdHomeScreen> {
   Widget _buildSchemeCard(Scheme scheme) {
     return GestureDetector(
       onTap: () {
-        // TODO: Navigate to scheme details
-        ScaffoldMessenger.of(
+        Navigator.push(
           context,
-        ).showSnackBar(SnackBar(content: Text('Viewing ${scheme.name}')));
+          MaterialPageRoute(
+            builder: (context) => SchemeDetailsScreen(
+              scheme: scheme,
+            ),
+          ),
+        );
       },
       child: Container(
         width: 350.w,
@@ -885,16 +928,33 @@ class _SmdHomeScreenState extends State<SmdHomeScreen> {
       children: [
         Padding(
           padding: EdgeInsets.symmetric(horizontal: 16.w),
-          child: Text(
-            '${provider.events.length} Event${provider.events.length != 1 ? 's' : ''}',
-            style: TextStyle(
-              fontFamily: 'Noto Sans',
-              fontSize: 18.sp,
-              fontWeight: FontWeight.w500,
-              color: const Color(0xFF111827),
-              letterSpacing: 0,
-              height: 1.0,
-            ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                '${provider.events.length} Event${provider.events.length != 1 ? 's' : ''}',
+                style: TextStyle(
+                  fontFamily: 'Noto Sans',
+                  fontSize: 18.sp,
+                  fontWeight: FontWeight.w500,
+                  color: const Color(0xFF111827),
+                  letterSpacing: 0,
+                  height: 1.0,
+                ),
+              ),
+              TextButton(
+                onPressed: () {
+                  Navigator.pushNamed(context, '/events');
+                },
+                child: const Text(
+                  'View all',
+                  style: TextStyle(
+                    color: Color(0xFF009B56),
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
 
@@ -937,7 +997,11 @@ class _SmdHomeScreenState extends State<SmdHomeScreen> {
   }
 
   Widget _buildEventCard(Event event, int index) {
-    return Container(
+    return GestureDetector(
+      onTap: () {
+        _showEventDetails(event);
+      },
+      child: Container(
       margin: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(12.r),
@@ -994,38 +1058,41 @@ class _SmdHomeScreenState extends State<SmdHomeScreen> {
                   Positioned(
                     top: 12.h,
                     right: 12.w,
-                    child: GestureDetector(
-                      onTap: () {
-                        setState(() {
-                          _bookmarkService.toggleEventBookmark(event);
-                        });
-                      },
-                      child: Container(
-                        width: 40.w,
-                        height: 40.h,
-                        decoration: BoxDecoration(
-                          color: _bookmarkService.isEventBookmarked(event.id)
-                              ? const Color(0xFF009B56)
-                              : Colors.white.withOpacity(0.9),
-                          borderRadius: BorderRadius.circular(8.r),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withOpacity(0.2),
-                              blurRadius: 4,
-                              offset: const Offset(0, 2),
+                    child: Consumer<BookmarksProvider>(
+                      builder: (context, bookmarksProvider, child) {
+                        final isBookmarked = bookmarksProvider.isEventBookmarked(event.id);
+                        return GestureDetector(
+                          onTap: () {
+                            bookmarksProvider.toggleEventBookmark(event.id, !isBookmarked);
+                          },
+                          child: Container(
+                            width: 40.w,
+                            height: 40.h,
+                            decoration: BoxDecoration(
+                              color: isBookmarked
+                                  ? const Color(0xFF009B56)
+                                  : Colors.white.withOpacity(0.9),
+                              borderRadius: BorderRadius.circular(8.r),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withOpacity(0.2),
+                                  blurRadius: 4,
+                                  offset: const Offset(0, 2),
+                                ),
+                              ],
                             ),
-                          ],
-                        ),
-                        child: Icon(
-                          _bookmarkService.isEventBookmarked(event.id)
-                              ? Icons.bookmark
-                              : Icons.bookmark_border,
-                          color: _bookmarkService.isEventBookmarked(event.id)
-                              ? Colors.white
-                              : const Color(0xFF4CAF50),
-                          size: 20.sp,
-                        ),
-                      ),
+                            child: Icon(
+                              isBookmarked
+                                  ? Icons.bookmark
+                                  : Icons.bookmark_border,
+                              color: isBookmarked
+                                  ? Colors.white
+                                  : const Color(0xFF4CAF50),
+                              size: 20.sp,
+                            ),
+                          ),
+                        );
+                      },
                     ),
                   ),
                 ],
@@ -1107,8 +1174,127 @@ class _SmdHomeScreenState extends State<SmdHomeScreen> {
             ),
           ),
         ],
+        ),
       ),
     );
+  }
+
+  void _showEventDetails(Event event) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return Dialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16.r),
+          ),
+          child: Container(
+            constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.8),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Event Image
+                Container(
+                  height: 200.h,
+                  width: double.infinity,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.only(
+                      topLeft: Radius.circular(16.r),
+                      topRight: Radius.circular(16.r),
+                    ),
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.only(
+                      topLeft: Radius.circular(16.r),
+                      topRight: Radius.circular(16.r),
+                    ),
+                    child: event.media.isNotEmpty
+                        ? Image.network(
+                            ApiConstants.getMediaUrl(event.media.first.mediaUrl),
+                            fit: BoxFit.cover,
+                            errorBuilder: (context, error, stackTrace) {
+                              return Image.asset(
+                                'assets/images/eventbanner.png',
+                                fit: BoxFit.cover,
+                              );
+                            },
+                          )
+                        : Image.asset(
+                            'assets/images/eventbanner.png',
+                            fit: BoxFit.cover,
+                          ),
+                  ),
+                ),
+                // Event Details
+                Flexible(
+                  child: SingleChildScrollView(
+                    padding: EdgeInsets.all(16.r),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Expanded(
+                              child: Text(
+                                event.title,
+                                style: TextStyle(
+                                  fontSize: 20.sp,
+                                  fontWeight: FontWeight.w600,
+                                  color: const Color(0xFF111827),
+                                ),
+                              ),
+                            ),
+                            IconButton(
+                              icon: Icon(Icons.close, color: Colors.grey.shade600),
+                              onPressed: () => Navigator.pop(context),
+                            ),
+                          ],
+                        ),
+                        SizedBox(height: 12.h),
+                        Row(
+                          children: [
+                            Icon(
+                              Icons.calendar_today,
+                              size: 18.sp,
+                              color: const Color(0xFF009B56),
+                            ),
+                            SizedBox(width: 8.w),
+                            Expanded(
+                              child: Text(
+                                '${_formatEventDate(event.startTime)} - ${_formatEventDate(event.endTime)}',
+                                style: TextStyle(
+                                  fontSize: 14.sp,
+                                  color: Colors.grey.shade600,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        if (event.description != null && event.description!.isNotEmpty) ...[
+                          SizedBox(height: 16.h),
+                          Text(
+                            event.description!,
+                            style: TextStyle(
+                              fontSize: 14.sp,
+                              color: const Color(0xFF111827),
+                              height: 1.5,
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  String _formatEventDate(DateTime date) {
+    return DateFormat('MMM d yyyy').format(date);
   }
 
   String _formatDate(DateTime date, {bool includeYear = true}) {

@@ -54,13 +54,15 @@ class _BdoNewInspectionScreenState extends State<BdoNewInspectionScreen> {
   bool _drainCleaningExpanded = false;
   bool _cscCleaningExpanded = false;
   bool _otherPointsExpanded = false;
-  bool _uploadImages1Expanded = false;
-  bool _uploadImages2Expanded = false;
   bool _suggestionsExpanded = false;
 
-  // Image uploads
-  List<File> _images1 = [];
-  List<File> _images2 = [];
+  // Image uploads - section-specific
+  List<File> _generalDetailsImages = [];
+  List<File> _householdWasteImages = [];
+  List<File> _roadCleaningImages = [];
+  List<File> _drainCleaningImages = [];
+  List<File> _cscCleaningImages = [];
+  List<File> _otherPointsImages = [];
 
   // Loading state
   bool _isSubmitting = false;
@@ -135,22 +137,6 @@ class _BdoNewInspectionScreenState extends State<BdoNewInspectionScreen> {
     }
   }
 
-  void _checkAndAutoExpandUploadImages1() {
-    // Images are optional, so we don't auto-expand based on them
-    // But we can auto-expand if user has uploaded at least one image
-    if (_images1.isNotEmpty) {
-      _autoExpandNextSection('uploadImages1');
-    }
-  }
-
-  void _checkAndAutoExpandUploadImages2() {
-    // Images are optional, so we don't auto-expand based on them
-    // But we can auto-expand if user has uploaded at least one image
-    if (_images2.isNotEmpty) {
-      _autoExpandNextSection('uploadImages2');
-    }
-  }
-
   void _checkAndAutoExpandSuggestions() {
     // Suggestions are optional, so we don't auto-expand based on them
   }
@@ -193,18 +179,6 @@ class _BdoNewInspectionScreenState extends State<BdoNewInspectionScreen> {
           break;
         case 'otherPoints':
           _otherPointsExpanded = false;
-          if (!_uploadImages1Expanded) {
-            _uploadImages1Expanded = true;
-          }
-          break;
-        case 'uploadImages1':
-          _uploadImages1Expanded = false;
-          if (!_uploadImages2Expanded) {
-            _uploadImages2Expanded = true;
-          }
-          break;
-        case 'uploadImages2':
-          _uploadImages2Expanded = false;
           if (!_suggestionsExpanded) {
             _suggestionsExpanded = true;
           }
@@ -279,6 +253,11 @@ class _BdoNewInspectionScreenState extends State<BdoNewInspectionScreen> {
                             Future.microtask(() => _checkAndAutoExpandGeneralDetails());
                           },
                         ),
+                        SizedBox(height: 16.h),
+                        _buildImageUploadSection(
+                          _generalDetailsImages,
+                          (images) => setState(() => _generalDetailsImages = images),
+                        ),
                       ],
                     ),
 
@@ -333,6 +312,11 @@ class _BdoNewInspectionScreenState extends State<BdoNewInspectionScreen> {
                             Future.microtask(() => _checkAndAutoExpandHouseholdWaste());
                           },
                         ),
+                        SizedBox(height: 16.h),
+                        _buildImageUploadSection(
+                          _householdWasteImages,
+                          (images) => setState(() => _householdWasteImages = images),
+                        ),
                       ],
                     ),
 
@@ -350,6 +334,11 @@ class _BdoNewInspectionScreenState extends State<BdoNewInspectionScreen> {
                             setState(() => _roadCleaningInterval = value);
                             Future.microtask(() => _checkAndAutoExpandRoadCleaning());
                           },
+                        ),
+                        SizedBox(height: 16.h),
+                        _buildImageUploadSection(
+                          _roadCleaningImages,
+                          (images) => setState(() => _roadCleaningImages = images),
                         ),
                       ],
                     ),
@@ -386,6 +375,11 @@ class _BdoNewInspectionScreenState extends State<BdoNewInspectionScreen> {
                             setState(() => _drainWasteCollectedRoadside = value);
                             Future.microtask(() => _checkAndAutoExpandDrainCleaning());
                           },
+                        ),
+                        SizedBox(height: 16.h),
+                        _buildImageUploadSection(
+                          _drainCleaningImages,
+                          (images) => setState(() => _drainCleaningImages = images),
                         ),
                       ],
                     ),
@@ -431,6 +425,11 @@ class _BdoNewInspectionScreenState extends State<BdoNewInspectionScreen> {
                             setState(() => _pinkToiletUsedInSchools = value);
                             Future.microtask(() => _checkAndAutoExpandCscCleaning());
                           },
+                        ),
+                        SizedBox(height: 16.h),
+                        _buildImageUploadSection(
+                          _cscCleaningImages,
+                          (images) => setState(() => _cscCleaningImages = images),
                         ),
                       ],
                     ),
@@ -495,36 +494,11 @@ class _BdoNewInspectionScreenState extends State<BdoNewInspectionScreen> {
                             Future.microtask(() => _checkAndAutoExpandOtherPoints());
                           },
                         ),
-                      ],
-                    ),
-
-                    SizedBox(height: 20.h),
-
-                    _buildExpandableSection(
-                      title: 'Upload images',
-                      isExpanded: _uploadImages1Expanded,
-                      onToggle: () => setState(() => _uploadImages1Expanded = !_uploadImages1Expanded),
-                      children: [
-                        _buildImageUploadSection(_images1, (images) {
-                          setState(() => _images1 = images);
-                          // Images are optional, but if uploaded, we can auto-expand next section
-                          Future.microtask(() => _checkAndAutoExpandUploadImages1());
-                        }),
-                      ],
-                    ),
-
-                    SizedBox(height: 20.h),
-
-                    _buildExpandableSection(
-                      title: 'Upload images',
-                      isExpanded: _uploadImages2Expanded,
-                      onToggle: () => setState(() => _uploadImages2Expanded = !_uploadImages2Expanded),
-                      children: [
-                        _buildImageUploadSection(_images2, (images) {
-                          setState(() => _images2 = images);
-                          // Images are optional, but if uploaded, we can auto-expand next section
-                          Future.microtask(() => _checkAndAutoExpandUploadImages2());
-                        }),
+                        SizedBox(height: 16.h),
+                        _buildImageUploadSection(
+                          _otherPointsImages,
+                          (images) => setState(() => _otherPointsImages = images),
+                        ),
                       ],
                     ),
 

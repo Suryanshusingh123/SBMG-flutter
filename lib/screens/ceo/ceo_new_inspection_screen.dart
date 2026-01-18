@@ -51,12 +51,15 @@ class _CeoNewInspectionScreenState extends State<CeoNewInspectionScreen> {
   bool _drainCleaningExpanded = true;
   bool _cscCleaningExpanded = true;
   bool _otherPointsExpanded = true;
-  bool _uploadImages1Expanded = true;
-  bool _uploadImages2Expanded = true;
   bool _suggestionsExpanded = true;
 
-  List<File> _images1 = [];
-  List<File> _images2 = [];
+  // Image uploads - section-specific
+  List<File> _generalDetailsImages = [];
+  List<File> _householdWasteImages = [];
+  List<File> _roadCleaningImages = [];
+  List<File> _drainCleaningImages = [];
+  List<File> _cscCleaningImages = [];
+  List<File> _otherPointsImages = [];
 
   bool _isSubmitting = false;
 
@@ -128,6 +131,11 @@ class _CeoNewInspectionScreenState extends State<CeoNewInspectionScreen> {
                           selectedValue: _dailyRegisterMaintained,
                           onChanged: (value) => setState(() => _dailyRegisterMaintained = value),
                         ),
+                        SizedBox(height: 16.h),
+                        _buildImageUploadSection(
+                          _generalDetailsImages,
+                          (images) => setState(() => _generalDetailsImages = images),
+                        ),
                       ],
                     ),
                     SizedBox(height: 20.h),
@@ -165,6 +173,11 @@ class _CeoNewInspectionScreenState extends State<CeoNewInspectionScreen> {
                           selectedValue: _vehicleProperlyPrepared,
                           onChanged: (value) => setState(() => _vehicleProperlyPrepared = value),
                         ),
+                        SizedBox(height: 16.h),
+                        _buildImageUploadSection(
+                          _householdWasteImages,
+                          (images) => setState(() => _householdWasteImages = images),
+                        ),
                       ],
                     ),
                     SizedBox(height: 20.h),
@@ -177,6 +190,11 @@ class _CeoNewInspectionScreenState extends State<CeoNewInspectionScreen> {
                           label: 'At what interval are roads/markets/main squares swept/cleaned?',
                           selectedValue: _roadCleaningInterval,
                           onChanged: (value) => setState(() => _roadCleaningInterval = value),
+                        ),
+                        SizedBox(height: 16.h),
+                        _buildImageUploadSection(
+                          _roadCleaningImages,
+                          (images) => setState(() => _roadCleaningImages = images),
                         ),
                       ],
                     ),
@@ -202,6 +220,11 @@ class _CeoNewInspectionScreenState extends State<CeoNewInspectionScreen> {
                           label: 'Is the drain waste collected on the roadside',
                           selectedValue: _drainWasteCollectedRoadside,
                           onChanged: (value) => setState(() => _drainWasteCollectedRoadside = value),
+                        ),
+                        SizedBox(height: 16.h),
+                        _buildImageUploadSection(
+                          _drainCleaningImages,
+                          (images) => setState(() => _drainCleaningImages = images),
                         ),
                       ],
                     ),
@@ -233,6 +256,11 @@ class _CeoNewInspectionScreenState extends State<CeoNewInspectionScreen> {
                           label: 'Is the pink toilet in schools being used',
                           selectedValue: _pinkToiletUsedInSchools,
                           onChanged: (value) => setState(() => _pinkToiletUsedInSchools = value),
+                        ),
+                        SizedBox(height: 16.h),
+                        _buildImageUploadSection(
+                          _cscCleaningImages,
+                          (images) => setState(() => _cscCleaningImages = images),
                         ),
                       ],
                     ),
@@ -277,28 +305,11 @@ class _CeoNewInspectionScreenState extends State<CeoNewInspectionScreen> {
                           selectedValue: _rateChartDisplayed,
                           onChanged: (value) => setState(() => _rateChartDisplayed = value),
                         ),
-                      ],
-                    ),
-                    SizedBox(height: 20.h),
-                    _buildExpandableSection(
-                      title: 'Upload images',
-                      isExpanded: _uploadImages1Expanded,
-                      onToggle: () => setState(() => _uploadImages1Expanded = !_uploadImages1Expanded),
-                      children: [
-                        _buildImageUploadSection(_images1, (images) {
-                          setState(() => _images1 = images);
-                        }),
-                      ],
-                    ),
-                    SizedBox(height: 20.h),
-                    _buildExpandableSection(
-                      title: 'Upload images',
-                      isExpanded: _uploadImages2Expanded,
-                      onToggle: () => setState(() => _uploadImages2Expanded = !_uploadImages2Expanded),
-                      children: [
-                        _buildImageUploadSection(_images2, (images) {
-                          setState(() => _images2 = images);
-                        }),
+                        SizedBox(height: 16.h),
+                        _buildImageUploadSection(
+                          _otherPointsImages,
+                          (images) => setState(() => _otherPointsImages = images),
+                        ),
                       ],
                     ),
                     SizedBox(height: 20.h),

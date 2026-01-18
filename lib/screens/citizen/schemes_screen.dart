@@ -8,6 +8,7 @@ import '../../models/scheme_model.dart';
 import '../../widgets/common/custom_bottom_navigation.dart';
 import '../../l10n/app_localizations.dart';
 import '../../theme/citizen_colors.dart';
+import '../../services/auth_services.dart';
 import 'scheme_details_screen.dart';
 
 class SchemesScreen extends StatefulWidget {
@@ -19,16 +20,54 @@ class SchemesScreen extends StatefulWidget {
 
 class _SchemesScreenState extends State<SchemesScreen> {
   int _selectedIndex = 2; // Schemes tab is selected
+  String? _currentRole;
+  final AuthService _authService = AuthService();
 
   @override
   void initState() {
     super.initState();
-    // Load all schemes without limit
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+    // Load all schemes without limit and get current role
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
       final schemesProvider = context.read<SchemesProvider>();
       schemesProvider.loadSchemes(limit: 1000); // Fetch all schemes
+      
+      // Get current user role for navigation
+      final role = await _authService.getRole();
+      if (mounted) {
+        setState(() {
+          _currentRole = role?.toLowerCase();
+        });
+      }
     });
   }
+
+  // Get dashboard route based on current role
+  String? _getDashboardRoute() {
+    switch (_currentRole) {
+      case 'citizen':
+        return '/citizen-dashboard';
+      case 'vdo':
+        return '/vdo-dashboard';
+      case 'bdo':
+        return '/bdo-dashboard';
+      case 'ceo':
+        return '/ceo-dashboard';
+      case 'smd':
+      case 'admin':
+        return '/smd-dashboard';
+      case 'supervisor':
+      case 'worker':
+        return '/supervisor-dashboard';
+      case 'contractor':
+        return '/contractor-dashboard';
+      default:
+        // Default to citizen if role is unknown (backward compatibility)
+        return '/citizen-dashboard';
+    }
+  }
+
+  // Check if current role is citizen (show bottom nav only for citizens)
+  bool get _isCitizenRole => _currentRole == 'citizen';
 
   String _getMediaUrl(String? mediaUrl) {
     if (mediaUrl == null || mediaUrl.isEmpty) {
@@ -218,8 +257,15 @@ class _SchemesScreenState extends State<SchemesScreen> {
         elevation: 0,
         leading: IconButton(
           icon: Icon(Icons.arrow_back, color: primaryTextColor),
-          onPressed: () =>
-              Navigator.pushReplacementNamed(context, '/citizen-dashboard'),
+          onPressed: () {
+            final dashboardRoute = _getDashboardRoute();
+            if (dashboardRoute != null) {
+              Navigator.pop(context);
+            } else {
+              // Fallback: just pop if no valid route
+              Navigator.pop(context);
+            }
+          },
         ),
         title: Text(
           'Schemes',
@@ -298,8 +344,9 @@ class _SchemesScreenState extends State<SchemesScreen> {
         },
       ),
 
-      // Bottom Navigation Bar
-      bottomNavigationBar: CustomBottomNavigationBar(
+      // Bottom Navigation Bar (only for citizen role)
+      bottomNavigationBar: _isCitizenRole
+          ? CustomBottomNavigationBar(
         currentIndex: _selectedIndex,
         onTap: (index) {
           setState(() {
@@ -340,7 +387,8 @@ class _SchemesScreenState extends State<SchemesScreen> {
             label: AppLocalizations.of(context)!.settings,
           ),
         ],
-      ),
+      )
+          : null,
     );
   }
 }

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
@@ -6,39 +7,76 @@ class BannerCarousel extends StatefulWidget {
     super.key,
     required this.imagePaths,
     this.height = 230,
+    this.autoSlideInterval = const Duration(seconds: 3),
   });
 
   final List<String> imagePaths;
   final double height;
+  final Duration autoSlideInterval;
 
   @override
   State<BannerCarousel> createState() => _BannerCarouselState();
 }
 
 class _BannerCarouselState extends State<BannerCarousel> {
-  final PageController _pageController = PageController();
+  late PageController _pageController;
   int _currentIndex = 0;
   late List<String> _imagePaths;
+  Timer? _autoSlideTimer;
 
   @override
   void initState() {
     super.initState();
     _imagePaths = widget.imagePaths;
+    // Initialize PageController with initial page in the middle for infinite scroll
+    if (_imagePaths.isNotEmpty) {
+      _pageController = PageController(initialPage: _imagePaths.length * 1000);
+      _startAutoSlide();
+    } else {
+      _pageController = PageController();
+    }
   }
 
   @override
   void didUpdateWidget(covariant BannerCarousel oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (!listEquals(oldWidget.imagePaths, widget.imagePaths)) {
+      _stopAutoSlide();
       setState(() {
         _imagePaths = widget.imagePaths;
         _currentIndex = 0;
       });
+      if (_imagePaths.isNotEmpty) {
+        _pageController.jumpToPage(_imagePaths.length * 1000);
+        _startAutoSlide();
+      }
     }
+  }
+
+  void _startAutoSlide() {
+    if (_imagePaths.isEmpty || _imagePaths.length <= 1) return;
+    
+    _autoSlideTimer?.cancel();
+    _autoSlideTimer = Timer.periodic(widget.autoSlideInterval, (timer) {
+      if (_pageController.hasClients) {
+        final nextPage = _pageController.page!.toInt() + 1;
+        _pageController.animateToPage(
+          nextPage,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeInOut,
+        );
+      }
+    });
+  }
+
+  void _stopAutoSlide() {
+    _autoSlideTimer?.cancel();
+    _autoSlideTimer = null;
   }
 
   @override
   void dispose() {
+    _stopAutoSlide();
     _pageController.dispose();
     super.dispose();
   }
@@ -55,12 +93,18 @@ class _BannerCarouselState extends State<BannerCarousel> {
         controller: _pageController,
         onPageChanged: (index) {
           setState(() {
-            _currentIndex = index;
+            _currentIndex = index % _imagePaths.length;
           });
+          // Restart auto-slide timer when user manually swipes
+          _stopAutoSlide();
+          _startAutoSlide();
         },
-        itemCount: _imagePaths.length,
+        // Use a large itemCount to enable infinite scrolling
+        itemCount: _imagePaths.length * 2000,
         itemBuilder: (context, index) {
-          return _buildBannerCard(_imagePaths[index]);
+          // Use modulo to loop through images infinitely
+          final imageIndex = index % _imagePaths.length;
+          return _buildBannerCard(_imagePaths[imageIndex]);
         },
       ),
     );

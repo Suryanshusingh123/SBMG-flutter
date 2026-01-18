@@ -16,6 +16,7 @@ class VillageMasterDataFormScreen extends StatefulWidget {
 class _VillageMasterDataFormScreenState
     extends State<VillageMasterDataFormScreen> {
   final _formKey = GlobalKey<FormState>();
+  final _scrollController = ScrollController();
 
   // Form controllers
   final _vdoNameController = TextEditingController();
@@ -28,6 +29,7 @@ class _VillageMasterDataFormScreenState
   final _workOrderAmountController = TextEditingController();
   final _fundAmountController = TextEditingController();
   String? _selectedFundHead; // Radio button selection for Fund Head
+  final _otherFundHeadController = TextEditingController(); // Controller for "Other" option
   final _householdsController = TextEditingController();
   final _shopsController = TextEditingController();
   String? _selectedCollectionFrequency; // Dropdown for collection frequency
@@ -142,171 +144,285 @@ class _VillageMasterDataFormScreenState
   }
 
   void _checkAndAutoExpandBasicInfo() {
-    if (_vdoNameController.text.trim().isNotEmpty &&
-        _contactNumberController.text.trim().length == 10) {
-      _autoExpandNextSection('basic');
-    }
+    // Delay the check to avoid triggering on every keystroke
+    Future.microtask(() {
+      if (mounted &&
+          _vdoNameController.text.trim().isNotEmpty &&
+          _contactNumberController.text.trim().length == 10) {
+        _autoExpandNextSection('basic');
+      }
+    });
   }
 
   void _checkAndAutoExpandSarpanch() {
-    if (_sarpanchNameController.text.trim().isNotEmpty &&
-        _sarpanchContactController.text.trim().length == 10) {
-      _autoExpandNextSection('sarpanch');
-    }
+    // Delay the check to avoid triggering on every keystroke
+    Future.microtask(() {
+      if (mounted &&
+          _sarpanchNameController.text.trim().isNotEmpty &&
+          _sarpanchContactController.text.trim().length == 10) {
+        _autoExpandNextSection('sarpanch');
+      }
+    });
   }
 
   void _checkAndAutoExpandContractor() {
-    if (_contractorNameController.text.trim().isNotEmpty) {
-      _autoExpandNextSection('contractor');
-    }
+    // Delay the check to avoid triggering on every keystroke
+    Future.microtask(() {
+      if (mounted && _contractorNameController.text.trim().isNotEmpty) {
+        _autoExpandNextSection('contractor');
+      }
+    });
   }
 
   void _checkAndAutoExpandWorkOrder() {
-    if (_workOrderNoController.text.trim().isNotEmpty &&
-        _workOrderDateController.text.trim().isNotEmpty &&
-        _workOrderAmountController.text.trim().isNotEmpty) {
-      _autoExpandNextSection('workOrder');
-    }
+    // Delay the check to avoid triggering on every keystroke
+    Future.microtask(() {
+      if (mounted &&
+          _workOrderNoController.text.trim().isNotEmpty &&
+          _workOrderDateController.text.trim().isNotEmpty &&
+          _workOrderAmountController.text.trim().isNotEmpty) {
+        _autoExpandNextSection('workOrder');
+      }
+    });
   }
 
   void _checkAndAutoExpandFund() {
-    if (_fundAmountController.text.trim().isNotEmpty &&
-        _selectedFundHead != null) {
-      _autoExpandNextSection('fund');
-    }
+    // Delay the check to avoid triggering on every keystroke
+    Future.microtask(() {
+      if (mounted &&
+          _fundAmountController.text.trim().isNotEmpty &&
+          _selectedFundHead != null) {
+        _autoExpandNextSection('fund');
+      }
+    });
   }
 
   void _checkAndAutoExpandCollection() {
-    if (_householdsController.text.trim().isNotEmpty &&
-        _shopsController.text.trim().isNotEmpty &&
-        _selectedCollectionFrequency != null) {
-      _autoExpandNextSection('collection');
-    }
+    // Delay the check to avoid triggering on every keystroke
+    Future.microtask(() {
+      if (mounted &&
+          _householdsController.text.trim().isNotEmpty &&
+          _shopsController.text.trim().isNotEmpty &&
+          _selectedCollectionFrequency != null) {
+        _autoExpandNextSection('collection');
+      }
+    });
   }
 
   void _checkAndAutoExpandRoadSweeping() {
-    if (_roadWidthController.text.trim().isNotEmpty &&
-        _roadLengthController.text.trim().isNotEmpty &&
-        _selectedRoadCleaningFrequency != null) {
-      _autoExpandNextSection('roadSweeping');
-    }
+    // Delay the check to avoid triggering on every keystroke
+    Future.microtask(() {
+      if (mounted &&
+          _roadWidthController.text.trim().isNotEmpty &&
+          _roadLengthController.text.trim().isNotEmpty &&
+          _selectedRoadCleaningFrequency != null) {
+        _autoExpandNextSection('roadSweeping');
+      }
+    });
   }
 
   void _checkAndAutoExpandDrainCleaning() {
-    if (_drainLengthController.text.trim().isNotEmpty &&
-        _selectedDrainCleaningFrequency != null) {
-      _autoExpandNextSection('drainCleaning');
-    }
+    // Delay the check to avoid triggering on every keystroke
+    Future.microtask(() {
+      if (mounted &&
+          _drainLengthController.text.trim().isNotEmpty &&
+          _selectedDrainCleaningFrequency != null) {
+        _autoExpandNextSection('drainCleaning');
+      }
+    });
   }
 
   void _checkAndAutoExpandCsc() {
-    if (_cscNumbersController.text.trim().isNotEmpty &&
-        _selectedCscCleaningFrequency != null) {
-      _autoExpandNextSection('csc');
-    }
+    // Delay the check to avoid triggering on every keystroke
+    Future.microtask(() {
+      if (mounted &&
+          _cscNumbersController.text.trim().isNotEmpty &&
+          _selectedCscCleaningFrequency != null) {
+        _autoExpandNextSection('csc');
+      }
+    });
   }
 
   void _checkAndAutoExpandSwmAssets() {
-    if (_rrcController.text.trim().isNotEmpty &&
-        _pwmuController.text.trim().isNotEmpty &&
-        _compositPitController.text.trim().isNotEmpty &&
-        _collectionVehicleController.text.trim().isNotEmpty) {
-      _autoExpandNextSection('swmAssets');
-    }
+    // Delay the check to avoid triggering on every keystroke
+    Future.microtask(() {
+      if (mounted &&
+          _rrcController.text.trim().isNotEmpty &&
+          _pwmuController.text.trim().isNotEmpty &&
+          _compositPitController.text.trim().isNotEmpty &&
+          _collectionVehicleController.text.trim().isNotEmpty) {
+        _autoExpandNextSection('swmAssets');
+      }
+    });
   }
 
   void _checkAndAutoExpandSbmgTargets() {
-    if (_ihhlController.text.trim().isNotEmpty &&
-        _sbmgCscController.text.trim().isNotEmpty &&
-        _sbmgRrcController.text.trim().isNotEmpty &&
-        _sbmgPwmuController.text.trim().isNotEmpty &&
-        _soakPitController.text.trim().isNotEmpty &&
-        _magicPitController.text.trim().isNotEmpty &&
-        _leachPitController.text.trim().isNotEmpty &&
-        _wspController.text.trim().isNotEmpty &&
-        _dewatsController.text.trim().isNotEmpty) {
-      _autoExpandNextSection('sbmgTargets');
-    }
+    // Delay the check to avoid triggering on every keystroke
+    Future.microtask(() {
+      if (mounted &&
+          _ihhlController.text.trim().isNotEmpty &&
+          _sbmgCscController.text.trim().isNotEmpty &&
+          _sbmgRrcController.text.trim().isNotEmpty &&
+          _sbmgPwmuController.text.trim().isNotEmpty &&
+          _soakPitController.text.trim().isNotEmpty &&
+          _magicPitController.text.trim().isNotEmpty &&
+          _leachPitController.text.trim().isNotEmpty &&
+          _wspController.text.trim().isNotEmpty &&
+          _dewatsController.text.trim().isNotEmpty) {
+        _autoExpandNextSection('sbmgTargets');
+      }
+    });
   }
 
   void _autoExpandNextSection(String currentSection) {
     if (!mounted) return;
 
-    setState(() {
-      // Close current section and open next one
-      switch (currentSection) {
-        case 'basic':
-          // Don't close basic info as it's always visible
-          if (!_sarpanchExpanded) {
-            _sarpanchExpanded = true;
-          }
-          break;
-        case 'sarpanch':
-          _sarpanchExpanded = false;
-          if (!_contractorExpanded) {
-            _contractorExpanded = true;
-          }
-          break;
-        case 'contractor':
-          _contractorExpanded = false;
-          if (!_workOrderExpanded) {
-            _workOrderExpanded = true;
-          }
-          break;
-        case 'workOrder':
-          _workOrderExpanded = false;
-          if (!_fundExpanded) {
-            _fundExpanded = true;
-          }
-          break;
-        case 'fund':
-          _fundExpanded = false;
-          if (!_collectionExpanded) {
-            _collectionExpanded = true;
-          }
-          break;
-        case 'collection':
-          _collectionExpanded = false;
-          if (!_roadSweepingExpanded) {
-            _roadSweepingExpanded = true;
-          }
-          break;
-        case 'roadSweeping':
-          _roadSweepingExpanded = false;
-          if (!_drainCleaningExpanded) {
-            _drainCleaningExpanded = true;
-          }
-          break;
-        case 'drainCleaning':
-          _drainCleaningExpanded = false;
-          if (!_cscExpanded) {
-            _cscExpanded = true;
-          }
-          break;
-        case 'csc':
-          _cscExpanded = false;
-          if (!_swmAssetsExpanded) {
-            _swmAssetsExpanded = true;
-          }
-          break;
-        case 'swmAssets':
-          _swmAssetsExpanded = false;
-          if (!_sbmgTargetsExpanded) {
-            _sbmgTargetsExpanded = true;
-          }
-          break;
-        case 'sbmgTargets':
-          _sbmgTargetsExpanded = false;
-          if (!_villagesExpanded) {
-            _villagesExpanded = true;
-          }
-          break;
-      }
-    });
+    // Track if any state actually changed to avoid unnecessary rebuilds
+    bool stateChanged = false;
+    bool newSarpanchExpanded = _sarpanchExpanded;
+    bool newContractorExpanded = _contractorExpanded;
+    bool newWorkOrderExpanded = _workOrderExpanded;
+    bool newFundExpanded = _fundExpanded;
+    bool newCollectionExpanded = _collectionExpanded;
+    bool newRoadSweepingExpanded = _roadSweepingExpanded;
+    bool newDrainCleaningExpanded = _drainCleaningExpanded;
+    bool newCscExpanded = _cscExpanded;
+    bool newSwmAssetsExpanded = _swmAssetsExpanded;
+    bool newSbmgTargetsExpanded = _sbmgTargetsExpanded;
+    bool newVillagesExpanded = _villagesExpanded;
+
+    // Close current section and open next one
+    switch (currentSection) {
+      case 'basic':
+        // Don't close basic info as it's always visible
+        if (!_sarpanchExpanded) {
+          newSarpanchExpanded = true;
+          stateChanged = true;
+        }
+        break;
+      case 'sarpanch':
+        if (_sarpanchExpanded) {
+          newSarpanchExpanded = false;
+          stateChanged = true;
+        }
+        if (!_contractorExpanded) {
+          newContractorExpanded = true;
+          stateChanged = true;
+        }
+        break;
+      case 'contractor':
+        if (_contractorExpanded) {
+          newContractorExpanded = false;
+          stateChanged = true;
+        }
+        if (!_workOrderExpanded) {
+          newWorkOrderExpanded = true;
+          stateChanged = true;
+        }
+        break;
+      case 'workOrder':
+        if (_workOrderExpanded) {
+          newWorkOrderExpanded = false;
+          stateChanged = true;
+        }
+        if (!_fundExpanded) {
+          newFundExpanded = true;
+          stateChanged = true;
+        }
+        break;
+      case 'fund':
+        if (_fundExpanded) {
+          newFundExpanded = false;
+          stateChanged = true;
+        }
+        if (!_collectionExpanded) {
+          newCollectionExpanded = true;
+          stateChanged = true;
+        }
+        break;
+      case 'collection':
+        if (_collectionExpanded) {
+          newCollectionExpanded = false;
+          stateChanged = true;
+        }
+        if (!_roadSweepingExpanded) {
+          newRoadSweepingExpanded = true;
+          stateChanged = true;
+        }
+        break;
+      case 'roadSweeping':
+        if (_roadSweepingExpanded) {
+          newRoadSweepingExpanded = false;
+          stateChanged = true;
+        }
+        if (!_drainCleaningExpanded) {
+          newDrainCleaningExpanded = true;
+          stateChanged = true;
+        }
+        break;
+      case 'drainCleaning':
+        if (_drainCleaningExpanded) {
+          newDrainCleaningExpanded = false;
+          stateChanged = true;
+        }
+        if (!_cscExpanded) {
+          newCscExpanded = true;
+          stateChanged = true;
+        }
+        break;
+      case 'csc':
+        if (_cscExpanded) {
+          newCscExpanded = false;
+          stateChanged = true;
+        }
+        if (!_swmAssetsExpanded) {
+          newSwmAssetsExpanded = true;
+          stateChanged = true;
+        }
+        break;
+      case 'swmAssets':
+        if (_swmAssetsExpanded) {
+          newSwmAssetsExpanded = false;
+          stateChanged = true;
+        }
+        if (!_sbmgTargetsExpanded) {
+          newSbmgTargetsExpanded = true;
+          stateChanged = true;
+        }
+        break;
+      case 'sbmgTargets':
+        if (_sbmgTargetsExpanded) {
+          newSbmgTargetsExpanded = false;
+          stateChanged = true;
+        }
+        if (!_villagesExpanded) {
+          newVillagesExpanded = true;
+          stateChanged = true;
+        }
+        break;
+    }
+
+    // Only call setState if the state actually changed
+    if (stateChanged) {
+      setState(() {
+        _sarpanchExpanded = newSarpanchExpanded;
+        _contractorExpanded = newContractorExpanded;
+        _workOrderExpanded = newWorkOrderExpanded;
+        _fundExpanded = newFundExpanded;
+        _collectionExpanded = newCollectionExpanded;
+        _roadSweepingExpanded = newRoadSweepingExpanded;
+        _drainCleaningExpanded = newDrainCleaningExpanded;
+        _cscExpanded = newCscExpanded;
+        _swmAssetsExpanded = newSwmAssetsExpanded;
+        _sbmgTargetsExpanded = newSbmgTargetsExpanded;
+        _villagesExpanded = newVillagesExpanded;
+      });
+    }
   }
 
   @override
   void dispose() {
+    _scrollController.dispose();
     _vdoNameController.dispose();
     _contactNumberController.dispose();
     _sarpanchNameController.dispose();
@@ -316,6 +432,7 @@ class _VillageMasterDataFormScreenState
     _workOrderDateController.dispose();
     _workOrderAmountController.dispose();
     _fundAmountController.dispose();
+    _otherFundHeadController.dispose();
     _householdsController.dispose();
     _shopsController.dispose();
     _roadWidthController.dispose();
@@ -378,6 +495,7 @@ class _VillageMasterDataFormScreenState
           children: [
             Expanded(
               child: SingleChildScrollView(
+                controller: _scrollController,
                 padding: EdgeInsets.all(16.r),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -1024,6 +1142,15 @@ class _VillageMasterDataFormScreenState
                 _buildRadioOption('Other', state),
               ],
             ),
+            // Show input field when "Other" is selected
+            if (_selectedFundHead == 'Other') ...[
+              SizedBox(height: 16.h),
+              _buildFormField(
+                label: 'Other Fund Head',
+                controller: _otherFundHeadController,
+                placeholder: 'Enter fund head name',
+              ),
+            ],
             if (state.hasError)
               Padding(
                 padding: EdgeInsets.only(top: 8.h),
@@ -1664,6 +1791,11 @@ class _VillageMasterDataFormScreenState
     }
 
     if (missingFields.isNotEmpty) {
+      // Save scroll position before setState
+      final scrollPosition = _scrollController.hasClients 
+          ? _scrollController.offset 
+          : 0.0;
+      
       setState(() {
         if (expandSarpanch) _sarpanchExpanded = true;
         if (expandContractor) _contractorExpanded = true;
@@ -1678,8 +1810,10 @@ class _VillageMasterDataFormScreenState
         if (expandVillages) _villagesExpanded = true;
       });
 
+      // Restore scroll position after setState
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) {
+        if (mounted && _scrollController.hasClients) {
+          _scrollController.jumpTo(scrollPosition);
           _formKey.currentState!.validate();
         }
       });
@@ -1724,8 +1858,20 @@ class _VillageMasterDataFormScreenState
 
     print('✅ Form validation passed');
 
+    // Save scroll position before setState
+    final scrollPosition = _scrollController.hasClients 
+        ? _scrollController.offset 
+        : 0.0;
+
     setState(() {
       _isSubmitting = true;
+    });
+
+    // Restore scroll position after setState
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted && _scrollController.hasClients) {
+        _scrollController.jumpTo(scrollPosition);
+      }
     });
 
     try {
@@ -1840,9 +1986,22 @@ class _VillageMasterDataFormScreenState
       }
     } finally {
       if (mounted) {
+        // Save scroll position before setState
+        final scrollPosition = _scrollController.hasClients 
+            ? _scrollController.offset 
+            : 0.0;
+        
         setState(() {
           _isSubmitting = false;
         });
+        
+        // Restore scroll position after setState
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted && _scrollController.hasClients) {
+            _scrollController.jumpTo(scrollPosition);
+          }
+        });
+        
         print('🔄 Form submission state reset');
       }
     }

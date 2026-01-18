@@ -69,6 +69,21 @@ class DateTimeUtils {
     return DateFormat('h:mm a').format(istDateTime);
   }
 
+  /// Formats a date string (from backend, in UTC) to IST display format
+  /// Format: "MMM d, yyyy, h:mm a" (e.g., "Jan 15, 2024, 2:30 PM")
+  /// Assumes the input string is in UTC format from the backend
+  static String formatDateStringIST(String? dateString) {
+    if (dateString == null || dateString.isEmpty) {
+      return 'Unknown';
+    }
+    try {
+      final utcDateTime = parseToIST(dateString);
+      return DateFormat('MMM d, yyyy, h:mm a').format(utcDateTime);
+    } catch (e) {
+      return 'Unknown';
+    }
+  }
+
   /// Formats a DateTime in IST for API submission (ISO8601 format in IST)
   /// Returns ISO8601 string without timezone (treated as IST)
   static String formatForAPI(DateTime dateTime) {

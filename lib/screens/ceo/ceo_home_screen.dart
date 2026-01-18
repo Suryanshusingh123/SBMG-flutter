@@ -2,14 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:provider/provider.dart';
-// import 'package:sbmg/screens/citizen/scheme_details_screen.dart';
-import 'package:sbmg/services/bookmark_service.dart';
+import 'package:sbmg/screens/citizen/scheme_details_screen.dart';
 import 'package:sbmg/widgets/common/banner_carousel.dart';
+import '../../providers/citizen_bookmarks_provider.dart';
 import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:csv/csv.dart';
-import 'dart:io';
-import 'package:path_provider/path_provider.dart';
+import '../../utils/download_helper.dart';
 import '../../config/connstants.dart';
 import '../../widgets/common/custom_bottom_navigation.dart';
 import '../../providers/ceo_provider.dart';
@@ -17,6 +16,8 @@ import '../../models/scheme_model.dart';
 import '../../models/event_model.dart';
 import '../../models/contractor_model.dart';
 import '../../services/api_services.dart';
+import '../../services/auth_services.dart';
+import '../../screens/common/unified_select_location_screen.dart';
 import 'ceo_select_location_screen.dart';
 import 'ceo_gp_attendance_screen.dart';
 
@@ -29,7 +30,6 @@ class CeoHomeScreen extends StatefulWidget {
 
 class _CeoHomeScreenState extends State<CeoHomeScreen> {
   int _selectedIndex = 0;
-  final BookmarkService _bookmarkService = BookmarkService();
   final ApiService _apiService = ApiService();
   BuildContext? _parentContext;
 
@@ -60,6 +60,9 @@ class _CeoHomeScreenState extends State<CeoHomeScreen> {
 
   Future<void> _exportToCSV(CeoProvider provider) async {
     try {
+      // Request storage permission for Android
+      await DownloadHelper.requestStoragePermission();
+
       // Create CSV data
       final csvData = [
         ['Metric', 'Count', 'Date Range'],
@@ -86,42 +89,31 @@ class _CeoHomeScreenState extends State<CeoHomeScreen> {
       // Convert to CSV string
       final csvString = const ListToCsvConverter().convert(csvData);
 
-      // Get downloads directory
-      Directory? downloadsDir;
-      if (Platform.isAndroid) {
-        downloadsDir = Directory('/storage/emulated/0/Download');
-        if (!await downloadsDir.exists()) {
-          downloadsDir = await getExternalStorageDirectory();
-        }
-      } else if (Platform.isIOS) {
-        downloadsDir = await getApplicationDocumentsDirectory();
-      } else {
-        downloadsDir = await getDownloadsDirectory();
-      }
-
-      if (downloadsDir == null) {
-        throw Exception('Could not access downloads directory');
-      }
-
       // Create filename with timestamp
       final timestamp = DateFormat('yyyyMMdd_HHmmss').format(DateTime.now());
-      final fileName = 'bdo_complaints_report_$timestamp.csv';
-      final file = File('${downloadsDir.path}/$fileName');
+      final fileName = 'ceo_complaints_report_$timestamp.csv';
 
-      // Write CSV file
-      await file.writeAsString(csvString);
+      // Download to Downloads folder
+      final filePath = await DownloadHelper.downloadToDownloadsFolder(
+        fileName: fileName,
+        content: csvString,
+      );
 
       // Show success message
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              'CSV file exported successfully to Downloads folder: $fileName',
+        if (filePath != null) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                'CSV file exported successfully to Downloads folder: $fileName',
+              ),
+              backgroundColor: const Color(0xFF009B56),
+              duration: const Duration(seconds: 3),
             ),
-            backgroundColor: const Color(0xFF009B56),
-            duration: const Duration(seconds: 3),
-          ),
-        );
+          );
+        } else {
+          throw Exception('Failed to save file to Downloads folder');
+        }
       }
     } catch (e) {
       if (mounted) {
@@ -264,6 +256,34 @@ class _CeoHomeScreenState extends State<CeoHomeScreen> {
           ),
           Row(
             children: [
+              GestureDetector(
+                onTap: () async {
+                  final result = await Navigator.push<Map<String, dynamic>>(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const UnifiedSelectLocationScreen(userRole: 'ceo'),
+                    ),
+                  );
+
+                  if (result != null && result['blockId'] != null && result['gpId'] != null) {
+                    // Save the selected Block/GP location
+                    final authService = AuthService();
+                    await authService.saveInspectionLocation('ceo', result);
+                    // Reload data based on new location (if needed)
+                    if (mounted) {
+                      context.read<CeoProvider>().loadAllData();
+                    }
+                  }
+                },
+                child: Padding(
+                  padding: EdgeInsets.only(right: 8.w),
+                  child: Icon(
+                    Icons.location_on,
+                    size: 24,
+                    color: AppColors.primaryColor,
+                  ),
+                ),
+              ),
               IconButton(
                 onPressed: () {},
                 icon: Image.asset(
@@ -718,6 +738,9 @@ class _CeoHomeScreenState extends State<CeoHomeScreen> {
     dynamic icon, // Can be IconData or String (asset path)
     Color color,
   ) {
+    final bool isResolvedCard = title.toLowerCase().contains('resolved') || 
+                                 title.toLowerCase().contains('disposed');
+    
     return Container(
       height: 100.h, // Fixed height for consistent sizing
       decoration: BoxDecoration(
@@ -740,15 +763,33 @@ class _CeoHomeScreenState extends State<CeoHomeScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(
-                  title,
-                  style: TextStyle(
-                    fontFamily: 'Noto Sans',
-                    fontSize: 12.sp,
-                    fontWeight: FontWeight.w500,
-                    color: const Color(0xFF717680),
-                    letterSpacing: 0.5,
-                  ),
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        title,
+                        style: TextStyle(
+                          fontFamily: 'Noto Sans',
+                          fontSize: 12.sp,
+                          fontWeight: FontWeight.w500,
+                          color: const Color(0xFF717680),
+                          letterSpacing: 0.5,
+                        ),
+                      ),
+                    ),
+                    if (isResolvedCard) ...[
+                      SizedBox(width: 4.w),
+                      Tooltip(
+                        message: 'Resolved count includes: Resolved + Verified + Closed complaints',
+                        preferBelow: false,
+                        child: Icon(
+                          Icons.info_outline,
+                          size: 14.sp,
+                          color: const Color(0xFF6B7280),
+                        ),
+                      ),
+                    ],
+                  ],
                 ),
                 Text(
                   value,
@@ -846,7 +887,16 @@ class _CeoHomeScreenState extends State<CeoHomeScreen> {
 
   Widget _buildSchemeCard(Scheme scheme) {
     return GestureDetector(
-      onTap: () {},
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => SchemeDetailsScreen(
+              scheme: scheme,
+            ),
+          ),
+        );
+      },
       child: Container(
         width: 350.w,
         margin: EdgeInsets.only(right: 16.w),
@@ -925,16 +975,33 @@ class _CeoHomeScreenState extends State<CeoHomeScreen> {
       children: [
         Padding(
           padding: EdgeInsets.symmetric(horizontal: 16.w),
-          child: Text(
-            '${provider.events.length} Event${provider.events.length != 1 ? 's' : ''}',
-            style: TextStyle(
-              fontFamily: 'Noto Sans',
-              fontSize: 18.sp,
-              fontWeight: FontWeight.w500,
-              color: const Color(0xFF111827),
-              letterSpacing: 0,
-              height: 1.0,
-            ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                '${provider.events.length} Event${provider.events.length != 1 ? 's' : ''}',
+                style: TextStyle(
+                  fontFamily: 'Noto Sans',
+                  fontSize: 18.sp,
+                  fontWeight: FontWeight.w500,
+                  color: const Color(0xFF111827),
+                  letterSpacing: 0,
+                  height: 1.0,
+                ),
+              ),
+              TextButton(
+                onPressed: () {
+                  Navigator.pushNamed(context, '/events');
+                },
+                child: const Text(
+                  'View all',
+                  style: TextStyle(
+                    color: Color(0xFF009B56),
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
 
@@ -977,8 +1044,12 @@ class _CeoHomeScreenState extends State<CeoHomeScreen> {
   }
 
   Widget _buildEventCard(Event event, int index) {
-    return Container(
-      margin: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
+    return GestureDetector(
+      onTap: () {
+        _showEventDetails(event);
+      },
+      child: Container(
+        margin: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(12.r),
         boxShadow: [
@@ -1034,38 +1105,41 @@ class _CeoHomeScreenState extends State<CeoHomeScreen> {
                   Positioned(
                     top: 12.h,
                     right: 12.w,
-                    child: GestureDetector(
-                      onTap: () {
-                        setState(() {
-                          _bookmarkService.toggleEventBookmark(event);
-                        });
-                      },
-                      child: Container(
-                        width: 40.w,
-                        height: 40.h,
-                        decoration: BoxDecoration(
-                          color: _bookmarkService.isEventBookmarked(event.id)
-                              ? const Color(0xFF009B56)
-                              : Colors.white.withOpacity(0.9),
-                          borderRadius: BorderRadius.circular(8.r),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withOpacity(0.2),
-                              blurRadius: 4,
-                              offset: const Offset(0, 2),
+                    child: Consumer<BookmarksProvider>(
+                      builder: (context, bookmarksProvider, child) {
+                        final isBookmarked = bookmarksProvider.isEventBookmarked(event.id);
+                        return GestureDetector(
+                          onTap: () {
+                            bookmarksProvider.toggleEventBookmark(event.id, !isBookmarked);
+                          },
+                          child: Container(
+                            width: 40.w,
+                            height: 40.h,
+                            decoration: BoxDecoration(
+                              color: isBookmarked
+                                  ? const Color(0xFF009B56)
+                                  : Colors.white.withOpacity(0.9),
+                              borderRadius: BorderRadius.circular(8.r),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withOpacity(0.2),
+                                  blurRadius: 4,
+                                  offset: const Offset(0, 2),
+                                ),
+                              ],
                             ),
-                          ],
-                        ),
-                        child: Icon(
-                          _bookmarkService.isEventBookmarked(event.id)
-                              ? Icons.bookmark
-                              : Icons.bookmark_border,
-                          color: _bookmarkService.isEventBookmarked(event.id)
-                              ? Colors.white
-                              : const Color(0xFF4CAF50),
-                          size: 20.sp,
-                        ),
-                      ),
+                            child: Icon(
+                              isBookmarked
+                                  ? Icons.bookmark
+                                  : Icons.bookmark_border,
+                              color: isBookmarked
+                                  ? Colors.white
+                                  : const Color(0xFF4CAF50),
+                              size: 20.sp,
+                            ),
+                          ),
+                        );
+                      },
                     ),
                   ),
                 ],
@@ -1147,7 +1221,122 @@ class _CeoHomeScreenState extends State<CeoHomeScreen> {
             ),
           ),
         ],
+        ),
       ),
+    );
+  }
+
+  void _showEventDetails(Event event) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return Dialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16.r),
+          ),
+          child: Container(
+            constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.8),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Event Image
+                Container(
+                  height: 200.h,
+                  width: double.infinity,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.only(
+                      topLeft: Radius.circular(16.r),
+                      topRight: Radius.circular(16.r),
+                    ),
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.only(
+                      topLeft: Radius.circular(16.r),
+                      topRight: Radius.circular(16.r),
+                    ),
+                    child: event.media.isNotEmpty
+                        ? Image.network(
+                            ApiConstants.getMediaUrl(event.media.first.mediaUrl),
+                            fit: BoxFit.cover,
+                            errorBuilder: (context, error, stackTrace) {
+                              return Image.asset(
+                                'assets/images/eventbanner.png',
+                                fit: BoxFit.cover,
+                              );
+                            },
+                          )
+                        : Image.asset(
+                            'assets/images/eventbanner.png',
+                            fit: BoxFit.cover,
+                          ),
+                  ),
+                ),
+                // Event Details
+                Flexible(
+                  child: SingleChildScrollView(
+                    padding: EdgeInsets.all(16.r),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Expanded(
+                              child: Text(
+                                event.title,
+                                style: TextStyle(
+                                  fontSize: 20.sp,
+                                  fontWeight: FontWeight.w600,
+                                  color: const Color(0xFF111827),
+                                ),
+                              ),
+                            ),
+                            IconButton(
+                              icon: Icon(Icons.close, color: Colors.grey.shade600),
+                              onPressed: () => Navigator.pop(context),
+                            ),
+                          ],
+                        ),
+                        SizedBox(height: 12.h),
+                        Row(
+                          children: [
+                            Icon(
+                              Icons.calendar_today,
+                              size: 18.sp,
+                              color: const Color(0xFF009B56),
+                            ),
+                            SizedBox(width: 8.w),
+                            Expanded(
+                              child: Text(
+                                '${_formatDate(event.startTime)} - ${_formatDate(event.endTime)}',
+                                style: TextStyle(
+                                  fontSize: 14.sp,
+                                  color: Colors.grey.shade600,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        if (event.description != null && event.description!.isNotEmpty) ...[
+                          SizedBox(height: 16.h),
+                          Text(
+                            event.description!,
+                            style: TextStyle(
+                              fontSize: 14.sp,
+                              color: const Color(0xFF111827),
+                              height: 1.5,
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 

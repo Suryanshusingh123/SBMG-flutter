@@ -48,9 +48,11 @@ class SmdComplaintsProvider extends ChangeNotifier {
       }
 
       // Use getComplaintsForBdo to load complaints by district (same as CEO)
+      // Use a very high limit to ensure we get all complaints for accurate counts
       final response = await _complaintsService.getComplaintsForBdo(
         districtId: districtId,
         blockId: null, // Load all complaints for the district
+        limit: 10000, // High limit to get all complaints for accurate total count
       );
 
       if (response['success'] == true) {

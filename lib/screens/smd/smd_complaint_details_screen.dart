@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 import '../../services/api_services.dart';
 import '../../config/connstants.dart';
 import '../../l10n/app_localizations.dart';
 import '../../utils/location_display_helper.dart';
+import '../../utils/date_time_utils.dart';
 
 class SmdComplaintDetailsScreen extends StatefulWidget {
   final Map<String, dynamic> complaint;
@@ -85,30 +85,21 @@ class _SmdComplaintDetailsScreenState extends State<SmdComplaintDetailsScreen> {
     _longitude = coords.$2 ?? _longitude;
   }
 
-  // Get status-based heading for AppBar
-  String get _getStatusHeading {
-    final status = _data['status']?.toString().toUpperCase() ?? 'OPEN';
-    final closedAt = _data['closed_at'];
-    final verifiedAt = _data['verified_at'];
-    final resolvedAt = _data['resolved_at'];
+  // Get complaint type name for AppBar
+  String get _getComplaintTypeName {
+    final complaintType = _data['complaint_type'];
 
-    // First check if closed
-    if (status == 'CLOSED' || closedAt != null) {
-      return 'Successfully disposed';
+    // Try to determine complaint type name
+    if (complaintType is Map && complaintType['name'] != null) {
+      return complaintType['name'];
+    } else if (complaintType is String) {
+      return complaintType;
+    } else if (_data['complaint_type_name'] != null) {
+      return _data['complaint_type_name'];
     }
-
-    // Then check if verified but not closed
-    if (status == 'VERIFIED' || (verifiedAt != null && closedAt == null)) {
-      return 'Successfully resolved, waiting for user to close';
-    }
-
-    // Then check if resolved
-    if (status == 'RESOLVED' || resolvedAt != null) {
-      return 'Verification pending by VDO';
-    }
-
-    // Open status
-    return 'Waiting for supervisor to resolve';
+    
+    // Fallback to default
+    return 'Road Maintenance';
   }
 
   // Dynamic status text based on API fields
@@ -213,7 +204,7 @@ class _SmdComplaintDetailsScreenState extends State<SmdComplaintDetailsScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              _getStatusHeading,
+              _getComplaintTypeName,
               style: const TextStyle(
                 fontFamily: 'Noto Sans',
                 fontSize: 18,
@@ -651,14 +642,9 @@ class _SmdComplaintDetailsScreenState extends State<SmdComplaintDetailsScreen> {
   }
 
   String _formatTimelineSubtitle(String user, String? dateString) {
-    String formattedDate = 'Unknown date';
-    if (dateString != null && dateString.isNotEmpty) {
-      try {
-        final date = DateTime.parse(dateString).toLocal();
-        formattedDate = DateFormat('MMM d, yyyy, h:mm a').format(date);
-      } catch (e) {
-        formattedDate = 'Unknown date';
-      }
+    String formattedDate = DateTimeUtils.formatDateStringIST(dateString);
+    if (formattedDate == 'Unknown') {
+      formattedDate = 'Unknown date';
     }
     return '$user • $formattedDate';
   }
@@ -761,11 +747,8 @@ class _SmdComplaintDetailsScreenState extends State<SmdComplaintDetailsScreen> {
 
   String _formatDate(String? dateStr) {
     if (dateStr == null) return 'Unknown';
-    final date = DateTime.tryParse(dateStr);
-    if (date != null) {
-      return DateFormat('MMM d, yyyy, h:mm a').format(date);
-    }
-    return 'Unknown';
+    final formatted = DateTimeUtils.formatDateStringIST(dateStr);
+    return formatted;
   }
 
   // Helper methods to check for resolution/verification comments

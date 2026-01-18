@@ -16,6 +16,7 @@ import '../../config/connstants.dart';
 import '../../providers/bdo_provider.dart';
 import '../citizen/language_screen.dart';
 import '../citizen/notifications_screen.dart';
+import '../citizen/scheme_details_screen.dart';
 
 class BdoHomeScreen extends StatefulWidget {
   const BdoHomeScreen({super.key});
@@ -758,15 +759,8 @@ class _BdoHomeScreenState extends State<BdoHomeScreen> {
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (context) => Scaffold(
-              appBar: AppBar(
-                title: Text(AppLocalizations.of(context)!.schemeDetails),
-              ),
-              body: Center(
-                child: Text(
-                  '${AppLocalizations.of(context)!.viewing} ${scheme.name}',
-                ),
-              ),
+            builder: (context) => SchemeDetailsScreen(
+              scheme: scheme,
             ),
           ),
         );
@@ -867,7 +861,9 @@ class _BdoHomeScreenState extends State<BdoHomeScreen> {
                 },
               ),
               TextButton(
-                onPressed: () {},
+                onPressed: () {
+                  Navigator.pushNamed(context, '/events');
+                },
                 child: Text(
                   l10n.viewAll,
                   style: const TextStyle(
@@ -924,7 +920,11 @@ class _BdoHomeScreenState extends State<BdoHomeScreen> {
   }
 
   Widget _buildEventCard(Event event) {
-    return Container(
+    return GestureDetector(
+      onTap: () {
+        _showEventDetails(event);
+      },
+      child: Container(
       margin: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(12.r),
@@ -1045,7 +1045,122 @@ class _BdoHomeScreenState extends State<BdoHomeScreen> {
             ),
           ),
         ],
+        ),
       ),
+    );
+  }
+
+  void _showEventDetails(Event event) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return Dialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16.r),
+          ),
+          child: Container(
+            constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.8),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Event Image
+                Container(
+                  height: 200.h,
+                  width: double.infinity,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.only(
+                      topLeft: Radius.circular(16.r),
+                      topRight: Radius.circular(16.r),
+                    ),
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.only(
+                      topLeft: Radius.circular(16.r),
+                      topRight: Radius.circular(16.r),
+                    ),
+                    child: event.media.isNotEmpty
+                        ? Image.network(
+                            ApiConstants.getMediaUrl(event.media.first.mediaUrl),
+                            fit: BoxFit.cover,
+                            errorBuilder: (context, error, stackTrace) {
+                              return Image.asset(
+                                'assets/images/eventbanner.png',
+                                fit: BoxFit.cover,
+                              );
+                            },
+                          )
+                        : Image.asset(
+                            'assets/images/eventbanner.png',
+                            fit: BoxFit.cover,
+                          ),
+                  ),
+                ),
+                // Event Details
+                Flexible(
+                  child: SingleChildScrollView(
+                    padding: EdgeInsets.all(16.r),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Expanded(
+                              child: Text(
+                                event.title,
+                                style: TextStyle(
+                                  fontSize: 20.sp,
+                                  fontWeight: FontWeight.w600,
+                                  color: const Color(0xFF111827),
+                                ),
+                              ),
+                            ),
+                            IconButton(
+                              icon: Icon(Icons.close, color: Colors.grey.shade600),
+                              onPressed: () => Navigator.pop(context),
+                            ),
+                          ],
+                        ),
+                        SizedBox(height: 12.h),
+                        Row(
+                          children: [
+                            Icon(
+                              Icons.calendar_today,
+                              size: 18.sp,
+                              color: const Color(0xFF009B56),
+                            ),
+                            SizedBox(width: 8.w),
+                            Expanded(
+                              child: Text(
+                                '${_formatDate(event.startTime)} - ${_formatDate(event.endTime)}',
+                                style: TextStyle(
+                                  fontSize: 14.sp,
+                                  color: Colors.grey.shade600,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        if (event.description != null && event.description!.isNotEmpty) ...[
+                          SizedBox(height: 16.h),
+                          Text(
+                            event.description!,
+                            style: TextStyle(
+                              fontSize: 14.sp,
+                              color: const Color(0xFF111827),
+                              height: 1.5,
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 

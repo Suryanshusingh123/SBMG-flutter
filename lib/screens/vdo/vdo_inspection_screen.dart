@@ -245,60 +245,59 @@ class _VdoInspectionScreenState extends State<VdoInspectionScreen> {
           ),
         ],
       ),
-      child: Expanded(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              _getTodayDate(),
-              style: TextStyle(
-                fontSize: 14.sp,
-                fontWeight: FontWeight.w500,
-                color: const Color(0xFF111827),
-              ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            _getTodayDate(),
+            style: TextStyle(
+              fontSize: 14.sp,
+              fontWeight: FontWeight.w500,
+              color: const Color(0xFF111827),
             ),
-            SizedBox(height: 12.h),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const NewInspectionScreen(),
-                    ),
-                  );
-                },
-                style: ElevatedButton.styleFrom(
-                  padding: EdgeInsets.symmetric(vertical: 12.h),
-                  backgroundColor: AppColors.primaryColor,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8.r),
+          ),
+          SizedBox(height: 12.h),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const NewInspectionScreen(),
                   ),
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(
-                      'Start new inspection',
-                      style: TextStyle(
-                        fontSize: 14.sp,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.white,
-                      ),
-                    ),
-                    SizedBox(width: 8.w),
-                    const Icon(
-                      Icons.arrow_forward_ios,
-                      color: Colors.white,
-                      size: 16,
-                    ),
-                  ],
+                );
+              },
+              style: ElevatedButton.styleFrom(
+                padding: EdgeInsets.symmetric(vertical: 12.h),
+                backgroundColor: AppColors.primaryColor,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8.r),
                 ),
               ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    'Start new inspection',
+                    style: TextStyle(
+                      fontSize: 14.sp,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.white,
+                    ),
+                  ),
+                  SizedBox(width: 8.w),
+                  const Icon(
+                    Icons.arrow_forward_ios,
+                    color: Colors.white,
+                    size: 16,
+                  ),
+                ],
+              ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

@@ -38,7 +38,10 @@ class BdoComplaintsProvider extends ChangeNotifier {
       notifyListeners();
 
       print('📡 [BDO] Calling ComplaintsService.getComplaintsForBdo()');
-      final response = await _complaintsService.getComplaintsForBdo();
+      // Use a very high limit to ensure we get all complaints for accurate counts
+      final response = await _complaintsService.getComplaintsForBdo(
+        limit: 10000, // High limit to get all complaints for accurate total count
+      );
 
       if (response['success'] == true) {
         final complaints = response['complaints'] as List<ApiComplaintModel>;

@@ -40,8 +40,6 @@ class _UnifiedSelectLocationScreenState
   bool _isLoadingBlocks = false;
   bool _isLoadingGPs = false;
 
-  final TextEditingController _searchController = TextEditingController();
-
   @override
   void initState() {
     super.initState();
@@ -50,7 +48,6 @@ class _UnifiedSelectLocationScreenState
 
   @override
   void dispose() {
-    _searchController.dispose();
     super.dispose();
   }
 
@@ -89,6 +86,50 @@ class _UnifiedSelectLocationScreenState
 
       if (_districtId != null) {
         await _loadBlocks(_districtId!);
+        
+        // For CEO, try to load saved Block/GP selection
+        if (widget.userRole == 'ceo') {
+          final savedLocation = await _authService.getInspectionLocation('ceo');
+          if (savedLocation != null && savedLocation['blockId'] != null) {
+            final savedBlockId = savedLocation['blockId'] as int;
+            final savedGpId = savedLocation['gpId'] as int?;
+            
+            // Find and select the saved block
+            final savedBlock = _blocks.firstWhere(
+              (b) => b.id == savedBlockId,
+              orElse: () => Block(
+                id: savedBlockId,
+                name: savedLocation['blockName'] as String? ?? 'Block',
+                districtId: _districtId!,
+                description: null,
+              ),
+            );
+            
+            setState(() {
+              _selectedBlock = savedBlock;
+            });
+            
+            // Load GPs for the saved block
+            if (savedGpId != null) {
+              await _loadGramPanchayats(_districtId!, savedBlockId);
+              
+              // Find and select the saved GP
+              final savedGP = _gramPanchayats.firstWhere(
+                (g) => g.id == savedGpId,
+                orElse: () => GramPanchayat(
+                  id: savedGpId,
+                  name: savedLocation['gpName'] as String? ?? 'Gram Panchayat',
+                  blockId: savedBlockId,
+                  description: null,
+                ),
+              );
+              
+              setState(() {
+                _selectedGP = savedGP;
+              });
+            }
+          }
+        }
       }
     } catch (e) {
       debugPrint('Error initializing location screen: $e');
@@ -177,45 +218,6 @@ class _UnifiedSelectLocationScreenState
       ),
       body: Column(
         children: [
-          // Search Bar
-          Container(
-            padding: EdgeInsets.all(16.r),
-            color: Colors.white,
-            child: TextField(
-              controller: _searchController,
-              decoration: InputDecoration(
-                hintText: 'Search....',
-                hintStyle: TextStyle(
-                  fontFamily: 'Noto Sans',
-                  fontSize: 16.sp,
-                  color: const Color(0xFF9CA3AF),
-                ),
-                prefixIcon: const Icon(
-                  Icons.search,
-                  color: Color(0xFF9CA3AF),
-                ),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8.r),
-                  borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8.r),
-                  borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8.r),
-                  borderSide: const BorderSide(color: AppColors.primaryColor),
-                ),
-                filled: true,
-                fillColor: Colors.white,
-                contentPadding: EdgeInsets.symmetric(
-                  horizontal: 16.w,
-                  vertical: 12.h,
-                ),
-              ),
-            ),
-          ),
-
           // Location Selection Fields
           Expanded(
             child: Padding(
@@ -225,15 +227,20 @@ class _UnifiedSelectLocationScreenState
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   SizedBox(height: 24.h),
-                  // District Field
-                  _buildLocationField(
-                    label: 'District',
-                    value: _districtName.isNotEmpty ? _districtName : null,
-                    onTap: _isLoadingDistricts
-                        ? null
-                        : () => _showDistrictBottomSheet(),
-                    isLoading: _isLoadingDistricts,
-                  ),
+                  // District Field - Fixed for CEO, selectable for others
+                  widget.userRole == 'ceo'
+                      ? _buildFixedLocationField(
+                          label: 'District',
+                          value: _districtName.isNotEmpty ? _districtName : null,
+                        )
+                      : _buildLocationField(
+                          label: 'District',
+                          value: _districtName.isNotEmpty ? _districtName : null,
+                          onTap: _isLoadingDistricts
+                              ? null
+                              : () => _showDistrictBottomSheet(),
+                          isLoading: _isLoadingDistricts,
+                        ),
                   SizedBox(height: 16.h),
                   // Block Field
                   _buildLocationField(
@@ -326,7 +333,13 @@ class _UnifiedSelectLocationScreenState
         ),
         SizedBox(height: 8.h),
         GestureDetector(
-          onTap: isDisabled ? null : onTap,
+          onTap: isDisabled
+              ? null
+              : () {
+                  // Dismiss keyboard before showing bottom sheet
+                  FocusScope.of(context).unfocus();
+                  onTap();
+                },
           child: Container(
             width: double.infinity,
             padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
@@ -389,7 +402,51 @@ class _UnifiedSelectLocationScreenState
     );
   }
 
+  Widget _buildFixedLocationField({
+    required String label,
+    required String? value,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: TextStyle(
+            fontFamily: 'Noto Sans',
+            fontSize: 16.sp,
+            fontWeight: FontWeight.w500,
+            color: const Color(0xFF111827),
+          ),
+        ),
+        SizedBox(height: 8.h),
+        Container(
+          width: double.infinity,
+          padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
+          decoration: BoxDecoration(
+            color: Colors.grey.shade100,
+            borderRadius: BorderRadius.circular(8.r),
+            border: Border.all(color: const Color(0xFFE5E7EB)),
+          ),
+          child: Text(
+            value ?? 'District',
+            style: TextStyle(
+              fontFamily: 'Noto Sans',
+              fontSize: 16.sp,
+              fontWeight: FontWeight.bold,
+              color: const Color(0xFF111827),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
   bool _canApply() {
+    // For CEO, only Block and GP are required (District is fixed)
+    if (widget.userRole == 'ceo') {
+      return _selectedBlock != null && _selectedGP != null;
+    }
+    // For others (SMD), District, Block, and GP are all required
     if (_selectedDistrict == null || _selectedBlock == null) {
       return false;
     }
@@ -401,15 +458,18 @@ class _UnifiedSelectLocationScreenState
       _selectedBlock = null;
       _selectedGP = null;
       _gramPanchayats = [];
-      _searchController.clear();
     });
   }
 
   void _applyLocation() {
-    if (_canApply() && _selectedDistrict != null && _selectedBlock != null && _selectedGP != null) {
+    // For CEO, District is already set (from getDistrictId), so we use _districtId
+    // For SMD, we use _selectedDistrict
+    final districtId = widget.userRole == 'ceo' ? _districtId : _selectedDistrict?.id;
+    
+    if (_canApply() && districtId != null && _selectedBlock != null && _selectedGP != null) {
       final result = {
-        'districtId': _selectedDistrict!.id,
-        'districtName': _selectedDistrict!.name,
+        'districtId': districtId,
+        'districtName': _districtName.isNotEmpty ? _districtName : (_selectedDistrict?.name ?? 'District'),
         'blockId': _selectedBlock!.id,
         'blockName': _selectedBlock!.name,
         'gpId': _selectedGP!.id,

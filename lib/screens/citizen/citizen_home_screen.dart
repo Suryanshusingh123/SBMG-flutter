@@ -21,6 +21,7 @@ import '../../theme/citizen_colors.dart';
 import 'vendor_details_screen.dart';
 import 'gp_master_data_details_screen.dart';
 import 'notifications_screen.dart';
+import 'scheme_details_screen.dart';
 
 class CitizenHomeScreen extends StatefulWidget {
   const CitizenHomeScreen({super.key});
@@ -720,13 +721,19 @@ class _CitizenHomeScreenState extends State<CitizenHomeScreen> {
 
   Widget _buildSchemeCard(Scheme scheme) {
     return GestureDetector(
-      onTap: () {
-        // Navigator.push(
-        //   context,
-        //   MaterialPageRoute(
-        //     builder: (context) => SchemeDetailsScreen(scheme: scheme),
-        //   ),
-        // );
+      onTap: () async {
+        await Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => SchemeDetailsScreen(
+              scheme: scheme,
+              initialBookmarkState: Provider.of<BookmarksProvider>(
+                context,
+                listen: false,
+              ).isSchemeBookmarked(scheme.id),
+            ),
+          ),
+        );
       },
       child: Container(
         width: 350,
@@ -981,19 +988,24 @@ class _CitizenHomeScreenState extends State<CitizenHomeScreen> {
   }
 
   Widget _buildEventCard(Event event, int index) {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(12.r),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Column(
+    return GestureDetector(
+      onTap: () {
+        // Show event details in a dialog
+        _showEventDetails(event);
+      },
+      child: Container(
+        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(12.r),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 10,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Event Banner with eventbanner.png
@@ -1150,7 +1162,125 @@ class _CitizenHomeScreenState extends State<CitizenHomeScreen> {
             ),
           ),
         ],
+        ),
       ),
+    );
+  }
+
+  void _showEventDetails(Event event) {
+    final primaryTextColor = CitizenColors.textPrimary(context);
+    final secondaryTextColor = CitizenColors.textSecondary(context);
+    
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return Dialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16.r),
+          ),
+          child: Container(
+            constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.8),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Event Image
+                Container(
+                  height: 200.h,
+                  width: double.infinity,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.only(
+                      topLeft: Radius.circular(16.r),
+                      topRight: Radius.circular(16.r),
+                    ),
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.only(
+                      topLeft: Radius.circular(16.r),
+                      topRight: Radius.circular(16.r),
+                    ),
+                    child: event.media.isNotEmpty
+                        ? Image.network(
+                            ApiConstants.getMediaUrl(event.media.first.mediaUrl),
+                            fit: BoxFit.cover,
+                            errorBuilder: (context, error, stackTrace) {
+                              return Image.asset(
+                                'assets/images/eventbanner.png',
+                                fit: BoxFit.cover,
+                              );
+                            },
+                          )
+                        : Image.asset(
+                            'assets/images/eventbanner.png',
+                            fit: BoxFit.cover,
+                          ),
+                  ),
+                ),
+                // Event Details
+                Flexible(
+                  child: SingleChildScrollView(
+                    padding: EdgeInsets.all(16.r),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Expanded(
+                              child: Text(
+                                event.title,
+                                style: TextStyle(
+                                  fontSize: 20.sp,
+                                  fontWeight: FontWeight.w600,
+                                  color: primaryTextColor,
+                                ),
+                              ),
+                            ),
+                            IconButton(
+                              icon: Icon(Icons.close, color: secondaryTextColor),
+                              onPressed: () => Navigator.pop(context),
+                            ),
+                          ],
+                        ),
+                        SizedBox(height: 12.h),
+                        Row(
+                          children: [
+                            Icon(
+                              Icons.calendar_today,
+                              size: 18.sp,
+                              color: const Color(0xFF009B56),
+                            ),
+                            SizedBox(width: 8.w),
+                            Expanded(
+                              child: Text(
+                                '${_formatDate(event.startTime)} - ${_formatDate(event.endTime)}',
+                                style: TextStyle(
+                                  fontSize: 14.sp,
+                                  color: secondaryTextColor,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        if (event.description != null && event.description!.isNotEmpty) ...[
+                          SizedBox(height: 16.h),
+                          Text(
+                            event.description!,
+                            style: TextStyle(
+                              fontSize: 14.sp,
+                              color: primaryTextColor,
+                              height: 1.5,
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 

@@ -8,6 +8,7 @@ import '../../l10n/app_localizations.dart';
 import '../../widgets/common/custom_bottom_navigation.dart';
 import '../supervisor/reset_password_flow_screen.dart';
 import '../citizen/language_screen.dart';
+import '../citizen/bookmarks_screen.dart';
 
 class SmdSettingsScreen extends StatefulWidget {
   const SmdSettingsScreen({super.key});
@@ -133,6 +134,22 @@ class _SmdSettingsScreenState extends State<SmdSettingsScreen> {
                               setState(() {});
                             }
                           },
+                        );
+                      },
+                    ),
+                    _buildDivider(),
+
+                    // My Collection (Bookmarks)
+                    _buildSettingItemWithSubtitle(
+                      icon: Icons.bookmark_outline,
+                      title: AppLocalizations.of(context)!.myCollection,
+                      subtitle: AppLocalizations.of(context)!.bookmarks,
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const BookmarksScreen(),
+                          ),
                         );
                       },
                     ),
@@ -294,6 +311,56 @@ class _SmdSettingsScreenState extends State<SmdSettingsScreen> {
               ),
             ),
             SizedBox(width: 8.w),
+            Icon(
+              Icons.chevron_right,
+              size: 24.sp,
+              color: const Color(0xFF6B7280),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSettingItemWithSubtitle({
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      child: Container(
+        padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 16.h),
+        color: Colors.white,
+        child: Row(
+          children: [
+            Icon(icon, size: 24.sp, color: const Color(0xFF111827)),
+            SizedBox(width: 16.w),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: TextStyle(
+                      fontSize: 16.sp,
+                      fontWeight: FontWeight.w400,
+                      color: const Color(0xFF111827),
+                    ),
+                  ),
+                  SizedBox(height: 2.h),
+                  Text(
+                    subtitle,
+                    style: TextStyle(
+                      fontSize: 12.sp,
+                      fontWeight: FontWeight.w400,
+                      color: const Color(0xFF6B7280),
+                    ),
+                  ),
+                ],
+              ),
+            ),
             Icon(
               Icons.chevron_right,
               size: 24.sp,

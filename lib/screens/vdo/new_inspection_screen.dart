@@ -53,13 +53,15 @@ class _NewInspectionScreenState extends State<NewInspectionScreen> {
   bool _drainCleaningExpanded = true;
   bool _cscCleaningExpanded = true;
   bool _otherPointsExpanded = true;
-  bool _uploadImages1Expanded = true;
-  bool _uploadImages2Expanded = true;
   bool _suggestionsExpanded = true;
 
-  // Image uploads
-  List<File> _images1 = [];
-  List<File> _images2 = [];
+  // Image uploads - section-specific
+  List<File> _generalDetailsImages = [];
+  List<File> _householdWasteImages = [];
+  List<File> _roadCleaningImages = [];
+  List<File> _drainCleaningImages = [];
+  List<File> _cscCleaningImages = [];
+  List<File> _otherPointsImages = [];
 
   // Loading state
   bool _isSubmitting = false;
@@ -134,6 +136,11 @@ class _NewInspectionScreenState extends State<NewInspectionScreen> {
                           onChanged: (value) =>
                               setState(() => _dailyRegisterMaintained = value),
                         ),
+                        SizedBox(height: 16.h),
+                        _buildImageUploadSection(
+                          _generalDetailsImages,
+                          (images) => setState(() => _generalDetailsImages = images),
+                        ),
                       ],
                     ),
 
@@ -186,6 +193,11 @@ class _NewInspectionScreenState extends State<NewInspectionScreen> {
                           onChanged: (value) =>
                               setState(() => _vehicleProperlyPrepared = value),
                         ),
+                        SizedBox(height: 16.h),
+                        _buildImageUploadSection(
+                          _householdWasteImages,
+                          (images) => setState(() => _householdWasteImages = images),
+                        ),
                       ],
                     ),
 
@@ -205,6 +217,11 @@ class _NewInspectionScreenState extends State<NewInspectionScreen> {
                           selectedValue: _roadCleaningInterval,
                           onChanged: (value) =>
                               setState(() => _roadCleaningInterval = value),
+                        ),
+                        SizedBox(height: 16.h),
+                        _buildImageUploadSection(
+                          _roadCleaningImages,
+                          (images) => setState(() => _roadCleaningImages = images),
                         ),
                       ],
                     ),
@@ -241,6 +258,11 @@ class _NewInspectionScreenState extends State<NewInspectionScreen> {
                           onChanged: (value) => setState(
                             () => _drainWasteCollectedRoadside = value,
                           ),
+                        ),
+                        SizedBox(height: 16.h),
+                        _buildImageUploadSection(
+                          _drainCleaningImages,
+                          (images) => setState(() => _drainCleaningImages = images),
                         ),
                       ],
                     ),
@@ -282,6 +304,11 @@ class _NewInspectionScreenState extends State<NewInspectionScreen> {
                           selectedValue: _pinkToiletUsedInSchools,
                           onChanged: (value) =>
                               setState(() => _pinkToiletUsedInSchools = value),
+                        ),
+                        SizedBox(height: 16.h),
+                        _buildImageUploadSection(
+                          _cscCleaningImages,
+                          (images) => setState(() => _cscCleaningImages = images),
                         ),
                       ],
                     ),
@@ -340,38 +367,11 @@ class _NewInspectionScreenState extends State<NewInspectionScreen> {
                           onChanged: (value) =>
                               setState(() => _rateChartDisplayed = value),
                         ),
-                      ],
-                    ),
-
-                    SizedBox(height: 20.h),
-
-                    // Upload images section 1
-                    _buildExpandableSection(
-                      title: 'Upload images',
-                      isExpanded: _uploadImages1Expanded,
-                      onToggle: () => setState(
-                        () => _uploadImages1Expanded = !_uploadImages1Expanded,
-                      ),
-                      children: [
-                        _buildImageUploadSection(_images1, (images) {
-                          setState(() => _images1 = images);
-                        }),
-                      ],
-                    ),
-
-                    SizedBox(height: 20.h),
-
-                    // Upload images section 2
-                    _buildExpandableSection(
-                      title: 'Upload images',
-                      isExpanded: _uploadImages2Expanded,
-                      onToggle: () => setState(
-                        () => _uploadImages2Expanded = !_uploadImages2Expanded,
-                      ),
-                      children: [
-                        _buildImageUploadSection(_images2, (images) {
-                          setState(() => _images2 = images);
-                        }),
+                        SizedBox(height: 16.h),
+                        _buildImageUploadSection(
+                          _otherPointsImages,
+                          (images) => setState(() => _otherPointsImages = images),
+                        ),
                       ],
                     ),
 
@@ -1058,9 +1058,13 @@ class _NewInspectionScreenState extends State<NewInspectionScreen> {
       print('      - Rate Chart Displayed: $_rateChartDisplayed');
       print('');
       print('   📷 Images:');
-      print('      - Images Section 1: ${_images1.length} images');
-      print('      - Images Section 2: ${_images2.length} images');
-      print('      - Total Images: ${_images1.length + _images2.length}');
+      print('      - General Details Images: ${_generalDetailsImages.length}');
+      print('      - Household Waste Images: ${_householdWasteImages.length}');
+      print('      - Road Cleaning Images: ${_roadCleaningImages.length}');
+      print('      - Drain Cleaning Images: ${_drainCleaningImages.length}');
+      print('      - CSC Cleaning Images: ${_cscCleaningImages.length}');
+      print('      - Other Points Images: ${_otherPointsImages.length}');
+      print('      - Total Images: ${_generalDetailsImages.length + _householdWasteImages.length + _roadCleaningImages.length + _drainCleaningImages.length + _cscCleaningImages.length + _otherPointsImages.length}');
 
       // Prepare form data according to API structure
       print('');
@@ -1136,10 +1140,23 @@ class _NewInspectionScreenState extends State<NewInspectionScreen> {
       print('      ${formData.toString().replaceAll(', ', ',\n      ')}');
 
       // Combine all images (note: API currently doesn't support images in JSON)
-      final allImages = [..._images1, ..._images2];
+      final allImages = [
+        ..._generalDetailsImages,
+        ..._householdWasteImages,
+        ..._roadCleaningImages,
+        ..._drainCleaningImages,
+        ..._cscCleaningImages,
+        ..._otherPointsImages,
+      ];
       print('');
       print('📋 Step 6: Image Processing');
-      print('   📷 Images selected: ${allImages.length}');
+      print('   📷 General Details Images: ${_generalDetailsImages.length}');
+      print('   📷 Household Waste Images: ${_householdWasteImages.length}');
+      print('   📷 Road Cleaning Images: ${_roadCleaningImages.length}');
+      print('   📷 Drain Cleaning Images: ${_drainCleaningImages.length}');
+      print('   📷 CSC Cleaning Images: ${_cscCleaningImages.length}');
+      print('   📷 Other Points Images: ${_otherPointsImages.length}');
+      print('   📷 Total Images selected: ${allImages.length}');
       print('   ⚠️ Note: Images not sent in current API (JSON only)');
 
       // Submit inspection

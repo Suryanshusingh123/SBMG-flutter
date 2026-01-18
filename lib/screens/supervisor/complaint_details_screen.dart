@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:geolocator/geolocator.dart';
@@ -9,6 +8,7 @@ import '../../services/api_services.dart';
 import '../../config/connstants.dart';
 import '../../l10n/app_localizations.dart';
 import '../../utils/location_display_helper.dart';
+import '../../utils/date_time_utils.dart';
 
 class SupervisorComplaintDetailsScreen extends StatefulWidget {
   final int complaintId;
@@ -80,29 +80,20 @@ class _SupervisorComplaintDetailsScreenState
     }
   }
 
-  String get _getStatusHeading {
-    final status = _complaintData?['status_id'];
-    final closedAt = _complaintData?['closed_at'];
-    final verifiedAt = _complaintData?['verified_at'];
-    final resolvedAt = _complaintData?['resolved_at'];
+  String get _getComplaintTypeName {
+    final complaintType = _complaintData?['complaint_type'];
 
-    // First check if closed
-    if (status == 4 || closedAt != null) {
-      return 'Successfully disposed';
+    // Try to determine complaint type name
+    if (complaintType is Map && complaintType['name'] != null) {
+      return complaintType['name'];
+    } else if (complaintType is String) {
+      return complaintType;
+    } else if (_complaintData?['complaint_type_name'] != null) {
+      return _complaintData!['complaint_type_name'];
     }
-
-    // Then check if verified but not closed
-    if (status == 3 || (verifiedAt != null && closedAt == null)) {
-      return 'Successfully resolved, waiting for user to close';
-    }
-
-    // Then check if resolved
-    if (status == 2 || resolvedAt != null) {
-      return 'Verification pending by VDO';
-    }
-
-    // Open status
-    return 'Waiting for supervisor to resolve';
+    
+    // Fallback to default
+    return 'Road Maintenance';
   }
 
   String get _dynamicStatusText {
@@ -267,7 +258,7 @@ class _SupervisorComplaintDetailsScreenState
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              _getStatusHeading,
+              _getComplaintTypeName,
               style: TextStyle(
                 fontSize: 16.sp,
                 fontWeight: FontWeight.w600,
@@ -763,19 +754,9 @@ class _SupervisorComplaintDetailsScreenState
   }
 
   String _formatTimelineSubtitle(String user, String? dateString) {
-    String formattedDate = 'Unknown date';
-    if (dateString != null && dateString.isNotEmpty) {
-      try {
-        // Parse the UTC date
-        final date = DateTime.parse(dateString);
-
-        // Convert to IST (UTC+5:30)
-        final istDate = date.add(const Duration(hours: 5, minutes: 30));
-
-        formattedDate = DateFormat('MMM d, yyyy, h:mm a').format(istDate);
-      } catch (e) {
-        formattedDate = 'Unknown date';
-      }
+    String formattedDate = DateTimeUtils.formatDateStringIST(dateString);
+    if (formattedDate == 'Unknown') {
+      formattedDate = 'Unknown date';
     }
     return '$user · $formattedDate';
   }
@@ -840,14 +821,8 @@ class _SupervisorComplaintDetailsScreenState
 
   String _formatDate(String? date) {
     if (date == null) return 'N/A';
-    try {
-      final dateTime = DateTime.parse(date);
-      // Convert to IST (UTC+5:30)
-      final istDate = dateTime.add(const Duration(hours: 5, minutes: 30));
-      return DateFormat('MMM d, yyyy, h:mm a').format(istDate);
-    } catch (e) {
-      return date;
-    }
+    final formatted = DateTimeUtils.formatDateStringIST(date);
+    return formatted == 'Unknown' ? 'N/A' : formatted;
   }
 
   String _getLocationDisplay() {

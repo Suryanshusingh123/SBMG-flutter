@@ -310,7 +310,7 @@ class _VillageMasterDataFormScreenState
                         children: [
                           // VDO Name
                           _buildFormField(
-                            label: 'VOD Name',
+                            label: 'VDO Name',
                             controller: _vdoNameController,
                             placeholder: 'VDO Name',
                             readOnly: true,

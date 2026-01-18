@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:geocoding/geocoding.dart';
-import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../../theme/citizen_colors.dart';
 import '../../services/api_services.dart';
 import '../../config/connstants.dart';
 import '../../providers/citizen_auth_provider.dart';
 import '../../l10n/app_localizations.dart';
+import '../../utils/date_time_utils.dart';
 
 class ComplaintDetailsScreen extends StatefulWidget {
   final String complaintId;
@@ -301,29 +301,20 @@ class _ComplaintDetailsScreenState extends State<ComplaintDetailsScreen> {
     return 'Location not available';
   }
 
-  String get _getStatusHeading {
-    final status = _complaintData?['status_id'];
-    final closedAt = _complaintData?['closed_at'];
-    final verifiedAt = _complaintData?['verified_at'];
-    final resolvedAt = _complaintData?['resolved_at'];
+  String get _getComplaintTypeName {
+    final complaintType = _complaintData?['complaint_type'];
 
-    // First check if closed
-    if (status == 4 || closedAt != null) {
-      return 'Successfully disposed';
+    // Try to determine complaint type name
+    if (complaintType is Map && complaintType['name'] != null) {
+      return complaintType['name'];
+    } else if (complaintType is String) {
+      return complaintType;
+    } else if (_complaintData?['complaint_type_name'] != null) {
+      return _complaintData!['complaint_type_name'];
     }
-
-    // Then check if verified but not closed
-    if (status == 3 || (verifiedAt != null && closedAt == null)) {
-      return 'Successfully resolved, waiting for user to close';
-    }
-
-    // Then check if resolved
-    if (status == 2 || resolvedAt != null) {
-      return 'Verification pending by VDO';
-    }
-
-    // Open status
-    return 'Waiting for supervisor to resolve';
+    
+    // Fallback to default
+    return 'Road Maintenance';
   }
 
   String get _dynamicStatusText {
@@ -478,7 +469,7 @@ class _ComplaintDetailsScreenState extends State<ComplaintDetailsScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              _getStatusHeading,
+              _getComplaintTypeName,
               style: TextStyle(
                 fontFamily: 'Noto Sans',
                 fontSize: 18,
@@ -930,19 +921,9 @@ class _ComplaintDetailsScreenState extends State<ComplaintDetailsScreen> {
   }
 
   String _formatTimelineSubtitle(String user, String? dateString) {
-    String formattedDate = 'Unknown date';
-    if (dateString != null && dateString.isNotEmpty) {
-      try {
-        // Parse the UTC date
-        final date = DateTime.parse(dateString);
-
-        // Convert to IST (UTC+5:30)
-        final istDate = date.add(const Duration(hours: 5, minutes: 30));
-
-        formattedDate = DateFormat('MMM d, yyyy, h:mm a').format(istDate);
-      } catch (e) {
-        formattedDate = 'Unknown date';
-      }
+    String formattedDate = DateTimeUtils.formatDateStringIST(dateString);
+    if (formattedDate == 'Unknown') {
+      formattedDate = 'Unknown date';
     }
     return '$user · $formattedDate';
   }
@@ -1189,19 +1170,7 @@ class _ComplaintDetailsScreenState extends State<ComplaintDetailsScreen> {
   }
 
   String _formatDate(String? dateStr) {
-    if (dateStr == null) return 'Unknown';
-    try {
-      // Parse the UTC date
-      final date = DateTime.parse(dateStr);
-
-      // Convert to IST (UTC+5:30)
-      final istDate = date.add(const Duration(hours: 5, minutes: 30));
-
-      return DateFormat('MMM d, yyyy, h:mm a').format(istDate);
-    } catch (e) {
-      print('❌ Error formatting date: $e');
-      return 'Unknown';
-    }
+    return DateTimeUtils.formatDateStringIST(dateStr);
   }
 }
 
@@ -1358,8 +1327,6 @@ class _SuccessBottomSheet extends StatelessWidget {
 
   Color _primaryTextColor(BuildContext context) =>
       CitizenColors.textPrimary(context);
-  Color _secondaryTextColor(BuildContext context) =>
-      CitizenColors.textSecondary(context);
 
   @override
   Widget build(BuildContext context) {

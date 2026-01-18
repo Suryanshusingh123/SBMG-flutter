@@ -1,6 +1,5 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:path_provider/path_provider.dart';
+import '../utils/download_helper.dart';
 import '../models/scheme_model.dart';
 import '../models/event_model.dart';
 import '../models/contractor_model.dart';
@@ -327,12 +326,8 @@ class VdoProvider with ChangeNotifier {
     try {
       print('📊 Starting CSV export...');
 
-      // Get the documents directory for storing the file
-      final Directory? directory = await getExternalStorageDirectory();
-      if (directory == null) {
-        print('❌ Could not access external storage');
-        return null;
-      }
+      // Request storage permission for Android
+      await DownloadHelper.requestStoragePermission();
 
       // Create filename with timestamp
       final timestamp = DateTime.now()
@@ -340,16 +335,23 @@ class VdoProvider with ChangeNotifier {
           .replaceAll(':', '-')
           .split('.')[0];
       final fileName = 'vdo_complaints_export_$timestamp.csv';
-      final file = File('${directory.path}/$fileName');
 
       // Create CSV content
       final csvContent = _generateCsvContent();
 
-      // Write to file
-      await file.writeAsString(csvContent);
+      // Download to Downloads folder
+      final filePath = await DownloadHelper.downloadToDownloadsFolder(
+        fileName: fileName,
+        content: csvContent,
+      );
 
-      print('✅ CSV file created at: ${file.path}');
-      return file.path;
+      if (filePath != null) {
+        print('✅ CSV file created at: $filePath');
+        return filePath;
+      } else {
+        print('❌ Failed to save file to Downloads folder');
+        return null;
+      }
     } catch (e) {
       print('❌ Error exporting CSV: $e');
       return null;
