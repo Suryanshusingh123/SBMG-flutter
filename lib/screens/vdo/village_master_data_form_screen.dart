@@ -2,11 +2,24 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:intl/intl.dart';
+import '../../models/contractor_model.dart';
 import '../../services/api_services.dart';
 import '../../services/auth_services.dart';
+import '../../utils/api_error_utils.dart';
+import '../../l10n/app_localizations.dart';
+import '../../widgets/common/bottom_sheet_picker.dart';
 
 class VillageMasterDataFormScreen extends StatefulWidget {
-  const VillageMasterDataFormScreen({super.key});
+  /// When non-null, opens in edit mode: form is pre-filled from [initialData]
+  /// and submit performs PUT to update the survey with id [surveyId].
+  final int? surveyId;
+  final Map<String, dynamic>? initialData;
+
+  const VillageMasterDataFormScreen({
+    super.key,
+    this.surveyId,
+    this.initialData,
+  });
 
   @override
   State<VillageMasterDataFormScreen> createState() =>
@@ -18,18 +31,20 @@ class _VillageMasterDataFormScreenState
   final _formKey = GlobalKey<FormState>();
   final _scrollController = ScrollController();
 
-  // Form controllers
+  // Form controllers (only fields required by /api/v1/annual-surveys/fill)
   final _vdoNameController = TextEditingController();
-  final _contactNumberController = TextEditingController();
   final _sarpanchNameController = TextEditingController();
   final _sarpanchContactController = TextEditingController();
-  final _contractorNameController = TextEditingController();
+  final _numWardPanchsController = TextEditingController();
+  Agency? _selectedAgency;
+  List<Agency> _agencies = [];
+  bool _isLoadingAgencies = false;
   final _workOrderNoController = TextEditingController();
   final _workOrderDateController = TextEditingController();
   final _workOrderAmountController = TextEditingController();
   final _fundAmountController = TextEditingController();
-  String? _selectedFundHead; // Radio button selection for Fund Head
-  final _otherFundHeadController = TextEditingController(); // Controller for "Other" option
+  String? _selectedFundHead; // Radio button selection for Fund Head (FFC, SFC, CSR, OWN_INCOME, OTHER)
+  final _fundHeadOtherController = TextEditingController(); // Shown when Head is "Other"
   final _householdsController = TextEditingController();
   final _shopsController = TextEditingController();
   String? _selectedCollectionFrequency; // Dropdown for collection frequency
@@ -68,7 +83,6 @@ class _VillageMasterDataFormScreenState
 
   // Expansion states
   bool _sarpanchExpanded = false;
-  bool _contractorExpanded = false;
   bool _workOrderExpanded = false;
   bool _fundExpanded = false;
   bool _collectionExpanded = false;
@@ -81,6 +95,8 @@ class _VillageMasterDataFormScreenState
 
   // Village data
   final List<Map<String, dynamic>> _villages = [];
+  /// Next ID for newly added villages (incremented so API never receives 0).
+  int _nextNewVillageId = 1;
 
   // Loading state
   bool _isSubmitting = false;
@@ -88,335 +104,386 @@ class _VillageMasterDataFormScreenState
   @override
   void initState() {
     super.initState();
-    _setupAutoExpandListeners();
+    _loadAgencies();
+    if (widget.initialData != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _populateFromData(widget.initialData!);
+      });
+    }
   }
 
-  void _setupAutoExpandListeners() {
-    // Listen to VDO Name and Contact Number to auto-expand Sarpanch section
-    _vdoNameController.addListener(_checkAndAutoExpandBasicInfo);
-    _contactNumberController.addListener(_checkAndAutoExpandBasicInfo);
-
-    // Listen to Sarpanch fields to auto-expand Contractor section
-    _sarpanchNameController.addListener(_checkAndAutoExpandSarpanch);
-    _sarpanchContactController.addListener(_checkAndAutoExpandSarpanch);
-
-    // Listen to Contractor field to auto-expand Work Order section
-    _contractorNameController.addListener(_checkAndAutoExpandContractor);
-
-    // Listen to Work Order fields to auto-expand Fund section
-    _workOrderNoController.addListener(_checkAndAutoExpandWorkOrder);
-    _workOrderDateController.addListener(_checkAndAutoExpandWorkOrder);
-    _workOrderAmountController.addListener(_checkAndAutoExpandWorkOrder);
-
-    // Listen to Fund fields to auto-expand Collection section
-    _fundAmountController.addListener(_checkAndAutoExpandFund);
-
-    // Listen to Collection fields to auto-expand Road Sweeping section
-    _householdsController.addListener(_checkAndAutoExpandCollection);
-    _shopsController.addListener(_checkAndAutoExpandCollection);
-
-    // Listen to Road Sweeping fields to auto-expand Drain Cleaning section
-    _roadWidthController.addListener(_checkAndAutoExpandRoadSweeping);
-    _roadLengthController.addListener(_checkAndAutoExpandRoadSweeping);
-
-    // Listen to Drain Cleaning fields to auto-expand CSC section
-    _drainLengthController.addListener(_checkAndAutoExpandDrainCleaning);
-
-    // Listen to CSC fields to auto-expand SWM Assets section
-    _cscNumbersController.addListener(_checkAndAutoExpandCsc);
-
-    // Listen to SWM Assets fields to auto-expand SBMG Targets section
-    _rrcController.addListener(_checkAndAutoExpandSwmAssets);
-    _pwmuController.addListener(_checkAndAutoExpandSwmAssets);
-    _compositPitController.addListener(_checkAndAutoExpandSwmAssets);
-    _collectionVehicleController.addListener(_checkAndAutoExpandSwmAssets);
-
-    // Listen to SBMG Targets fields to auto-expand Villages section
-    _ihhlController.addListener(_checkAndAutoExpandSbmgTargets);
-    _sbmgCscController.addListener(_checkAndAutoExpandSbmgTargets);
-    _sbmgRrcController.addListener(_checkAndAutoExpandSbmgTargets);
-    _sbmgPwmuController.addListener(_checkAndAutoExpandSbmgTargets);
-    _soakPitController.addListener(_checkAndAutoExpandSbmgTargets);
-    _magicPitController.addListener(_checkAndAutoExpandSbmgTargets);
-    _leachPitController.addListener(_checkAndAutoExpandSbmgTargets);
-    _wspController.addListener(_checkAndAutoExpandSbmgTargets);
-    _dewatsController.addListener(_checkAndAutoExpandSbmgTargets);
+  Future<void> _loadAgencies() async {
+    setState(() => _isLoadingAgencies = true);
+    try {
+      final agencies = await ApiService().getAgencies(limit: 1000);
+      agencies.sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
+      setState(() {
+        _agencies = agencies;
+        _isLoadingAgencies = false;
+        final agencyId = widget.initialData?['agency_id'];
+        if (agencyId != null) {
+          try {
+            final id = agencyId is int ? agencyId : int.tryParse(agencyId.toString());
+            if (id != null) {
+              _selectedAgency = _agencies.firstWhere((a) => a.id == id);
+            }
+          } catch (_) {}
+        }
+      });
+    } catch (e) {
+      setState(() => _isLoadingAgencies = false);
+    }
   }
 
-  void _checkAndAutoExpandBasicInfo() {
-    // Delay the check to avoid triggering on every keystroke
-    Future.microtask(() {
-      if (mounted &&
-          _vdoNameController.text.trim().isNotEmpty &&
-          _contactNumberController.text.trim().length == 10) {
-        _autoExpandNextSection('basic');
+  void _showFullAgencyPicker() {
+    BottomSheetPicker.show<Agency>(
+      context: context,
+      title: AppLocalizations.of(context)!.selectAgency,
+      items: _agencies,
+      itemBuilder: (agency) => agency.name,
+      selectedItem: _selectedAgency,
+      showSearch: true,
+      onAdd: () async {
+        await _showAddAgencyDialog();
+        if (mounted && _selectedAgency != null) {
+          Navigator.pop(context);
+        }
+      },
+      onSelected: (agency) {
+        setState(() => _selectedAgency = agency);
+      },
+    );
+  }
+
+  Future<void> _showAddAgencyDialog() async {
+    final nameController = TextEditingController();
+    final phoneController = TextEditingController();
+    final emailController = TextEditingController();
+    final addressController = TextEditingController();
+    final formKey = GlobalKey<FormState>();
+
+    final result = await showDialog<Map<String, String>>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: Colors.white,
+        surfaceTintColor: Colors.white,
+        title: Text(AppLocalizations.of(context)!.addNewAgency, style: const TextStyle(fontWeight: FontWeight.bold)),
+        content: SingleChildScrollView(
+          child: Form(
+            key: formKey,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextFormField(
+                  controller: nameController,
+                  decoration: InputDecoration(
+                    labelText: AppLocalizations.of(context)!.agencyNameRequired,
+                    hintText: AppLocalizations.of(context)!.enterAgencyName,
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(8.r)),
+                  ),
+                  validator: (v) => v == null || v.isEmpty ? AppLocalizations.of(context)!.required : null,
+                ),
+                SizedBox(height: 12.h),
+                TextFormField(
+                  controller: phoneController,
+                  decoration: InputDecoration(
+                    labelText: AppLocalizations.of(context)!.phoneNumberLabel,
+                    hintText: AppLocalizations.of(context)!.enterMobileNumberPlaceholder,
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(8.r)),
+                  ),
+                  keyboardType: TextInputType.phone,
+                  inputFormatters: [
+                    FilteringTextInputFormatter.digitsOnly,
+                    LengthLimitingTextInputFormatter(10),
+                  ],
+                  validator: (v) {
+                    if (v != null && v.isNotEmpty && v.length != 10) return AppLocalizations.of(context)!.enter10Digits;
+                    return null;
+                  },
+                ),
+                SizedBox(height: 12.h),
+                TextFormField(
+                  controller: emailController,
+                  decoration: InputDecoration(
+                    labelText: AppLocalizations.of(context)!.agencyEmail,
+                    hintText: AppLocalizations.of(context)!.enterEmailAddress,
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(8.r)),
+                  ),
+                  keyboardType: TextInputType.emailAddress,
+                ),
+                SizedBox(height: 12.h),
+                TextFormField(
+                  controller: addressController,
+                  decoration: InputDecoration(
+                    labelText: AppLocalizations.of(context)!.agencyAddress,
+                    hintText: AppLocalizations.of(context)!.enterAddress,
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(8.r)),
+                  ),
+                  maxLines: 2,
+                ),
+              ],
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(AppLocalizations.of(context)!.cancel, style: const TextStyle(color: Colors.grey)),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              if (formKey.currentState!.validate()) {
+                Navigator.pop(context, {
+                  'name': nameController.text.trim(),
+                  'phone': phoneController.text.trim(),
+                  'email': emailController.text.trim(),
+                  'address': addressController.text.trim(),
+                });
+              }
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF009B56), foregroundColor: Colors.white),
+            child: Text(AppLocalizations.of(context)!.add),
+          ),
+        ],
+      ),
+    );
+
+    if (result != null && result['name']!.isNotEmpty && mounted) {
+      setState(() => _isLoadingAgencies = true);
+      try {
+        final newAgency = await ApiService().createAgency(
+          name: result['name']!,
+          phone: result['phone']!.isNotEmpty ? result['phone'] : null,
+          email: result['email']!.isNotEmpty ? result['email'] : null,
+          address: result['address']!.isNotEmpty ? result['address'] : null,
+        );
+        await _loadAgencies();
+        if (mounted) {
+          setState(() {
+            try {
+              _selectedAgency = _agencies.firstWhere((a) => a.id == newAgency.id);
+            } catch (_) {
+              _selectedAgency = newAgency;
+              if (!_agencies.any((a) => a.id == newAgency.id)) {
+                _agencies.add(newAgency);
+                _agencies.sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
+              }
+            }
+          });
+        }
+      } catch (e) {
+        if (mounted) {
+          setState(() => _isLoadingAgencies = false);
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(AppLocalizations.of(context)!.failedToAddAgency(e.toString())), backgroundColor: Colors.red),
+          );
+        }
       }
-    });
+    }
   }
 
-  void _checkAndAutoExpandSarpanch() {
-    // Delay the check to avoid triggering on every keystroke
-    Future.microtask(() {
-      if (mounted &&
-          _sarpanchNameController.text.trim().isNotEmpty &&
-          _sarpanchContactController.text.trim().length == 10) {
-        _autoExpandNextSection('sarpanch');
+  void _populateFromData(Map<String, dynamic> data) {
+    setState(() {
+      _sarpanchExpanded = true;
+      _workOrderExpanded = true;
+      _fundExpanded = true;
+      _collectionExpanded = true;
+      _roadSweepingExpanded = true;
+      _drainCleaningExpanded = true;
+      _cscExpanded = true;
+      _swmAssetsExpanded = true;
+      _sbmgTargetsExpanded = true;
+      _villagesExpanded = true;
+    });
+
+    _vdoNameController.text = data['vdo_name']?.toString() ?? '';
+    if (_vdoNameController.text.isEmpty &&
+        data.containsKey('vdo') &&
+        data['vdo'] != null) {
+      final vdo = data['vdo'] as Map<String, dynamic>;
+      _vdoNameController.text =
+          '${vdo['first_name'] ?? ''} ${vdo['last_name'] ?? ''}'.trim();
+    }
+    _sarpanchNameController.text =
+        data['sarpanch_name']?.toString() ?? '';
+    _sarpanchContactController.text =
+        data['sarpanch_contact']?.toString() ?? '';
+    _numWardPanchsController.text =
+        data['num_ward_panchs']?.toString() ?? '';
+    // agency_id → _selectedAgency is set in _loadAgencies when initialData has agency_id
+
+    if (data.containsKey('work_order') && data['work_order'] != null) {
+      final wo = data['work_order'] as Map<String, dynamic>;
+      _workOrderNoController.text = wo['work_order_no']?.toString() ?? '';
+      if (wo['work_order_date'] != null) {
+        try {
+          _workOrderDateController.text = DateFormat('dd/MM/yyyy')
+              .format(DateTime.parse(wo['work_order_date'].toString()));
+        } catch (_) {
+          _workOrderDateController.text = wo['work_order_date'].toString();
+        }
       }
-    });
-  }
-
-  void _checkAndAutoExpandContractor() {
-    // Delay the check to avoid triggering on every keystroke
-    Future.microtask(() {
-      if (mounted && _contractorNameController.text.trim().isNotEmpty) {
-        _autoExpandNextSection('contractor');
-      }
-    });
-  }
-
-  void _checkAndAutoExpandWorkOrder() {
-    // Delay the check to avoid triggering on every keystroke
-    Future.microtask(() {
-      if (mounted &&
-          _workOrderNoController.text.trim().isNotEmpty &&
-          _workOrderDateController.text.trim().isNotEmpty &&
-          _workOrderAmountController.text.trim().isNotEmpty) {
-        _autoExpandNextSection('workOrder');
-      }
-    });
-  }
-
-  void _checkAndAutoExpandFund() {
-    // Delay the check to avoid triggering on every keystroke
-    Future.microtask(() {
-      if (mounted &&
-          _fundAmountController.text.trim().isNotEmpty &&
-          _selectedFundHead != null) {
-        _autoExpandNextSection('fund');
-      }
-    });
-  }
-
-  void _checkAndAutoExpandCollection() {
-    // Delay the check to avoid triggering on every keystroke
-    Future.microtask(() {
-      if (mounted &&
-          _householdsController.text.trim().isNotEmpty &&
-          _shopsController.text.trim().isNotEmpty &&
-          _selectedCollectionFrequency != null) {
-        _autoExpandNextSection('collection');
-      }
-    });
-  }
-
-  void _checkAndAutoExpandRoadSweeping() {
-    // Delay the check to avoid triggering on every keystroke
-    Future.microtask(() {
-      if (mounted &&
-          _roadWidthController.text.trim().isNotEmpty &&
-          _roadLengthController.text.trim().isNotEmpty &&
-          _selectedRoadCleaningFrequency != null) {
-        _autoExpandNextSection('roadSweeping');
-      }
-    });
-  }
-
-  void _checkAndAutoExpandDrainCleaning() {
-    // Delay the check to avoid triggering on every keystroke
-    Future.microtask(() {
-      if (mounted &&
-          _drainLengthController.text.trim().isNotEmpty &&
-          _selectedDrainCleaningFrequency != null) {
-        _autoExpandNextSection('drainCleaning');
-      }
-    });
-  }
-
-  void _checkAndAutoExpandCsc() {
-    // Delay the check to avoid triggering on every keystroke
-    Future.microtask(() {
-      if (mounted &&
-          _cscNumbersController.text.trim().isNotEmpty &&
-          _selectedCscCleaningFrequency != null) {
-        _autoExpandNextSection('csc');
-      }
-    });
-  }
-
-  void _checkAndAutoExpandSwmAssets() {
-    // Delay the check to avoid triggering on every keystroke
-    Future.microtask(() {
-      if (mounted &&
-          _rrcController.text.trim().isNotEmpty &&
-          _pwmuController.text.trim().isNotEmpty &&
-          _compositPitController.text.trim().isNotEmpty &&
-          _collectionVehicleController.text.trim().isNotEmpty) {
-        _autoExpandNextSection('swmAssets');
-      }
-    });
-  }
-
-  void _checkAndAutoExpandSbmgTargets() {
-    // Delay the check to avoid triggering on every keystroke
-    Future.microtask(() {
-      if (mounted &&
-          _ihhlController.text.trim().isNotEmpty &&
-          _sbmgCscController.text.trim().isNotEmpty &&
-          _sbmgRrcController.text.trim().isNotEmpty &&
-          _sbmgPwmuController.text.trim().isNotEmpty &&
-          _soakPitController.text.trim().isNotEmpty &&
-          _magicPitController.text.trim().isNotEmpty &&
-          _leachPitController.text.trim().isNotEmpty &&
-          _wspController.text.trim().isNotEmpty &&
-          _dewatsController.text.trim().isNotEmpty) {
-        _autoExpandNextSection('sbmgTargets');
-      }
-    });
-  }
-
-  void _autoExpandNextSection(String currentSection) {
-    if (!mounted) return;
-
-    // Track if any state actually changed to avoid unnecessary rebuilds
-    bool stateChanged = false;
-    bool newSarpanchExpanded = _sarpanchExpanded;
-    bool newContractorExpanded = _contractorExpanded;
-    bool newWorkOrderExpanded = _workOrderExpanded;
-    bool newFundExpanded = _fundExpanded;
-    bool newCollectionExpanded = _collectionExpanded;
-    bool newRoadSweepingExpanded = _roadSweepingExpanded;
-    bool newDrainCleaningExpanded = _drainCleaningExpanded;
-    bool newCscExpanded = _cscExpanded;
-    bool newSwmAssetsExpanded = _swmAssetsExpanded;
-    bool newSbmgTargetsExpanded = _sbmgTargetsExpanded;
-    bool newVillagesExpanded = _villagesExpanded;
-
-    // Close current section and open next one
-    switch (currentSection) {
-      case 'basic':
-        // Don't close basic info as it's always visible
-        if (!_sarpanchExpanded) {
-          newSarpanchExpanded = true;
-          stateChanged = true;
-        }
-        break;
-      case 'sarpanch':
-        if (_sarpanchExpanded) {
-          newSarpanchExpanded = false;
-          stateChanged = true;
-        }
-        if (!_contractorExpanded) {
-          newContractorExpanded = true;
-          stateChanged = true;
-        }
-        break;
-      case 'contractor':
-        if (_contractorExpanded) {
-          newContractorExpanded = false;
-          stateChanged = true;
-        }
-        if (!_workOrderExpanded) {
-          newWorkOrderExpanded = true;
-          stateChanged = true;
-        }
-        break;
-      case 'workOrder':
-        if (_workOrderExpanded) {
-          newWorkOrderExpanded = false;
-          stateChanged = true;
-        }
-        if (!_fundExpanded) {
-          newFundExpanded = true;
-          stateChanged = true;
-        }
-        break;
-      case 'fund':
-        if (_fundExpanded) {
-          newFundExpanded = false;
-          stateChanged = true;
-        }
-        if (!_collectionExpanded) {
-          newCollectionExpanded = true;
-          stateChanged = true;
-        }
-        break;
-      case 'collection':
-        if (_collectionExpanded) {
-          newCollectionExpanded = false;
-          stateChanged = true;
-        }
-        if (!_roadSweepingExpanded) {
-          newRoadSweepingExpanded = true;
-          stateChanged = true;
-        }
-        break;
-      case 'roadSweeping':
-        if (_roadSweepingExpanded) {
-          newRoadSweepingExpanded = false;
-          stateChanged = true;
-        }
-        if (!_drainCleaningExpanded) {
-          newDrainCleaningExpanded = true;
-          stateChanged = true;
-        }
-        break;
-      case 'drainCleaning':
-        if (_drainCleaningExpanded) {
-          newDrainCleaningExpanded = false;
-          stateChanged = true;
-        }
-        if (!_cscExpanded) {
-          newCscExpanded = true;
-          stateChanged = true;
-        }
-        break;
-      case 'csc':
-        if (_cscExpanded) {
-          newCscExpanded = false;
-          stateChanged = true;
-        }
-        if (!_swmAssetsExpanded) {
-          newSwmAssetsExpanded = true;
-          stateChanged = true;
-        }
-        break;
-      case 'swmAssets':
-        if (_swmAssetsExpanded) {
-          newSwmAssetsExpanded = false;
-          stateChanged = true;
-        }
-        if (!_sbmgTargetsExpanded) {
-          newSbmgTargetsExpanded = true;
-          stateChanged = true;
-        }
-        break;
-      case 'sbmgTargets':
-        if (_sbmgTargetsExpanded) {
-          newSbmgTargetsExpanded = false;
-          stateChanged = true;
-        }
-        if (!_villagesExpanded) {
-          newVillagesExpanded = true;
-          stateChanged = true;
-        }
-        break;
+      _workOrderAmountController.text =
+          _numToDisplay(wo['work_order_amount']);
     }
 
-    // Only call setState if the state actually changed
-    if (stateChanged) {
-      setState(() {
-        _sarpanchExpanded = newSarpanchExpanded;
-        _contractorExpanded = newContractorExpanded;
-        _workOrderExpanded = newWorkOrderExpanded;
-        _fundExpanded = newFundExpanded;
-        _collectionExpanded = newCollectionExpanded;
-        _roadSweepingExpanded = newRoadSweepingExpanded;
-        _drainCleaningExpanded = newDrainCleaningExpanded;
-        _cscExpanded = newCscExpanded;
-        _swmAssetsExpanded = newSwmAssetsExpanded;
-        _sbmgTargetsExpanded = newSbmgTargetsExpanded;
-        _villagesExpanded = newVillagesExpanded;
-      });
+    if (data.containsKey('fund_sanctioned') &&
+        data['fund_sanctioned'] != null) {
+      final fund = data['fund_sanctioned'] as Map<String, dynamic>;
+      _fundAmountController.text = _numToDisplay(fund['amount']);
+      final head = fund['head']?.toString();
+      final uiHead = _fundHeadFromApi(head);
+      if (uiHead != null) _selectedFundHead = uiHead;
+      _fundHeadOtherController.text = fund['head_other']?.toString() ?? '';
+    }
+
+    if (data.containsKey('door_to_door_collection') &&
+        data['door_to_door_collection'] != null) {
+      final dtd = data['door_to_door_collection'] as Map<String, dynamic>;
+      _householdsController.text = dtd['num_households']?.toString() ?? '';
+      _shopsController.text = dtd['num_shops']?.toString() ?? '';
+      _selectedCollectionFrequency =
+          dtd['collection_frequency']?.toString();
+    }
+
+    if (data.containsKey('road_sweeping') && data['road_sweeping'] != null) {
+      final rs = data['road_sweeping'] as Map<String, dynamic>;
+      _roadWidthController.text = _numToDisplay(rs['width']);
+      _roadLengthController.text = _numToDisplay(rs['length']);
+      _selectedRoadCleaningFrequency =
+          rs['cleaning_frequency']?.toString();
+    }
+
+    if (data.containsKey('drain_cleaning') &&
+        data['drain_cleaning'] != null) {
+      final dc = data['drain_cleaning'] as Map<String, dynamic>;
+      _drainLengthController.text = _numToDisplay(dc['length']);
+      _selectedDrainCleaningFrequency =
+          dc['cleaning_frequency']?.toString();
+    }
+
+    if (data.containsKey('csc_details') && data['csc_details'] != null) {
+      final csc = data['csc_details'] as Map<String, dynamic>;
+      _cscNumbersController.text = csc['numbers']?.toString() ?? '';
+      _selectedCscCleaningFrequency =
+          csc['cleaning_frequency']?.toString();
+    }
+
+    if (data.containsKey('swm_assets') && data['swm_assets'] != null) {
+      final swm = data['swm_assets'] as Map<String, dynamic>;
+      _rrcController.text = swm['rrc']?.toString() ?? '';
+      _pwmuController.text = swm['pwmu']?.toString() ?? '';
+      _compositPitController.text = swm['compost_pit']?.toString() ?? '';
+      _collectionVehicleController.text =
+          swm['collection_vehicle']?.toString() ?? '';
+    }
+
+    if (data.containsKey('sbmg_targets') && data['sbmg_targets'] != null) {
+      final sbmg = data['sbmg_targets'] as Map<String, dynamic>;
+      _ihhlController.text = sbmg['ihhl']?.toString() ?? '';
+      _sbmgCscController.text = sbmg['csc']?.toString() ?? '';
+      _sbmgRrcController.text = sbmg['rrc']?.toString() ?? '';
+      _sbmgPwmuController.text = sbmg['pwmu']?.toString() ?? '';
+      _soakPitController.text = sbmg['soak_pit']?.toString() ?? '';
+      _magicPitController.text = sbmg['magic_pit']?.toString() ?? '';
+      _leachPitController.text = sbmg['leach_pit']?.toString() ?? '';
+      _wspController.text = sbmg['wsp']?.toString() ?? '';
+      _dewatsController.text = sbmg['dewats']?.toString() ?? '';
+    }
+
+    if (data.containsKey('village_data') && data['village_data'] is List) {
+      final list = data['village_data'] as List;
+      int maxLoadedId = 0;
+      for (var i = 0; i < list.length; i++) {
+        final v = list[i] as Map<String, dynamic>? ?? {};
+        final sbmg = v['sbmg_assets'] as Map<String, dynamic>? ?? {};
+        final gwm = v['gwm_assets'] as Map<String, dynamic>? ?? {};
+        final vid = v['village_id'] is int
+            ? v['village_id'] as int
+            : (int.tryParse(v['village_id']?.toString() ?? '0') ?? 0);
+        if (vid > maxLoadedId) maxLoadedId = vid;
+        _villages.add({
+          'villageId': vid,
+          'villageName': TextEditingController(
+            text: v['village_name']?.toString() ?? '',
+          ),
+          'population': TextEditingController(
+            text: v['population']?.toString() ?? '',
+          ),
+          'households': TextEditingController(
+            text: v['num_households']?.toString() ?? '',
+          ),
+          'ihhl': TextEditingController(
+            text: sbmg['ihhl']?.toString() ?? '',
+          ),
+          'csc': TextEditingController(
+            text: sbmg['csc']?.toString() ?? '',
+          ),
+          'soakPit': TextEditingController(
+            text: gwm['soak_pit']?.toString() ?? '',
+          ),
+          'magicPit': TextEditingController(
+            text: gwm['magic_pit']?.toString() ?? '',
+          ),
+          'leachPit': TextEditingController(
+            text: gwm['leach_pit']?.toString() ?? '',
+          ),
+          'wsp': TextEditingController(
+            text: gwm['wsp']?.toString() ?? '',
+          ),
+          'dewats': TextEditingController(
+            text: gwm['dewats']?.toString() ?? '',
+          ),
+        });
+      }
+      _nextNewVillageId = maxLoadedId + 1;
+    }
+  }
+
+  /// For API numeric values (int/double). Shows "20" not "20.0" in fields.
+  static String _numToDisplay(dynamic value) {
+    if (value == null) return '';
+    if (value is int) return value.toString();
+    if (value is double) {
+      return value == value.roundToDouble() ? value.toInt().toString() : value.toString();
+    }
+    return value.toString();
+  }
+
+  /// Maps UI display value to API enum for fund_sanctioned.head.
+  /// API expects: 'FFC', 'SFC', 'CSR', 'OWN_INCOME', 'OTHER'.
+  static String _fundHeadToApi(String? uiValue) {
+    if (uiValue == null || uiValue.isEmpty) return 'FFC';
+    final v = uiValue.trim();
+    switch (v) {
+      case 'Own income':
+        return 'OWN_INCOME';
+      case 'Other':
+        return 'OTHER';
+      case 'FFC':
+      case 'SFC':
+      case 'CSR':
+        return v;
+      default:
+        // Normalize display-like values (handles case, extra/multi-space)
+        final n = v.toLowerCase().replaceAll(RegExp(r'\s+'), ' ').trim();
+        if (n == 'own income') return 'OWN_INCOME';
+        if (n == 'other') return 'OTHER';
+        // Never send invalid enum; default to FFC
+        return 'FFC';
+    }
+  }
+
+  /// Maps API enum to UI display value for fund_sanctioned.head.
+  static String? _fundHeadFromApi(String? apiValue) {
+    if (apiValue == null || apiValue.isEmpty) return null;
+    switch (apiValue) {
+      case 'OWN_INCOME': return 'Own income';
+      case 'OTHER': return 'Other';
+      case 'FFC': case 'SFC': case 'CSR': return apiValue;
+      case 'Own income': return 'Own income';
+      case 'Other': return 'Other';
+      default: return null;
     }
   }
 
@@ -424,15 +491,14 @@ class _VillageMasterDataFormScreenState
   void dispose() {
     _scrollController.dispose();
     _vdoNameController.dispose();
-    _contactNumberController.dispose();
     _sarpanchNameController.dispose();
     _sarpanchContactController.dispose();
-    _contractorNameController.dispose();
+    _numWardPanchsController.dispose();
     _workOrderNoController.dispose();
     _workOrderDateController.dispose();
     _workOrderAmountController.dispose();
     _fundAmountController.dispose();
-    _otherFundHeadController.dispose();
+    _fundHeadOtherController.dispose();
     _householdsController.dispose();
     _shopsController.dispose();
     _roadWidthController.dispose();
@@ -479,9 +545,11 @@ class _VillageMasterDataFormScreenState
           icon: const Icon(Icons.arrow_back, color: Colors.black),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text(
-          'GP Master Data Form',
-          style: TextStyle(
+        title: Text(
+          widget.surveyId != null
+              ? AppLocalizations.of(context)!.editGpMasterData
+              : AppLocalizations.of(context)!.villageMasterDataForm,
+          style: const TextStyle(
             color: Colors.black,
             fontSize: 18,
             fontWeight: FontWeight.w600,
@@ -500,96 +568,78 @@ class _VillageMasterDataFormScreenState
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // VDO Name
+                    // VDO Name (API: vdo_name) – editable in edit mode
                     _buildFormField(
-                      label: 'VOD Name',
+                      label: AppLocalizations.of(context)!.vdoName,
                       controller: _vdoNameController,
-                      placeholder: 'VDO Name',
+                      placeholder: AppLocalizations.of(context)!.vdoName,
                     ),
-
                     SizedBox(height: 20.h),
-
-                    // Contact Number
-                    _buildFormField(
-                      label: 'Contact Number',
-                      controller: _contactNumberController,
-                      placeholder: 'Contact Number (10 digits)',
-                      keyboardType: TextInputType.phone,
-                      isContactField: true,
-                    ),
-
-                    SizedBox(height: 20.h),
-
-                    // Sarpanch details (Expandable)
+                    // Sarpanch details (API: sarpanch_name, sarpanch_contact, num_ward_panchs)
                     _buildExpandableSection(
-                      title: 'Sarpanch details',
+                      title: AppLocalizations.of(context)!.sarpanchDetails,
                       isExpanded: _sarpanchExpanded,
                       onToggle: () => setState(
                         () => _sarpanchExpanded = !_sarpanchExpanded,
                       ),
                       children: [
                         _buildFormField(
-                          label: 'Name',
+                          label: AppLocalizations.of(context)!.name,
                           controller: _sarpanchNameController,
-                          placeholder: 'Name',
+                          placeholder: AppLocalizations.of(context)!.name,
                         ),
                         SizedBox(height: 16.h),
                         _buildFormField(
-                          label: 'Contact Number',
+                          label: AppLocalizations.of(context)!.contactNumber,
                           controller: _sarpanchContactController,
-                          placeholder: 'Number (10 digits)',
+                          placeholder: AppLocalizations.of(context)!.numberPlaceholder10Digits,
                           keyboardType: TextInputType.phone,
                           isContactField: true,
                         ),
-                      ],
-                    ),
-
-                    SizedBox(height: 20.h),
-
-                    // Contractor details (Expandable)
-                    _buildExpandableSection(
-                      title: 'Contractor details',
-                      isExpanded: _contractorExpanded,
-                      onToggle: () => setState(
-                        () => _contractorExpanded = !_contractorExpanded,
-                      ),
-                      children: [
+                        SizedBox(height: 16.h),
                         _buildFormField(
-                          label: 'Name',
-                          controller: _contractorNameController,
-                          placeholder: 'Name',
+                          label: AppLocalizations.of(context)!.numberOfWardPanchs,
+                          controller: _numWardPanchsController,
+                          placeholder: AppLocalizations.of(context)!.noShort,
+                          keyboardType: TextInputType.number,
                         ),
                       ],
                     ),
 
                     SizedBox(height: 20.h),
 
-                    // Work order details (Expandable)
+                    // Agency dropdown + search (Add mode only; edit API does not accept agency_id)
+                    if (widget.surveyId == null) ...[
+                      _buildAgencySelector(),
+                      SizedBox(height: 20.h),
+                    ],
+
+                    // Work order details (API: work_order)
                     _buildExpandableSection(
-                      title: 'Work order details',
+                      title: AppLocalizations.of(context)!.workOrderDetails,
                       isExpanded: _workOrderExpanded,
                       onToggle: () => setState(
                         () => _workOrderExpanded = !_workOrderExpanded,
                       ),
                       children: [
                         _buildFormField(
-                          label: 'Work order no',
+                          label: AppLocalizations.of(context)!.workOrderNo,
                           controller: _workOrderNoController,
-                          placeholder: 'No.',
+                          placeholder: AppLocalizations.of(context)!.noDot,
                         ),
                         SizedBox(height: 16.h),
                         _buildFormField(
-                          label: 'Date',
+                          label: AppLocalizations.of(context)!.date,
                           controller: _workOrderDateController,
-                          placeholder: 'Date',
+                          placeholder: AppLocalizations.of(context)!.date,
                           onTap: () =>
                               _selectDate(context, _workOrderDateController),
                         ),
                         SizedBox(height: 16.h),
                         _buildFormField(
-                          label: 'Amount',
+                          label: AppLocalizations.of(context)!.amount,
                           controller: _workOrderAmountController,
-                          placeholder: 'amount',
+                          placeholder: AppLocalizations.of(context)!.amount,
                           keyboardType: TextInputType.number,
                         ),
                       ],
@@ -604,11 +654,14 @@ class _VillageMasterDataFormScreenState
                       onToggle: () =>
                           setState(() => _fundExpanded = !_fundExpanded),
                       children: [
-                        _buildFormField(
-                          label: 'Amount',
-                          controller: _fundAmountController,
-                          placeholder: 'amount',
-                          keyboardType: TextInputType.number,
+                        KeyedSubtree(
+                          key: const ValueKey('fund_amount'),
+                          child: _buildFormField(
+                            label: 'Amount',
+                            controller: _fundAmountController,
+                            placeholder: 'amount',
+                            keyboardType: TextInputType.number,
+                          ),
                         ),
                         SizedBox(height: 16.h),
                         _buildFundHeadRadioGroup(),
@@ -646,10 +699,6 @@ class _VillageMasterDataFormScreenState
                             setState(
                               () => _selectedCollectionFrequency = value,
                             );
-                            // Check if section is complete and auto-expand next
-                            Future.microtask(
-                              () => _checkAndAutoExpandCollection(),
-                            );
                           },
                         ),
                       ],
@@ -666,16 +715,16 @@ class _VillageMasterDataFormScreenState
                       ),
                       children: [
                         _buildFormField(
-                          label: 'Width',
+                          label: 'Width (m)',
                           controller: _roadWidthController,
-                          placeholder: 'Width',
+                          placeholder: 'Width in metres',
                           keyboardType: TextInputType.number,
                         ),
                         SizedBox(height: 16.h),
                         _buildFormField(
-                          label: 'Length',
+                          label: 'Length (m)',
                           controller: _roadLengthController,
-                          placeholder: 'Length',
+                          placeholder: 'Length in metres',
                           keyboardType: TextInputType.number,
                         ),
                         SizedBox(height: 16.h),
@@ -685,10 +734,6 @@ class _VillageMasterDataFormScreenState
                           onChanged: (String? value) {
                             setState(
                               () => _selectedRoadCleaningFrequency = value,
-                            );
-                            // Check if section is complete and auto-expand next
-                            Future.microtask(
-                              () => _checkAndAutoExpandRoadSweeping(),
                             );
                           },
                         ),
@@ -719,10 +764,6 @@ class _VillageMasterDataFormScreenState
                             setState(
                               () => _selectedDrainCleaningFrequency = value,
                             );
-                            // Check if section is complete and auto-expand next
-                            Future.microtask(
-                              () => _checkAndAutoExpandDrainCleaning(),
-                            );
                           },
                         ),
                       ],
@@ -751,8 +792,6 @@ class _VillageMasterDataFormScreenState
                             setState(
                               () => _selectedCscCleaningFrequency = value,
                             );
-                            // Check if section is complete and auto-expand next
-                            Future.microtask(() => _checkAndAutoExpandCsc());
                           },
                         ),
                       ],
@@ -762,21 +801,21 @@ class _VillageMasterDataFormScreenState
 
                     // SWM Assets (Expandable)
                     _buildExpandableSection(
-                      title: 'SWM Assets',
+                      title: 'SWM Assets (Solid Waste Management Assets)',
                       isExpanded: _swmAssetsExpanded,
                       onToggle: () => setState(
                         () => _swmAssetsExpanded = !_swmAssetsExpanded,
                       ),
                       children: [
                         _buildFormField(
-                          label: 'RRC',
+                          label: 'RRC (Resource Recovery Centre)',
                           controller: _rrcController,
                           placeholder: 'No',
                           keyboardType: TextInputType.number,
                         ),
                         SizedBox(height: 16.h),
                         _buildFormField(
-                          label: 'PWMU',
+                          label: 'PWMU (Plastic Waste Management Unit)',
                           controller: _pwmuController,
                           placeholder: 'No',
                           keyboardType: TextInputType.number,
@@ -802,35 +841,35 @@ class _VillageMasterDataFormScreenState
 
                     // SBMG year Targets (Expandable)
                     _buildExpandableSection(
-                      title: 'SBMG year Targets',
+                      title: 'SBMG Year Targets (Swachh Bharat Mission - Gramin Year Targets)',
                       isExpanded: _sbmgTargetsExpanded,
                       onToggle: () => setState(
                         () => _sbmgTargetsExpanded = !_sbmgTargetsExpanded,
                       ),
                       children: [
                         _buildFormField(
-                          label: 'IHHL',
+                          label: 'IHHL (Individual Household Latrine)',
                           controller: _ihhlController,
                           placeholder: 'No',
                           keyboardType: TextInputType.number,
                         ),
                         SizedBox(height: 16.h),
                         _buildFormField(
-                          label: 'CSC',
+                          label: 'CSC (Community Sanitation Complex)',
                           controller: _sbmgCscController,
                           placeholder: 'No',
                           keyboardType: TextInputType.number,
                         ),
                         SizedBox(height: 16.h),
                         _buildFormField(
-                          label: 'RRC',
+                          label: 'RRC (Resource Recovery Centre)',
                           controller: _sbmgRrcController,
                           placeholder: 'No',
                           keyboardType: TextInputType.number,
                         ),
                         SizedBox(height: 16.h),
                         _buildFormField(
-                          label: 'PWMU',
+                          label: 'PWMU (Plastic Waste Management Unit)',
                           controller: _sbmgPwmuController,
                           placeholder: 'No',
                           keyboardType: TextInputType.number,
@@ -858,14 +897,14 @@ class _VillageMasterDataFormScreenState
                         ),
                         SizedBox(height: 16.h),
                         _buildFormField(
-                          label: 'WSP',
+                          label: 'WSP (Waste Stabilisation Pond)',
                           controller: _wspController,
                           placeholder: 'No',
                           keyboardType: TextInputType.number,
                         ),
                         SizedBox(height: 16.h),
                         _buildFormField(
-                          label: 'DEWATS',
+                          label: 'DEWATS (Decentralised Wastewater Treatment System)',
                           controller: _dewatsController,
                           placeholder: 'No',
                           keyboardType: TextInputType.number,
@@ -915,8 +954,8 @@ class _VillageMasterDataFormScreenState
                             ),
                           ),
                         )
-                      : const Text(
-                          'Submit',
+                      : Text(
+                          AppLocalizations.of(context)!.submit,
                           style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.w600,
@@ -928,6 +967,156 @@ class _VillageMasterDataFormScreenState
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildAgencySelector() {
+    if (_isLoadingAgencies) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Agency',
+            style: TextStyle(
+              fontSize: 14.sp,
+              fontWeight: FontWeight.w500,
+              color: const Color(0xFF374151),
+            ),
+          ),
+          SizedBox(height: 8.h),
+          Container(
+            height: 50.h,
+            decoration: BoxDecoration(
+              color: Colors.grey.shade100,
+              borderRadius: BorderRadius.circular(8.r),
+              border: Border.all(color: Colors.grey.shade300),
+            ),
+            child: Center(
+              child: SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  valueColor: AlwaysStoppedAnimation<Color>(const Color(0xFF009B56)),
+                ),
+              ),
+            ),
+          ),
+        ],
+      );
+    }
+
+    final List<Agency> quickAgencies = _agencies.take(6).toList();
+    final List<DropdownMenuItem<String>> menuItems = [];
+
+    for (final agency in quickAgencies) {
+      menuItems.add(DropdownMenuItem(
+        value: agency.id.toString(),
+        child: Text(
+          agency.name,
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(fontSize: 14.sp),
+        ),
+      ));
+    }
+
+    if (_selectedAgency != null && !quickAgencies.any((a) => a.id == _selectedAgency!.id)) {
+      menuItems.add(DropdownMenuItem(
+        value: _selectedAgency!.id.toString(),
+        child: Text(
+          _selectedAgency!.name,
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(fontSize: 14.sp),
+        ),
+      ));
+    }
+
+    menuItems.add(DropdownMenuItem(
+      value: 'OTHER',
+      child: Text(
+        'View all / Search…',
+        style: TextStyle(
+          fontSize: 14.sp,
+          color: const Color(0xFF009B56),
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+    ));
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              'Agency',
+              style: TextStyle(
+                fontSize: 14.sp,
+                fontWeight: FontWeight.w500,
+                color: const Color(0xFF374151),
+              ),
+            ),
+            GestureDetector(
+              onTap: _showAddAgencyDialog,
+              child: Row(
+                children: [
+                  Icon(Icons.add_circle_outline, size: 16.sp, color: const Color(0xFF009B56)),
+                  SizedBox(width: 4.w),
+                  Text(
+                    'Add New',
+                    style: TextStyle(
+                      fontSize: 12.sp,
+                      fontWeight: FontWeight.w600,
+                      color: const Color(0xFF009B56),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        SizedBox(height: 8.h),
+        DropdownButtonFormField<String>(
+          value: _selectedAgency?.id.toString(),
+          dropdownColor: Colors.white,
+          decoration: InputDecoration(
+            hintText: AppLocalizations.of(context)!.selectAgency,
+            hintStyle: TextStyle(color: Colors.grey.shade500, fontSize: 14.sp),
+            filled: true,
+            fillColor: Colors.grey.shade50,
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8.r),
+              borderSide: BorderSide(color: Colors.grey.shade300),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8.r),
+              borderSide: BorderSide(color: Colors.grey.shade300),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8.r),
+              borderSide: const BorderSide(color: Color(0xFF009B56)),
+            ),
+            contentPadding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 12.h),
+          ),
+          items: menuItems,
+          onChanged: (value) {
+            if (value == 'OTHER') {
+              _showFullAgencyPicker();
+            } else if (value != null) {
+              setState(() {
+                _selectedAgency = _agencies.firstWhere((a) => a.id.toString() == value);
+              });
+            }
+          },
+          validator: (value) {
+            if (_selectedAgency == null) {
+              return 'Please select an agency';
+            }
+            return null;
+          },
+        ),
+      ],
     );
   }
 
@@ -1022,7 +1211,6 @@ class _VillageMasterDataFormScreenState
       'TWICE_A_WEEK',
       'WEEKLY',
       'FORTNIGHTLY',
-      'MONTHLY',
       'NONE',
     ];
 
@@ -1109,81 +1297,57 @@ class _VillageMasterDataFormScreenState
   }
 
   Widget _buildFundHeadRadioGroup() {
-    return FormField<String>(
-      validator: (_) {
-        if (_selectedFundHead == null || _selectedFundHead!.isEmpty) {
-          return 'Please select a fund head';
-        }
-        return null;
-      },
-      builder: (state) {
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+    // Plain Column (no FormField). FormField's didChange triggered setState
+    // and rebuilds that caused Amount to accept only one character after
+    // selecting a radio. Validation is handled by checkSelection in
+    // _validateAllFieldsFilled.
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Head',
+          style: const TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w500,
+            color: Color(0xFF374151),
+          ),
+        ),
+        SizedBox(height: 8.h),
+        Column(
           children: [
-            Text(
-              'Head',
-              style: const TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w500,
-                color: Color(0xFF374151),
-              ),
-            ),
-            SizedBox(height: 8.h),
-            Column(
-              children: [
-                _buildRadioOption('FFC', state),
-                SizedBox(height: 12.h),
-                _buildRadioOption('SFC', state),
-                SizedBox(height: 12.h),
-                _buildRadioOption('CSR', state),
-                SizedBox(height: 12.h),
-                _buildRadioOption('Own income', state),
-                SizedBox(height: 12.h),
-                _buildRadioOption('Other', state),
-              ],
-            ),
-            // Show input field when "Other" is selected
+            _buildFundHeadRadioOption('FFC'),
+            SizedBox(height: 12.h),
+            _buildFundHeadRadioOption('SFC'),
+            SizedBox(height: 12.h),
+            _buildFundHeadRadioOption('CSR'),
+            SizedBox(height: 12.h),
+            _buildFundHeadRadioOption('Own income'),
+            SizedBox(height: 12.h),
+            _buildFundHeadRadioOption('Other'),
             if (_selectedFundHead == 'Other') ...[
-              SizedBox(height: 16.h),
+              SizedBox(height: 12.h),
               _buildFormField(
-                label: 'Other Fund Head',
-                controller: _otherFundHeadController,
-                placeholder: 'Enter fund head name',
+                label: 'Head name',
+                controller: _fundHeadOtherController,
+                placeholder: 'Enter head name',
               ),
             ],
-            if (state.hasError)
-              Padding(
-                padding: EdgeInsets.only(top: 8.h),
-                child: Text(
-                  state.errorText ?? '',
-                  style: const TextStyle(fontSize: 12, color: Colors.red),
-                ),
-              ),
           ],
-        );
-      },
+        ),
+      ],
     );
   }
 
-  Widget _buildRadioOption(String value, FormFieldState<String> state) {
+  Widget _buildFundHeadRadioOption(String value) {
     return InkWell(
-      onTap: () {
-        setState(() => _selectedFundHead = value);
-        state.didChange(value);
-      },
+      onTap: () => setState(() => _selectedFundHead = value),
       child: Row(
         children: [
           Radio<String>(
             value: value,
             groupValue: _selectedFundHead,
-            onChanged: (String? newValue) {
-              setState(() => _selectedFundHead = newValue);
-              if (newValue != null) {
-                state.didChange(newValue);
-              }
-              // Check if section is complete and auto-expand next
-              Future.microtask(() => _checkAndAutoExpandFund());
-            },
+            onChanged: (String? v) =>
+                setState(() => _selectedFundHead = v ?? value),
             activeColor: const Color(0xFF009B56),
           ),
           SizedBox(width: 8.w),
@@ -1349,6 +1513,7 @@ class _VillageMasterDataFormScreenState
   void _addVillage() {
     setState(() {
       _villages.add({
+        'villageId': _nextNewVillageId++,
         'villageName': TextEditingController(),
         'population': TextEditingController(),
         'households': TextEditingController(),
@@ -1518,7 +1683,6 @@ class _VillageMasterDataFormScreenState
     final missingFields = <String>[];
 
     bool expandSarpanch = false;
-    bool expandContractor = false;
     bool expandWorkOrder = false;
     bool expandFund = false;
     bool expandCollection = false;
@@ -1551,12 +1715,8 @@ class _VillageMasterDataFormScreenState
       }
     }
 
-    checkController(_vdoNameController, 'VDO name');
-    // Validate contact number - must be exactly 10 digits
-    if (_contactNumberController.text.trim().isEmpty) {
-      missingFields.add('Contact number');
-    } else if (_contactNumberController.text.trim().length != 10) {
-      missingFields.add('Contact number must be exactly 10 digits');
+    if (widget.surveyId == null && _selectedAgency == null) {
+      missingFields.add('Agency');
     }
 
     checkController(
@@ -1564,7 +1724,6 @@ class _VillageMasterDataFormScreenState
       'Sarpanch name',
       markSection: () => expandSarpanch = true,
     );
-    // Validate sarpanch contact number - must be exactly 10 digits
     if (_sarpanchContactController.text.trim().isEmpty) {
       missingFields.add('Sarpanch contact number');
       expandSarpanch = true;
@@ -1572,12 +1731,6 @@ class _VillageMasterDataFormScreenState
       missingFields.add('Sarpanch contact number must be exactly 10 digits');
       expandSarpanch = true;
     }
-
-    checkController(
-      _contractorNameController,
-      'Contractor name',
-      markSection: () => expandContractor = true,
-    );
 
     checkController(
       _workOrderNoController,
@@ -1798,7 +1951,6 @@ class _VillageMasterDataFormScreenState
       
       setState(() {
         if (expandSarpanch) _sarpanchExpanded = true;
-        if (expandContractor) _contractorExpanded = true;
         if (expandWorkOrder) _workOrderExpanded = true;
         if (expandFund) _fundExpanded = true;
         if (expandCollection) _collectionExpanded = true;
@@ -1874,34 +2026,66 @@ class _VillageMasterDataFormScreenState
       }
     });
 
+    bool didPop = false;
+    double? scrollToRestore;
+
     try {
-      // Get user information
+      final apiService = ApiService();
+
+      // Edit mode: PUT /api/v1/annual-surveys/{surveyId}
+      if (widget.surveyId != null) {
+        print('📋 Edit mode: Updating survey ID ${widget.surveyId}');
+        // Use logged-in user's village_id when village_data has village_id 0
+        final authService = AuthService();
+        final fallbackVillageId = await authService.getVillageId();
+        if (fallbackVillageId != null) {
+          print('📍 Fallback village_id for village_data: $fallbackVillageId (from login)');
+        }
+        final payload = _prepareUpdatePayload(fallbackVillageId: fallbackVillageId);
+        await apiService.updateAnnualSurvey(
+          surveyId: widget.surveyId!,
+          payload: payload,
+        );
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('GP Master Data updated successfully!'),
+              backgroundColor: Color(0xFF009B56),
+            ),
+          );
+          didPop = true;
+          Navigator.pop(context, true);
+        }
+        return;
+      }
+
+      // Add mode: POST /api/v1/annual-surveys/fill
+      // Get user information – fetch /me first so village_id (GP) is up to date
       print('📋 Step 1: Retrieving user information...');
       final authService = AuthService();
-      final gpId = await authService.getVillageId();
-      print('📍 GP ID: $gpId');
-
-      // Get current user to get VDO ID
-      print('👤 Fetching current user data...');
+      print('👤 Fetching current user data ( /me )...');
       final userInfo = await authService.getCurrentUser();
       if (!userInfo['success']) {
         print('❌ Failed to get user information');
-        throw Exception('Failed to get user information');
+        throw Exception('Failed to get user information. Please try again.');
       }
 
       final userData = userInfo['user'] as Map<String, dynamic>;
       final vdoId = userData['id'];
+      final gpId = await authService.getVillageId();
+      print('📍 GP ID: $gpId (from /me → village_id)');
       print('👤 VDO ID: $vdoId');
 
       if (gpId == null || vdoId == null) {
         print('❌ Missing required information - GP ID: $gpId, VDO ID: $vdoId');
-        throw Exception('Missing required information (GP ID or VDO ID)');
+        throw Exception(
+          'Your GP/Village is not assigned to your account. Please ensure you are logged in as VDO with an assigned GP. Contact admin if the issue persists.',
+        );
       }
 
       // Step 1: Get active FY ID
       print('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
       print('📋 Step 2: Getting active FY ID...');
-      final apiService = ApiService();
       final fyId = await apiService.getActiveFyId();
       print('✅ Active FY ID retrieved: $fyId');
 
@@ -1954,9 +2138,16 @@ class _VillageMasterDataFormScreenState
         print('📅 Completion date: $completionDate');
 
         // Navigate back with completion date
+        didPop = true;
         Navigator.pop(context, completionDate);
       }
     } catch (e) {
+      // Save scroll position BEFORE showing dialog/snackbar; they can trigger
+      // rebuilds (e.g. overlay routes) that reset the scroll to top.
+      scrollToRestore = _scrollController.hasClients
+          ? _scrollController.offset
+          : 0.0;
+
       print('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
       print('❌ FORM SUBMISSION FAILED');
       print('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
@@ -1974,10 +2165,9 @@ class _VillageMasterDataFormScreenState
           _showSurveyAlreadyFilledDialog(context);
         } else {
           // Show snackbar for other errors
-          final errorMessage = e.toString().replaceAll('Exception: ', '');
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text(errorMessage),
+              content: Text(userFriendlyApiMessage(e)),
               backgroundColor: Colors.red,
               duration: const Duration(seconds: 4),
             ),
@@ -1985,23 +2175,22 @@ class _VillageMasterDataFormScreenState
         }
       }
     } finally {
-      if (mounted) {
-        // Save scroll position before setState
-        final scrollPosition = _scrollController.hasClients 
-            ? _scrollController.offset 
-            : 0.0;
-        
+      // Only reset state and restore scroll when staying on the form (did not pop).
+      // On success we pop, so skip to avoid extra rebuild and scroll flash during pop.
+      if (mounted && !didPop) {
+        final position = scrollToRestore ??
+            (_scrollController.hasClients ? _scrollController.offset : 0.0);
+
         setState(() {
           _isSubmitting = false;
         });
-        
-        // Restore scroll position after setState
+
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (mounted && _scrollController.hasClients) {
-            _scrollController.jumpTo(scrollPosition);
+            _scrollController.jumpTo(position);
           }
         });
-        
+
         print('🔄 Form submission state reset');
       }
     }
@@ -2015,11 +2204,8 @@ class _VillageMasterDataFormScreenState
     // Format date as YYYY-MM-DD
     final surveyDate = DateFormat('yyyy-MM-dd').format(DateTime.now());
 
-    // Helper function to parse integer from text
-    int? parseInteger(String? value) {
-      if (value == null || value.isEmpty) return 0;
-      return int.tryParse(value) ?? 0;
-    }
+    // Helper: parse int from text (handles "20.0" from API)
+    int parseInteger(String? value) => _parseIntFromText(value);
 
     // Prepare work order data
     Map<String, dynamic>? workOrder;
@@ -2038,7 +2224,10 @@ class _VillageMasterDataFormScreenState
     if (_fundAmountController.text.isNotEmpty || _selectedFundHead != null) {
       fundSanctioned = {
         'amount': parseInteger(_fundAmountController.text),
-        'head': _selectedFundHead ?? 'FFC',
+        'head': _fundHeadToApi(_selectedFundHead),
+        if (_selectedFundHead == 'Other' &&
+            _fundHeadOtherController.text.trim().isNotEmpty)
+          'head_other': _fundHeadOtherController.text.trim(),
       };
     }
 
@@ -2140,10 +2329,13 @@ class _VillageMasterDataFormScreenState
       final leachPitController = village['leachPit'] as TextEditingController;
       final wspController = village['wsp'] as TextEditingController;
       final dewatsController = village['dewats'] as TextEditingController;
+      final villageId = village['villageId'] is int
+          ? village['villageId'] as int
+          : (int.tryParse(village['villageId']?.toString() ?? '0') ?? 0);
 
       if (villageNameController.text.isNotEmpty) {
         villageData.add({
-          'village_id': 0, // Will be set by backend if needed
+          'village_id': villageId,
           'village_name': villageNameController.text,
           'population': parseInteger(populationController.text),
           'num_households': parseInteger(householdsController.text),
@@ -2167,14 +2359,199 @@ class _VillageMasterDataFormScreenState
       'gp_id': gpId,
       'survey_date': surveyDate,
       'vdo_id': vdoId,
+      'vdo_name': _vdoNameController.text.trim().isEmpty
+          ? 'string'
+          : _vdoNameController.text.trim(),
       'sarpanch_name': _sarpanchNameController.text.isNotEmpty
           ? _sarpanchNameController.text
           : 'string',
       'sarpanch_contact': _sarpanchContactController.text.isNotEmpty
           ? _sarpanchContactController.text
           : 'string',
-      'num_ward_panchs': 0, // Not in form, defaulting to 0
-      'agency_id': 0, // Not in form, defaulting to 0
+      'num_ward_panchs': parseInteger(_numWardPanchsController.text),
+      'agency_id': _selectedAgency?.id ?? 0,
+      if (workOrder != null) 'work_order': workOrder,
+      if (fundSanctioned != null) 'fund_sanctioned': fundSanctioned,
+      if (doorToDoorCollection != null)
+        'door_to_door_collection': doorToDoorCollection,
+      if (roadSweeping != null) 'road_sweeping': roadSweeping,
+      if (drainCleaning != null) 'drain_cleaning': drainCleaning,
+      if (cscDetails != null) 'csc_details': cscDetails,
+      if (swmAssets != null) 'swm_assets': swmAssets,
+      if (sbmgTargets != null) 'sbmg_targets': sbmgTargets,
+      if (villageData.isNotEmpty) 'village_data': villageData,
+    };
+  }
+
+  /// Builds the PUT body for /api/v1/annual-surveys/{id}. Same shape as
+  /// _prepareSurveyData but without fy_id, gp_id, survey_date, vdo_id, agency_id.
+  /// [fallbackVillageId] When a village_data entry has village_id 0, use this
+  /// (from logged-in user's village_id) so the API accepts the payload.
+  /// Parses an integer from controller text. Handles API values like "20.0"
+  /// (int.tryParse("20.0") is null in Dart, so we also try double then round).
+  static int _parseIntFromText(String? value) {
+    if (value == null || value.isEmpty) return 0;
+    final v = value.trim();
+    return int.tryParse(v) ?? (double.tryParse(v)?.round() ?? 0);
+  }
+
+  Map<String, dynamic> _prepareUpdatePayload({int? fallbackVillageId}) {
+    int parseInteger(String? value) => _parseIntFromText(value);
+
+    Map<String, dynamic>? workOrder;
+    if (_workOrderNoController.text.isNotEmpty ||
+        _workOrderDateController.text.isNotEmpty ||
+        _workOrderAmountController.text.isNotEmpty) {
+      workOrder = {
+        'work_order_no': _workOrderNoController.text,
+        'work_order_date': _formatDateForApi(_workOrderDateController.text),
+        'work_order_amount': parseInteger(_workOrderAmountController.text),
+      };
+    }
+
+    Map<String, dynamic>? fundSanctioned;
+    if (_fundAmountController.text.isNotEmpty || _selectedFundHead != null) {
+      fundSanctioned = {
+        'amount': parseInteger(_fundAmountController.text),
+        'head': _fundHeadToApi(_selectedFundHead),
+        if (_selectedFundHead == 'Other' &&
+            _fundHeadOtherController.text.trim().isNotEmpty)
+          'head_other': _fundHeadOtherController.text.trim(),
+      };
+    }
+
+    Map<String, dynamic>? doorToDoorCollection;
+    if (_householdsController.text.isNotEmpty ||
+        _shopsController.text.isNotEmpty ||
+        _selectedCollectionFrequency != null) {
+      doorToDoorCollection = {
+        'num_households': parseInteger(_householdsController.text),
+        'num_shops': parseInteger(_shopsController.text),
+        'collection_frequency': _selectedCollectionFrequency ?? 'DAILY',
+      };
+    }
+
+    Map<String, dynamic>? roadSweeping;
+    if (_roadWidthController.text.isNotEmpty ||
+        _roadLengthController.text.isNotEmpty ||
+        _selectedRoadCleaningFrequency != null) {
+      roadSweeping = {
+        'width': parseInteger(_roadWidthController.text),
+        'length': parseInteger(_roadLengthController.text),
+        'cleaning_frequency': _selectedRoadCleaningFrequency ?? 'DAILY',
+      };
+    }
+
+    Map<String, dynamic>? drainCleaning;
+    if (_drainLengthController.text.isNotEmpty ||
+        _selectedDrainCleaningFrequency != null) {
+      drainCleaning = {
+        'length': parseInteger(_drainLengthController.text),
+        'cleaning_frequency': _selectedDrainCleaningFrequency ?? 'DAILY',
+      };
+    }
+
+    Map<String, dynamic>? cscDetails;
+    if (_cscNumbersController.text.isNotEmpty ||
+        _selectedCscCleaningFrequency != null) {
+      cscDetails = {
+        'numbers': parseInteger(_cscNumbersController.text),
+        'cleaning_frequency': _selectedCscCleaningFrequency ?? 'DAILY',
+      };
+    }
+
+    Map<String, dynamic>? swmAssets;
+    if (_rrcController.text.isNotEmpty ||
+        _pwmuController.text.isNotEmpty ||
+        _compositPitController.text.isNotEmpty ||
+        _collectionVehicleController.text.isNotEmpty) {
+      swmAssets = {
+        'rrc': parseInteger(_rrcController.text),
+        'pwmu': parseInteger(_pwmuController.text),
+        'compost_pit': parseInteger(_compositPitController.text),
+        'collection_vehicle': parseInteger(_collectionVehicleController.text),
+      };
+    }
+
+    Map<String, dynamic>? sbmgTargets;
+    if (_ihhlController.text.isNotEmpty ||
+        _sbmgCscController.text.isNotEmpty ||
+        _sbmgRrcController.text.isNotEmpty ||
+        _sbmgPwmuController.text.isNotEmpty ||
+        _soakPitController.text.isNotEmpty ||
+        _magicPitController.text.isNotEmpty ||
+        _leachPitController.text.isNotEmpty ||
+        _wspController.text.isNotEmpty ||
+        _dewatsController.text.isNotEmpty) {
+      sbmgTargets = {
+        'ihhl': parseInteger(_ihhlController.text),
+        'csc': parseInteger(_sbmgCscController.text),
+        'rrc': parseInteger(_sbmgRrcController.text),
+        'pwmu': parseInteger(_sbmgPwmuController.text),
+        'soak_pit': parseInteger(_soakPitController.text),
+        'magic_pit': parseInteger(_magicPitController.text),
+        'leach_pit': parseInteger(_leachPitController.text),
+        'wsp': parseInteger(_wspController.text),
+        'dewats': parseInteger(_dewatsController.text),
+      };
+    }
+
+    List<Map<String, dynamic>> villageData = [];
+    for (var village in _villages) {
+      final villageNameController =
+          village['villageName'] as TextEditingController;
+      final populationController =
+          village['population'] as TextEditingController;
+      final householdsController =
+          village['households'] as TextEditingController;
+      final ihhlController = village['ihhl'] as TextEditingController;
+      final cscController = village['csc'] as TextEditingController;
+      final soakPitController = village['soakPit'] as TextEditingController;
+      final magicPitController = village['magicPit'] as TextEditingController;
+      final leachPitController = village['leachPit'] as TextEditingController;
+      final wspController = village['wsp'] as TextEditingController;
+      final dewatsController = village['dewats'] as TextEditingController;
+      int villageId = village['villageId'] is int
+          ? village['villageId'] as int
+          : (int.tryParse(village['villageId']?.toString() ?? '0') ?? 0);
+      // Use logged-in user's village_id when stored value is 0 (invalid in villages table)
+      if (villageId == 0 && fallbackVillageId != null) {
+        villageId = fallbackVillageId;
+      }
+
+      if (villageNameController.text.isNotEmpty) {
+        villageData.add({
+          'village_id': villageId,
+          'village_name': villageNameController.text,
+          'population': parseInteger(populationController.text),
+          'num_households': parseInteger(householdsController.text),
+          'sbmg_assets': {
+            'ihhl': parseInteger(ihhlController.text),
+            'csc': parseInteger(cscController.text),
+          },
+          'gwm_assets': {
+            'soak_pit': parseInteger(soakPitController.text),
+            'magic_pit': parseInteger(magicPitController.text),
+            'leach_pit': parseInteger(leachPitController.text),
+            'wsp': parseInteger(wspController.text),
+            'dewats': parseInteger(dewatsController.text),
+          },
+        });
+      }
+    }
+
+    final numWardPanchs = int.tryParse(_numWardPanchsController.text) ?? 0;
+    return {
+      'vdo_name': _vdoNameController.text.trim().isEmpty
+          ? ''
+          : _vdoNameController.text.trim(),
+      'sarpanch_name': _sarpanchNameController.text.isNotEmpty
+          ? _sarpanchNameController.text
+          : '',
+      'sarpanch_contact': _sarpanchContactController.text.isNotEmpty
+          ? _sarpanchContactController.text
+          : '',
+      'num_ward_panchs': numWardPanchs,
       if (workOrder != null) 'work_order': workOrder,
       if (fundSanctioned != null) 'fund_sanctioned': fundSanctioned,
       if (doorToDoorCollection != null)

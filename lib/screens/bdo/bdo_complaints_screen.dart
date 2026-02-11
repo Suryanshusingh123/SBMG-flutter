@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../../config/connstants.dart';
 import '../../models/api_complaint_model.dart';
 import '../../providers/bdo_complaints_provider.dart';
+import '../../utils/date_time_utils.dart';
 import '../../utils/location_display_helper.dart';
 import '../../widgets/common/custom_bottom_navigation.dart';
 import '../../widgets/common/date_filter_bottom_sheet.dart';
@@ -12,9 +13,14 @@ import 'bdo_complaint_details_screen.dart';
 import '../../services/auth_services.dart';
 import '../../services/api_services.dart';
 import '../../models/geography_model.dart';
+import '../../screens/common/unified_select_location_screen.dart';
+import '../../providers/bdo_provider.dart';
 
 class BdoComplaintsScreen extends StatefulWidget {
-  const BdoComplaintsScreen({super.key});
+  /// When true, this screen is shown inside [BdoShellScreen]; bottom nav is provided by the shell.
+  final bool isEmbeddedInShell;
+
+  const BdoComplaintsScreen({super.key, this.isEmbeddedInShell = false});
 
   @override
   State<BdoComplaintsScreen> createState() => _BdoComplaintsScreenState();
@@ -29,6 +35,8 @@ class _BdoComplaintsScreenState extends State<BdoComplaintsScreen> {
   DateTime? _filterStartDate;
   DateTime? _filterEndDate;
   String? _blockName;
+  Map<String, dynamic>? _complaintLocation;
+  final AuthService _authService = AuthService();
 
   @override
   void initState() {
@@ -36,7 +44,22 @@ class _BdoComplaintsScreenState extends State<BdoComplaintsScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _loadComplaints();
       _loadBlockName();
+      _loadSavedLocation();
     });
+  }
+
+  Future<void> _loadSavedLocation() async {
+    // Load saved location for COMPLAINTS page if available
+    // Fallback to old inspection location for backward compatibility
+    var savedLocation = await _authService.getPageLocation('bdo', 'complaints');
+    if (savedLocation == null) {
+      savedLocation = await _authService.getInspectionLocation('bdo');
+    }
+    if (savedLocation != null && mounted) {
+      setState(() {
+        _complaintLocation = savedLocation;
+      });
+    }
   }
 
   void _loadComplaints() {
@@ -156,46 +179,46 @@ class _BdoComplaintsScreenState extends State<BdoComplaintsScreen> {
           ],
         ),
       ),
-      bottomNavigationBar: CustomBottomNavigationBar(
-        currentIndex: _selectedIndex,
-        onTap: (index) {
-          setState(() {
-            _selectedIndex = index;
-          });
-
-          switch (index) {
-            case 0:
-              Navigator.pushReplacementNamed(context, '/bdo-dashboard');
-              break;
-            case 1:
-              break;
-            case 2:
-              Navigator.pushReplacementNamed(context, '/bdo-monitoring');
-              break;
-            case 3:
-              Navigator.pushReplacementNamed(context, '/bdo-settings');
-              break;
-          }
-        },
-        items: [
-          BottomNavItem(
-            iconPath: 'assets/icons/bottombar/home.png',
-            label: AppLocalizations.of(context)!.home,
-          ),
-          BottomNavItem(
-            iconPath: 'assets/icons/bottombar/complaints.png',
-            label: AppLocalizations.of(context)!.complaints,
-          ),
-          BottomNavItem(
-            iconPath: 'assets/icons/bottombar/inspection.png',
-            label: AppLocalizations.of(context)!.inspection,
-          ),
-          BottomNavItem(
-            iconPath: 'assets/icons/bottombar/settings.png',
-            label: AppLocalizations.of(context)!.settings,
-          ),
-        ],
-      ),
+      // Bottom nav is provided by BdoShellScreen when isEmbeddedInShell
+      bottomNavigationBar: widget.isEmbeddedInShell
+          ? null
+          : CustomBottomNavigationBar(
+              currentIndex: _selectedIndex,
+              onTap: (index) {
+                setState(() => _selectedIndex = index);
+                switch (index) {
+                  case 0:
+                    Navigator.pushReplacementNamed(context, '/bdo-dashboard');
+                    break;
+                  case 1:
+                    break;
+                  case 2:
+                    Navigator.pushReplacementNamed(context, '/bdo-monitoring');
+                    break;
+                  case 3:
+                    Navigator.pushReplacementNamed(context, '/bdo-settings');
+                    break;
+                }
+              },
+              items: [
+                BottomNavItem(
+                  iconPath: 'assets/icons/bottombar/home.png',
+                  label: AppLocalizations.of(context)!.home,
+                ),
+                BottomNavItem(
+                  iconPath: 'assets/icons/bottombar/complaints.png',
+                  label: AppLocalizations.of(context)!.complaints,
+                ),
+                BottomNavItem(
+                  iconPath: 'assets/icons/bottombar/inspection.png',
+                  label: AppLocalizations.of(context)!.inspection,
+                ),
+                BottomNavItem(
+                  iconPath: 'assets/icons/bottombar/settings.png',
+                  label: AppLocalizations.of(context)!.settings,
+                ),
+              ],
+            ),
     );
   }
 
@@ -223,6 +246,53 @@ class _BdoComplaintsScreenState extends State<BdoComplaintsScreen> {
               Row(
                 children: [
                   GestureDetector(
+                    onTap: () async {
+                      final result = await Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const UnifiedSelectLocationScreen(userRole: 'bdo'),
+                        ),
+                      );
+                      if (result is Map<String, dynamic> && result['blockId'] != null) {
+                        print('📍 Location changed - New location: $result');
+                        print('   - District ID: ${result['districtId']}');
+                        print('   - Block ID: ${result['blockId']}');
+                        print('   - GP ID: ${result['gpId']}');
+                        
+                        // Save the location for COMPLAINTS page
+                        await _authService.savePageLocation('bdo', 'complaints', result);
+                        
+                        // Verify it was saved correctly
+                        final saved = await _authService.getPageLocation('bdo', 'complaints');
+                        print('💾 Verified saved location: $saved');
+                        if (saved == null) {
+                          print('❌ ERROR: Location was not saved correctly!');
+                          return;
+                        }
+                        
+                        // Update state
+                        setState(() {
+                          _complaintLocation = result;
+                        });
+                        
+                        // Reload complaints with new location
+                        if (mounted) {
+                          context.read<BdoComplaintsProvider>().loadComplaints();
+                        }
+                      } else {
+                        print('⚠️ Location change cancelled or invalid result: $result');
+                      }
+                    },
+                    child: Padding(
+                      padding: EdgeInsets.only(right: 8.w),
+                      child: Icon(
+                        Icons.location_on,
+                        size: 18.sp,
+                        color: AppColors.primaryColor,
+                      ),
+                    ),
+                  ),
+                  GestureDetector(
                     onTap: _showDateFilter,
                     child: Icon(
                       Icons.calendar_today,
@@ -244,13 +314,87 @@ class _BdoComplaintsScreenState extends State<BdoComplaintsScreen> {
             ],
           ),
           SizedBox(height: 4.h),
-          Text(
-            '${_blockName ?? 'Block'} • ${_getDisplayMonth()}',
-            style: TextStyle(fontSize: 11.sp, color: const Color(0xFF6B7280)),
+          Consumer<BdoProvider>(
+            builder: (context, bdoProvider, child) {
+              String locationText;
+              if (_complaintLocation != null) {
+                final parts = <String>[];
+                if (_complaintLocation!['districtName'] != null) {
+                  parts.add(_complaintLocation!['districtName'] as String);
+                }
+                if (_complaintLocation!['blockName'] != null) {
+                  parts.add(_complaintLocation!['blockName'] as String);
+                }
+                if (_complaintLocation!['gpName'] != null) {
+                  parts.add(_complaintLocation!['gpName'] as String);
+                }
+                locationText = parts.isNotEmpty ? parts.join(' • ') : (_blockName ?? 'Block');
+              } else {
+                locationText = _blockName ?? 'Block';
+              }
+              
+              return Text(
+                '$locationText • ${_getDisplayMonth()}',
+                style: TextStyle(fontSize: 11.sp, color: const Color(0xFF6B7280)),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              );
+            },
           ),
         ],
       ),
     );
+  }
+
+  int _getFilteredCount(List<ApiComplaintModel> complaints) {
+    List<ApiComplaintModel> filtered = List.from(complaints);
+
+    if (_filterDate != null) {
+      filtered = filtered.where((complaint) {
+        try {
+          final complaintDate = DateTime.parse(complaint.createdAt).toUtc();
+          final filterDate = DateTime.utc(
+            _filterDate!.year,
+            _filterDate!.month,
+            _filterDate!.day,
+          );
+          return complaintDate.year == filterDate.year &&
+              complaintDate.month == filterDate.month &&
+              complaintDate.day == filterDate.day;
+        } catch (e) {
+          return false;
+        }
+      }).toList();
+    }
+
+    if (_filterStartDate != null && _filterEndDate != null) {
+      filtered = filtered.where((complaint) {
+        try {
+          final complaintDate = DateTime.parse(complaint.createdAt).toUtc();
+          final startDate = DateTime.utc(
+            _filterStartDate!.year,
+            _filterStartDate!.month,
+            _filterStartDate!.day,
+          );
+          final endDate = DateTime.utc(
+            _filterEndDate!.year,
+            _filterEndDate!.month,
+            _filterEndDate!.day,
+            23,
+            59,
+            59,
+          );
+          return (complaintDate.isAfter(startDate.subtract(const Duration(seconds: 1))) ||
+                  complaintDate.isAtSameMomentAs(startDate)) &&
+              (complaintDate.isBefore(endDate) ||
+                  complaintDate.isAtSameMomentAs(endDate));
+        } catch (e) {
+          return false;
+        }
+      }).toList();
+    }
+
+    return filtered.length;
   }
 
   Widget _buildStatusTabs(BuildContext context) {
@@ -265,7 +409,7 @@ class _BdoComplaintsScreenState extends State<BdoComplaintsScreen> {
           _buildTab(
             context,
             AppLocalizations.of(context)!.open,
-            provider.openComplaints.length,
+            _getFilteredCount(provider.openComplaints),
             _selectedStatus == 'Open',
             0,
           ),
@@ -273,7 +417,7 @@ class _BdoComplaintsScreenState extends State<BdoComplaintsScreen> {
           _buildTab(
             context,
             AppLocalizations.of(context)!.resolved,
-            provider.resolvedComplaints.length,
+            _getFilteredCount(provider.resolvedComplaints),
             _selectedStatus == 'Resolved',
             1,
           ),
@@ -281,7 +425,7 @@ class _BdoComplaintsScreenState extends State<BdoComplaintsScreen> {
           _buildTab(
             context,
             AppLocalizations.of(context)!.verified,
-            provider.verifiedComplaints.length,
+            _getFilteredCount(provider.verifiedComplaints),
             _selectedStatus == 'Verified',
             2,
           ),
@@ -289,7 +433,7 @@ class _BdoComplaintsScreenState extends State<BdoComplaintsScreen> {
           _buildTab(
             context,
             AppLocalizations.of(context)!.complaintClosed,
-            provider.closedComplaints.length,
+            _getFilteredCount(provider.closedComplaints),
             _selectedStatus == AppLocalizations.of(context)!.complaintClosed,
             3,
           ),
@@ -523,6 +667,7 @@ class _BdoComplaintsScreenState extends State<BdoComplaintsScreen> {
   }
 
   Widget _buildComplaintCard(ApiComplaintModel complaint) {
+    final provider = context.watch<BdoComplaintsProvider>();
     final firstMediaUrl = complaint.hasMedia ? complaint.firstMediaUrl : null;
     final mediaUrl = firstMediaUrl != null
         ? ApiConstants.getMediaUrl(firstMediaUrl)
@@ -685,7 +830,7 @@ class _BdoComplaintsScreenState extends State<BdoComplaintsScreen> {
                       SizedBox(width: 8.w),
                       Expanded(
                         child: Text(
-                          complaint.complaintType,
+                          provider.getComplaintTypeDisplayName(complaint),
                           style: TextStyle(
                             fontSize: 14.sp,
                             fontWeight: FontWeight.bold,
@@ -734,29 +879,8 @@ class _BdoComplaintsScreenState extends State<BdoComplaintsScreen> {
     );
   }
 
-  String _formatDate(String dateString) {
-    try {
-      final date = DateTime.parse(dateString);
-      final istDate = date.add(const Duration(hours: 5, minutes: 30));
-      final months = [
-        'Jan',
-        'Feb',
-        'Mar',
-        'Apr',
-        'May',
-        'Jun',
-        'Jul',
-        'Aug',
-        'Sep',
-        'Oct',
-        'Nov',
-        'Dec',
-      ];
-      return '${months[istDate.month - 1]} ${istDate.day}, ${istDate.year}';
-    } catch (e) {
-      return 'Recent';
-    }
-  }
+  String _formatDate(String dateString) =>
+      DateTimeUtils.formatComplaintListIST(dateString);
 
   void _showSortOptions() {
     showModalBottomSheet(

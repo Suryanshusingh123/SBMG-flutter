@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../l10n/app_localizations.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../../models/geography_model.dart';
 import '../../services/api_services.dart';
@@ -44,7 +45,7 @@ class _SmdSelectGpScreenState extends State<SmdSelectGpScreen> {
         setState(() {
           _isLoading = false;
           _error =
-              'Please select a district first to view Gram Panchayats.';
+              AppLocalizations.of(context)!.pleaseSelectDistrictFirstForGp;
         });
         return;
       }
@@ -62,7 +63,7 @@ class _SmdSelectGpScreenState extends State<SmdSelectGpScreen> {
     } catch (e) {
       setState(() {
         _isLoading = false;
-        _error = 'Failed to load blocks: $e';
+        _error = '${AppLocalizations.of(context)!.failedToLoadBlocks}: $e';
       });
     }
   }
@@ -91,7 +92,7 @@ class _SmdSelectGpScreenState extends State<SmdSelectGpScreen> {
     } catch (e) {
       setState(() {
         _isGpLoading = false;
-        _error = 'Failed to load Gram Panchayats: $e';
+        _error = '${AppLocalizations.of(context)!.failedToLoadGramPanchayats}: $e';
       });
     }
   }
@@ -101,7 +102,7 @@ class _SmdSelectGpScreenState extends State<SmdSelectGpScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          _selectedBlock == null ? 'Select Block' : 'Select GP',
+          _selectedBlock == null ? AppLocalizations.of(context)!.selectBlock : AppLocalizations.of(context)!.selectGramPanchayat,
         ),
         centerTitle: false,
         leading: IconButton(
@@ -136,7 +137,7 @@ class _SmdSelectGpScreenState extends State<SmdSelectGpScreen> {
           Icon(Icons.error_outline, size: 48.sp, color: Colors.red[300]),
           SizedBox(height: 16.h),
           Text(
-            _error ?? 'Something went wrong',
+            _error ?? AppLocalizations.of(context)!.somethingWentWrong,
             style: TextStyle(
               fontSize: 14.sp,
               color: const Color(0xFF6B7280),
@@ -146,7 +147,7 @@ class _SmdSelectGpScreenState extends State<SmdSelectGpScreen> {
           SizedBox(height: 16.h),
           ElevatedButton(
             onPressed: _loadBlocks,
-            child: const Text('Retry'),
+            child: Text(AppLocalizations.of(context)!.retry),
           ),
         ],
       ),
@@ -155,8 +156,8 @@ class _SmdSelectGpScreenState extends State<SmdSelectGpScreen> {
 
   Widget _buildBlocksList() {
     if (_blocks.isEmpty) {
-      return const Center(
-        child: Text('No blocks found'),
+      return Center(
+        child: Text(AppLocalizations.of(context)!.noBlocksFound),
       );
     }
 
@@ -209,7 +210,7 @@ class _SmdSelectGpScreenState extends State<SmdSelectGpScreen> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Text(
-              'No Gram Panchayats found for ${_selectedBlock?.name ?? ''}',
+              AppLocalizations.of(context)!.noGramPanchayatsFoundForBlock(_selectedBlock?.name ?? ''),
               style: TextStyle(
                 fontSize: 14.sp,
                 color: const Color(0xFF6B7280),
@@ -224,7 +225,7 @@ class _SmdSelectGpScreenState extends State<SmdSelectGpScreen> {
                   _gramPanchayats = [];
                 });
               },
-              child: const Text('Choose another block'),
+              child: Text(AppLocalizations.of(context)!.chooseAnotherBlock),
             ),
           ],
         ),

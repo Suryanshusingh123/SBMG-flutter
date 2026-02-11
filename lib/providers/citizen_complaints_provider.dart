@@ -6,6 +6,16 @@ import '../services/api_services.dart';
 import '../config/connstants.dart';
 import '../utils/auth_error_handler.dart';
 
+/// Parses complaint_type from API (String or object with 'name').
+String _complaintTypeNameFromJson(dynamic value) {
+  if (value == null) return '';
+  if (value is String) return value.trim().isEmpty ? '' : value;
+  if (value is Map && value['name'] != null) {
+    return value['name'].toString().trim();
+  }
+  return '';
+}
+
 class ComplaintsProvider with ChangeNotifier {
   final ApiService _apiService = ApiService();
 
@@ -57,6 +67,11 @@ class ComplaintsProvider with ChangeNotifier {
     notifyListeners();
 
     try {
+      // Load complaint types if needed so we can resolve type name from complaint_type_id
+      if (_complaintTypes.isEmpty) {
+        await loadComplaintTypes();
+      }
+
       final complaintsData = await _apiService.getMyComplaints(
         token: token,
         limit: limit,
@@ -112,9 +127,28 @@ class ComplaintsProvider with ChangeNotifier {
           );
         }
 
+        final typeVal = complaintData['complaint_type'];
+        final typeName = _complaintTypeNameFromJson(typeVal);
+        String typeStr = typeName.isNotEmpty
+            ? typeName
+            : (typeVal?.toString().trim().isNotEmpty == true
+                ? typeVal.toString().trim()
+                : 'Unknown');
+        // Resolve from complaint_type_id when API returns id but not type name
+        if (typeStr == 'Unknown') {
+          final typeId = complaintData['complaint_type_id'];
+          if (typeId != null) {
+            final id = typeId is int ? typeId : int.tryParse(typeId.toString());
+            if (id != null) {
+              final resolved = getComplaintTypeById(id);
+              if (resolved != null) typeStr = resolved.name;
+            }
+          }
+        }
+
         final complaint = ComplaintModel(
           id: complaintData['id'].toString(),
-          type: complaintData['complaint_type'] ?? 'Unknown',
+          type: typeStr,
           description: complaintData['description'] ?? '',
           imagePaths:
               (complaintData['media_urls'] as List<dynamic>?)

@@ -2,10 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:provider/provider.dart';
 import '../../config/connstants.dart';
-import '../../providers/citizen_bookmarks_provider.dart';
+import '../../providers/bookmarks_provider.dart';
 import '../../models/scheme_model.dart';
 import '../../l10n/app_localizations.dart';
 import '../../theme/citizen_colors.dart';
+import '../../services/auth_services.dart';
 
 class SchemeDetailsScreen extends StatefulWidget {
   final Scheme scheme;
@@ -112,17 +113,63 @@ class _SchemeDetailsScreenState extends State<SchemeDetailsScreen> {
                         widget.scheme.id,
                       );
                       return GestureDetector(
-                        onTap: () {
-                          bookmarksProvider.toggleSchemeBookmark(
-                            widget.scheme.id,
-                            !isBookmarked,
-                          );
-                          // Notify parent screen about bookmark change
-                          if (widget.onBookmarkChanged != null) {
-                            widget.onBookmarkChanged!(
+                        onTap: () async {
+                          // Check if user is logged in
+                          final authService = AuthService();
+                          final isLoggedIn = await authService.isLoggedIn();
+                          
+                          if (!isLoggedIn) {
+                            // Show login required message
+                            if (mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(
+                                    'Please login to bookmark schemes',
+                                  ),
+                                  backgroundColor: Colors.orange,
+                                  duration: const Duration(seconds: 3),
+                                  action: SnackBarAction(
+                                    label: 'Login',
+                                    textColor: Colors.white,
+                                    onPressed: () {
+                                      Navigator.pushNamed(
+                                      context,
+                                      '/citizen-login',
+                                      arguments: {'redirectTo': '/schemes'},
+                                    );
+                                    },
+                                  ),
+                                ),
+                              );
+                            }
+                            return;
+                          }
+
+                          try {
+                            await bookmarksProvider.toggleSchemeBookmark(
                               widget.scheme.id,
                               !isBookmarked,
                             );
+                            // Notify parent screen about bookmark change
+                            if (widget.onBookmarkChanged != null) {
+                              widget.onBookmarkChanged!(
+                                widget.scheme.id,
+                                !isBookmarked,
+                              );
+                            }
+                          } catch (e) {
+                            // Show error message
+                            if (mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(
+                                    e.toString().replaceAll('Exception: ', ''),
+                                  ),
+                                  backgroundColor: Colors.red,
+                                  duration: const Duration(seconds: 3),
+                                ),
+                              );
+                            }
                           }
                         },
                         child: Container(

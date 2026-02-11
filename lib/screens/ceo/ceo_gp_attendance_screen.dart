@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import '../../services/api_services.dart';
 import '../../services/auth_services.dart';
 import '../../widgets/common/date_filter_bottom_sheet.dart';
+import '../../l10n/app_localizations.dart';
 
 class CeoGpAttendanceScreen extends StatefulWidget {
   final int gpId;
@@ -93,7 +94,7 @@ class _CeoGpAttendanceScreenState extends State<CeoGpAttendanceScreen> {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text(response['message'] ?? 'Failed to load attendance'),
+              content: Text(response['message'] ?? AppLocalizations.of(context)!.failedToLoadAttendance),
               backgroundColor: Colors.red,
             ),
           );
@@ -104,7 +105,7 @@ class _CeoGpAttendanceScreenState extends State<CeoGpAttendanceScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error loading attendance: $e'),
+            content: Text(AppLocalizations.of(context)!.errorLoadingAttendance(e.toString())),
             backgroundColor: Colors.red,
           ),
         );

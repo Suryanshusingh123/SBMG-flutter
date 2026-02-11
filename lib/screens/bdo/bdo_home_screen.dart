@@ -4,9 +4,11 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:csv/csv.dart';
 import 'package:sbmg/screens/bdo/select_gp_screen.dart';
 import 'package:sbmg/screens/bdo/gp_ranking_screen.dart';
 
+import '../../utils/download_helper.dart';
 import '../../widgets/common/banner_carousel.dart';
 import '../../widgets/common/custom_bottom_navigation.dart';
 import '../../l10n/app_localizations.dart';
@@ -14,12 +16,17 @@ import '../../models/scheme_model.dart';
 import '../../models/event_model.dart';
 import '../../config/connstants.dart';
 import '../../providers/bdo_provider.dart';
+import '../citizen/gp_master_data_details_screen.dart';
 import '../citizen/language_screen.dart';
 import '../citizen/notifications_screen.dart';
 import '../citizen/scheme_details_screen.dart';
 
 class BdoHomeScreen extends StatefulWidget {
-  const BdoHomeScreen({super.key});
+  /// When true, this screen is shown inside [BdoShellScreen]. Bottom nav
+  /// and PopScope are provided by the shell.
+  final bool isEmbeddedInShell;
+
+  const BdoHomeScreen({super.key, this.isEmbeddedInShell = false});
 
   @override
   State<BdoHomeScreen> createState() => _BdoHomeScreenState();
@@ -38,61 +45,70 @@ class _BdoHomeScreenState extends State<BdoHomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final scaffold = Scaffold(
+      backgroundColor: Colors.white,
+      body: SafeArea(
+        child: Column(
+          children: [
+            _buildTopHeader(),
+            Expanded(
+              child: RefreshIndicator(
+                onRefresh: () async {
+                  await context.read<BdoProvider>().refresh();
+                },
+                child: SingleChildScrollView(
+                  child: Column(
+                    children: [
+                      const BannerCarousel(
+                        imagePaths: [
+                          'assets/images/dash1.jpeg',
+                          'assets/images/dash2.jpeg',
+                          'assets/images/dash3.jpeg',
+                          'assets/images/dash4.jpeg',
+                          'assets/images/dash5.jpeg',
+                        ],
+                      ),
+                      Image.asset('assets/images/Group.png'),
+                      SizedBox(height: 20.h),
+                      _buildOverviewSection(),
+                      SizedBox(height: 24.h),
+                   
+                      _buildInspectionSection(),
+                      _buildGpMasterDataSection(),
+                      SizedBox(height: 24.h),
+                      _buildFeaturedSchemesSection(),
+                      SizedBox(height: 24.h),
+                      _buildEventsSection(),
+                      SizedBox(height: 24.h),
+                      _buildSocialMediaSection(),
+                      SizedBox(height: 20.h),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+      // Bottom nav is provided by BdoShellScreen when isEmbeddedInShell
+      bottomNavigationBar: widget.isEmbeddedInShell
+          ? null
+          : _buildBottomNavigationBar(),
+    );
+
+    if (widget.isEmbeddedInShell) return scaffold;
     return PopScope(
       canPop: false,
       onPopInvoked: (didPop) {
         if (didPop) return;
         _showExitDialog();
       },
-      child: Scaffold(
-        backgroundColor: Colors.white,
-        body: SafeArea(
-          child: Column(
-            children: [
-              _buildTopHeader(),
-              Expanded(
-                child: RefreshIndicator(
-                  onRefresh: () async {
-                    await context.read<BdoProvider>().refresh();
-                  },
-                  child: SingleChildScrollView(
-                    child: Column(
-                      children: [
-                        const BannerCarousel(
-                          imagePaths: [
-                            'assets/images/dash1.jpeg',
-                            'assets/images/dash2.jpeg',
-                            'assets/images/dash3.jpeg',
-                            'assets/images/dash4.jpeg',
-                            'assets/images/dash5.jpeg',
-                          ],
-                        ),
-                        Image.asset('assets/images/Group.png'),
-                        SizedBox(height: 20.h),
-                        _buildOverviewSection(),
-                        SizedBox(height: 24.h),
-                        _buildInspectionSection(),
-                        SizedBox(height: 24.h),
-                        _buildFeaturedSchemesSection(),
-                        SizedBox(height: 24.h),
-                        _buildEventsSection(),
-                        SizedBox(height: 24.h),
-                        _buildSocialMediaSection(),
-                        SizedBox(height: 20.h),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-        bottomNavigationBar: _buildBottomNavigationBar(),
-      ),
+      child: scaffold,
     );
   }
 
   Widget _buildTopHeader() {
+    final l10n = AppLocalizations.of(context)!;
     return Container(
       padding: EdgeInsets.all(16.r),
       child: Row(
@@ -102,7 +118,7 @@ class _BdoHomeScreenState extends State<BdoHomeScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                "BDO",
+                l10n.bdo,
                 style: TextStyle(
                   fontFamily: 'Noto Sans',
                   fontSize: 18.sp,
@@ -254,24 +270,28 @@ class _BdoHomeScreenState extends State<BdoHomeScreen> {
                   SizedBox(width: 12.w),
                   SizedBox(
                     width: 140,
-                    child: ElevatedButton.icon(
-                      onPressed: () {
-                        // Export for BDO coming soon
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Export coming soon')),
-                        );
-                      },
-                      icon: const Icon(Icons.file_download, size: 18),
-                      label: Text(l10n.export),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF009B56),
-                        foregroundColor: Colors.white,
-                        padding: EdgeInsets.symmetric(
-                          horizontal: 16.w,
-                          vertical: 12.h,
-                        ),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8.r),
+                    child: Tooltip(
+                      message: provider.fromDate != null && provider.toDate != null
+                          ? l10n.export
+                          : l10n.selectDateRangeToEnableExport,
+                      child: ElevatedButton.icon(
+                        onPressed: provider.fromDate != null && provider.toDate != null
+                            ? () => _exportToCSV(provider)
+                            : null,
+                        icon: const Icon(Icons.file_download, size: 18),
+                        label: Text(l10n.export),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF009B56),
+                          foregroundColor: Colors.white,
+                          disabledBackgroundColor: Colors.grey.shade300,
+                          disabledForegroundColor: Colors.grey.shade600,
+                          padding: EdgeInsets.symmetric(
+                            horizontal: 16.w,
+                            vertical: 12.h,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8.r),
+                          ),
                         ),
                       ),
                     ),
@@ -317,10 +337,20 @@ class _BdoHomeScreenState extends State<BdoHomeScreen> {
                               ),
                             ),
                             SizedBox(width: 8.w),
-                            Icon(
-                              Icons.info_outline,
-                              size: 16.sp,
-                              color: const Color(0xFF6B7280),
+                            Tooltip(
+                              message: l10n.tooltipTotalReportedComplaintDescription,
+                              child: GestureDetector(
+                                onTap: () => _showInfoDialog(
+                                  context,
+                                  l10n.totalReportedComplaint,
+                                  l10n.tooltipTotalReportedComplaintDescription,
+                                ),
+                                child: Icon(
+                                  Icons.info_outline,
+                                  size: 16.sp,
+                                  color: const Color(0xFF6B7280),
+                                ),
+                              ),
                             ),
                           ],
                         ),
@@ -356,18 +386,72 @@ class _BdoHomeScreenState extends State<BdoHomeScreen> {
     );
   }
 
+  void _showInfoDialog(BuildContext context, String title, String message) {
+    final l10n = AppLocalizations.of(context)!;
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12.r),
+        ),
+        title: Row(
+          children: [
+            Icon(
+              Icons.info_outline,
+              color: const Color(0xFF6B7280),
+              size: 20.sp,
+            ),
+            SizedBox(width: 8.w),
+            Expanded(
+              child: Text(
+                title,
+                style: TextStyle(
+                  fontSize: 16.sp,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ],
+        ),
+        content: Text(
+          message,
+          style: TextStyle(
+            fontSize: 14.sp,
+            color: const Color(0xFF6B7280),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: Text(
+              l10n.ok,
+              style: TextStyle(
+                fontSize: 14.sp,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildOverviewCard(String title, BuildContext context) {
     return Consumer<BdoProvider>(
       builder: (context, provider, child) {
-        final value = title == AppLocalizations.of(context)!.openComplaint
+        final l10n = AppLocalizations.of(context)!;
+        final value = title == l10n.openComplaint
             ? provider.analytics['openComplaints'].toString()
             : provider.analytics['resolvedComplaints'].toString();
 
-        final icon = title == AppLocalizations.of(context)!.openComplaint
+        final icon = title == l10n.openComplaint
             ? 'assets/icons/hourglass.png'
             : 'assets/icons/Icon.png';
 
         final isLoading = provider.isComplaintsLoading;
+        final tooltipMessage = title == l10n.openComplaint
+            ? l10n.tooltipOpenComplaintDescription
+            : l10n.tooltipResolvedComplaintsDescription;
 
         return Container(
           height: 100,
@@ -391,15 +475,34 @@ class _BdoHomeScreenState extends State<BdoHomeScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(
-                      title,
-                      style: TextStyle(
-                        fontFamily: 'Noto Sans',
-                        fontSize: 12.sp,
-                        fontWeight: FontWeight.w500,
-                        color: const Color(0xFF717680),
-                        letterSpacing: 0.5,
-                      ),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            title,
+                            style: TextStyle(
+                              fontFamily: 'Noto Sans',
+                              fontSize: 12.sp,
+                              fontWeight: FontWeight.w500,
+                              color: const Color(0xFF717680),
+                              letterSpacing: 0.5,
+                            ),
+                          ),
+                        ),
+                        SizedBox(width: 4.w),
+                        Tooltip(
+                          message: tooltipMessage,
+                          child: GestureDetector(
+                            onTap: () =>
+                                _showInfoDialog(context, title, tooltipMessage),
+                            child: Icon(
+                              Icons.info_outline,
+                              size: 14.sp,
+                              color: const Color(0xFF6B7280),
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                     Text(
                       isLoading ? '...' : value,
@@ -424,6 +527,63 @@ class _BdoHomeScreenState extends State<BdoHomeScreen> {
           ),
         );
       },
+    );
+  }
+
+  Widget _buildGpMasterDataSection() {
+    final l10n = AppLocalizations.of(context)!;
+    return Padding(
+      padding: EdgeInsets.symmetric(horizontal: 16.w),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+        
+          GestureDetector(
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const GpMasterDataDetailsScreen(),
+                ),
+              );
+            },
+            child: Container(
+              width: double.infinity,
+              height: 56,
+              padding: EdgeInsets.symmetric(horizontal: 16.w),
+              decoration: BoxDecoration(
+                color: const Color(0xFF009B56),
+                borderRadius: BorderRadius.circular(12.r),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.05),
+                    blurRadius: 4,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.visibility_outlined, size: 22.sp, color: Colors.white),
+                  SizedBox(width: 12.w),
+                  Expanded(
+                    child: Text(
+                      l10n.viewGpMasterData,
+                      style: TextStyle(
+                        fontFamily: 'Noto Sans',
+                        fontSize: 13.sp,
+                        fontWeight: FontWeight.w500,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+                  Icon(Icons.chevron_right, size: 20.sp, color: Colors.white),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -475,7 +635,7 @@ class _BdoHomeScreenState extends State<BdoHomeScreen> {
               Expanded(
                 child: _buildActionCard(
                   icon: Icons.people,
-                  title: l10n.checkVendorSupervisorAttendance,
+                  title: l10n.checkContractorSupervisorAttendance,
                   onTap: () {
                     Navigator.push(
                       context,
@@ -491,7 +651,7 @@ class _BdoHomeScreenState extends State<BdoHomeScreen> {
               Expanded(
                 child: _buildActionCard(
                   icon: Icons.business,
-                  title: "Contractor details",
+                  title: l10n.contractorDetails,
                   onTap: () {
                     Navigator.push(
                       context,
@@ -536,7 +696,7 @@ class _BdoHomeScreenState extends State<BdoHomeScreen> {
                   SizedBox(width: 12.w),
                   Expanded(
                     child: Text(
-                      'View Rankings of GP',
+                      l10n.viewRankingsOfGp,
                       style: TextStyle(
                         color: Colors.white,
                         fontWeight: FontWeight.w600,
@@ -730,10 +890,10 @@ class _BdoHomeScreenState extends State<BdoHomeScreen> {
               }
 
               if (provider.schemes.isEmpty) {
-                return const Center(
+                return Center(
                   child: Text(
-                    'No schemes available',
-                    style: TextStyle(color: Color(0xFF9CA3AF)),
+                    l10n.noSchemesAvailable,
+                    style: const TextStyle(color: Color(0xFF9CA3AF)),
                   ),
                 );
               }
@@ -1165,6 +1325,7 @@ class _BdoHomeScreenState extends State<BdoHomeScreen> {
   }
 
   Widget _buildSocialMediaSection() {
+    final l10n = AppLocalizations.of(context)!;
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: 16.w),
       child: Container(
@@ -1185,7 +1346,7 @@ class _BdoHomeScreenState extends State<BdoHomeScreen> {
           mainAxisSize: MainAxisSize.min,
           children: [
             Text(
-              'Connect with Swachh Rajasthan',
+              l10n.connectWithSwachhRajasthan,
               style: TextStyle(
                 fontSize: 16.sp,
                 fontWeight: FontWeight.w600,
@@ -1258,11 +1419,12 @@ class _BdoHomeScreenState extends State<BdoHomeScreen> {
 
   void _showLinkError(String platform) {
     if (!mounted) return;
+    final l10n = AppLocalizations.of(context)!;
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
       ..showSnackBar(
         SnackBar(
-          content: Text('Could not open $platform link.'),
+          content: Text(l10n.couldNotOpenLink(platform)),
           backgroundColor: Colors.red,
         ),
       );
@@ -1324,7 +1486,84 @@ class _BdoHomeScreenState extends State<BdoHomeScreen> {
     }
   }
 
+  Future<void> _exportToCSV(BdoProvider provider) async {
+    if (provider.fromDate == null || provider.toDate == null) {
+      if (mounted) {
+        final l10n = AppLocalizations.of(context)!;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(l10n.pleaseSelectDateRangeFirst),
+            backgroundColor: const Color(0xFF6B7280),
+          ),
+        );
+      }
+      return;
+    }
+    try {
+      await DownloadHelper.requestStoragePermission();
+
+      final resolved = (provider.analytics['resolvedComplaints'] ?? 0) as num;
+      final verified = (provider.analytics['verifiedComplaints'] ?? 0) as num;
+      final closed = (provider.analytics['closedComplaints'] ?? 0) as num;
+
+      final csvData = [
+        ['Metric', 'Count', 'Date Range'],
+        [
+          'Total Reported Complaints',
+          (provider.analytics['totalComplaints'] ?? 0).toString(),
+          provider.dateRangeText,
+        ],
+        [
+          'Open Complaints',
+          (provider.analytics['openComplaints'] ?? 0).toString(),
+          provider.dateRangeText,
+        ],
+        [
+          'Resolved complaints',
+          (resolved.toInt() + verified.toInt() + closed.toInt()).toString(),
+          provider.dateRangeText,
+        ],
+      ];
+
+      final csvString = const ListToCsvConverter().convert(csvData);
+      final timestamp = DateFormat('yyyyMMdd_HHmmss').format(DateTime.now());
+      final fileName = 'bdo_complaints_report_$timestamp.csv';
+
+      final filePath = await DownloadHelper.downloadToDownloadsFolder(
+        fileName: fileName,
+        content: csvString,
+      );
+
+      if (mounted) {
+        if (filePath != null) {
+          final l10n = AppLocalizations.of(context)!;
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(l10n.csvExportedToDownloads(fileName)),
+              backgroundColor: const Color(0xFF009B56),
+              duration: const Duration(seconds: 3),
+            ),
+          );
+        } else {
+          throw Exception('Failed to save file to Downloads folder');
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        final l10n = AppLocalizations.of(context)!;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(l10n.errorExportingCsv(e.toString())),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
+    }
+  }
+
   void _showExitDialog() {
+    final l10n = AppLocalizations.of(context)!;
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -1334,7 +1573,7 @@ class _BdoHomeScreenState extends State<BdoHomeScreen> {
             borderRadius: BorderRadius.circular(12.r),
           ),
           title: Text(
-            'Exit App',
+            l10n.exitApp,
             style: TextStyle(
               fontFamily: 'Noto Sans',
               fontSize: 18.sp,
@@ -1343,7 +1582,7 @@ class _BdoHomeScreenState extends State<BdoHomeScreen> {
             ),
           ),
           content: Text(
-            'Are you sure you want to exit the app?',
+            l10n.areYouSureExitApp,
             style: TextStyle(
               fontFamily: 'Noto Sans',
               fontSize: 14.sp,
@@ -1356,7 +1595,7 @@ class _BdoHomeScreenState extends State<BdoHomeScreen> {
                 Navigator.of(context).pop();
               },
               child: Text(
-                'Cancel',
+                l10n.cancel,
                 style: TextStyle(
                   fontFamily: 'Noto Sans',
                   color: const Color(0xFF6B7280),
@@ -1376,7 +1615,7 @@ class _BdoHomeScreenState extends State<BdoHomeScreen> {
                 ),
               ),
               child: Text(
-                'Exit',
+                l10n.exit,
                 style: TextStyle(
                   fontFamily: 'Noto Sans',
                   fontWeight: FontWeight.w600,

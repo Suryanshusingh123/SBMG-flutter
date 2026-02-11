@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:mobile_scanner/mobile_scanner.dart';
 import '../../l10n/app_localizations.dart';
+import '../../services/code_scanner_service.dart';
 
 class QRScannerScreen extends StatefulWidget {
   const QRScannerScreen({super.key});
@@ -11,115 +11,143 @@ class QRScannerScreen extends StatefulWidget {
 }
 
 class _QRScannerScreenState extends State<QRScannerScreen> {
-  final MobileScannerController _cameraController = MobileScannerController();
-
-  bool _hasDetectedQR = false;
+  bool _isScanning = false;
 
   @override
-  void dispose() {
-    _cameraController.dispose();
-    super.dispose();
+  void initState() {
+    super.initState();
+    // Auto-start scan when screen opens.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _startScan();
+    });
   }
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
-      body: Stack(
-        children: [
-          // Camera scanner
-          MobileScanner(
-            controller: _cameraController,
-            onDetect: (capture) {
-              if (_hasDetectedQR) return;
-
-              final List<Barcode> barcodes = capture.barcodes;
-              if (barcodes.isNotEmpty) {
-                _hasDetectedQR = true;
-                final barcode = barcodes.first;
-                final rawValue = barcode.rawValue;
-
-                if (rawValue != null && rawValue.isNotEmpty) {
-                  print('📱 QR Code Detected: $rawValue');
-                  _handleQRCode(rawValue);
-                }
-              }
-            },
-          ),
-
-          // Overlay with scanning area
-          _buildOverlay(),
-
-          // Back button
-          Positioned(
-            top: 40.h,
-            left: 16.w,
-            child: GestureDetector(
-              onTap: () => Navigator.pop(context),
+      body: SafeArea(
+        child: Stack(
+          children: [
+            Positioned.fill(
               child: Container(
-                padding: EdgeInsets.all(12.r),
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.9),
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(
-                  Icons.arrow_back,
-                  color: const Color(0xFF111827),
-                  size: 24.sp,
+                color: Colors.black.withOpacity(0.05),
+              ),
+            ),
+            // Back button
+            Positioned(
+              top: 16.h,
+              left: 16.w,
+              child: GestureDetector(
+                onTap: () => Navigator.pop(context),
+                child: Container(
+                  padding: EdgeInsets.all(12.r),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.95),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    Icons.arrow_back,
+                    color: const Color(0xFF111827),
+                    size: 24.sp,
+                  ),
                 ),
               ),
             ),
-          ),
-
-          // Instructions
-          Positioned(
-            bottom: 40.h,
-            left: 0,
-            right: 0,
-            child: Column(
-              children: [
-                Container(
-                  padding: EdgeInsets.symmetric(
-                    horizontal: 20.w,
-                    vertical: 12.h,
-                  ),
-                  decoration: BoxDecoration(
-                    color: Colors.black.withOpacity(0.6),
-                    borderRadius: BorderRadius.circular(8.r),
-                  ),
-                  child: Text(
-                    AppLocalizations.of(context)!.scanQrCodeForAttendance,
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 16.sp,
-                      fontWeight: FontWeight.w500,
+            Center(
+              child: Padding(
+                padding: EdgeInsets.symmetric(horizontal: 24.w),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.qr_code_scanner,
+                      size: 80.sp,
+                      color: const Color(0xFF111827),
                     ),
-                  ),
+                    SizedBox(height: 12.h),
+                    Text(
+                      l10n.scanQrCodeForAttendance,
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: const Color(0xFF111827),
+                        fontSize: 16.sp,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    SizedBox(height: 12.h),
+                    Text(
+                      _isScanning ? l10n.loading : l10n.tapToScanQRCode,
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: const Color(0xFF6B7280),
+                        fontSize: 14.sp,
+                        fontWeight: FontWeight.w400,
+                      ),
+                    ),
+                    SizedBox(height: 20.h),
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        onPressed: _isScanning ? null : _startScan,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF009B56),
+                          foregroundColor: Colors.white,
+                          padding: EdgeInsets.symmetric(vertical: 14.h),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10.r),
+                          ),
+                        ),
+                        child: _isScanning
+                            ? SizedBox(
+                                height: 18.sp,
+                                width: 18.sp,
+                                child: const CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: Colors.white,
+                                ),
+                              )
+                            : Text(
+                                l10n.scan,
+                                style: TextStyle(
+                                  fontSize: 16.sp,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                      ),
+                    ),
+                  ],
                 ),
-              ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
 
-  Widget _buildOverlay() {
-    return Stack(
-      children: [
-        // Dimmed background
-        Positioned.fill(child: Container(color: Colors.black.withOpacity(0.6))),
+  Future<void> _startScan() async {
+    if (_isScanning) return;
+    setState(() => _isScanning = true);
 
-        // Scanning window
-        Positioned(
-          top: MediaQuery.of(context).size.height / 2 - 150.h,
-          left: MediaQuery.of(context).size.width / 2 - 150.w,
-          child: CustomPaint(
-            size: Size(300.w, 300.h),
-            painter: ScanningOverlayPainter(),
-          ),
-        ),
-      ],
-    );
+    try {
+      final raw = await CodeScannerService.scanQr();
+      if (!mounted) return;
+
+      if (raw == null || raw.isEmpty) {
+        // User cancelled or nothing scanned.
+        Navigator.pop(context);
+        return;
+      }
+
+      print('📱 QR Code Detected: $raw');
+      _handleQRCode(raw);
+    } catch (e) {
+      if (!mounted) return;
+      _showErrorDialog(AppLocalizations.of(context)!.scanError);
+    } finally {
+      if (mounted) setState(() => _isScanning = false);
+    }
   }
 
   void _handleQRCode(String qrData) {
@@ -165,11 +193,9 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
       );
 
       // Close scanner and return coordinates
-      _cameraController.stop();
       Navigator.pop(context, coordinates);
     } else {
       // Show error dialog
-      _cameraController.stop();
       _showErrorDialog(AppLocalizations.of(context)!.invalidQRCodeFormat);
     }
   }
@@ -186,10 +212,7 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
           TextButton(
             onPressed: () {
               Navigator.pop(context); // Close dialog
-              setState(() {
-                _hasDetectedQR = false;
-              });
-              _cameraController.start(); // Restart scanner
+              _startScan();
             },
             child: Text(l10n.tryAgain),
           ),
@@ -201,60 +224,4 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
       ),
     );
   }
-}
-
-class ScanningOverlayPainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = Colors.white
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 2;
-
-    // Draw corners
-    final cornerLength = 30.0;
-
-    // Top-left corner
-    canvas.drawLine(Offset(0, 0), Offset(cornerLength, 0), paint);
-    canvas.drawLine(Offset(0, 0), Offset(0, cornerLength), paint);
-
-    // Top-right corner
-    canvas.drawLine(
-      Offset(size.width, 0),
-      Offset(size.width - cornerLength, 0),
-      paint,
-    );
-    canvas.drawLine(
-      Offset(size.width, 0),
-      Offset(size.width, cornerLength),
-      paint,
-    );
-
-    // Bottom-left corner
-    canvas.drawLine(
-      Offset(0, size.height),
-      Offset(0, size.height - cornerLength),
-      paint,
-    );
-    canvas.drawLine(
-      Offset(0, size.height),
-      Offset(cornerLength, size.height),
-      paint,
-    );
-
-    // Bottom-right corner
-    canvas.drawLine(
-      Offset(size.width, size.height),
-      Offset(size.width, size.height - cornerLength),
-      paint,
-    );
-    canvas.drawLine(
-      Offset(size.width, size.height),
-      Offset(size.width - cornerLength, size.height),
-      paint,
-    );
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }

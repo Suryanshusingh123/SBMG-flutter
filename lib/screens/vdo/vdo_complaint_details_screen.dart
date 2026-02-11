@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../services/api_services.dart';
 import '../../config/connstants.dart';
+import '../../providers/vdo_complaints_provider.dart';
 import '../../l10n/app_localizations.dart';
 import '../../utils/location_display_helper.dart';
 import '../../utils/date_time_utils.dart';
+import '../../widgets/resolution_details_sheet.dart';
 
 class VdoComplaintDetailsScreen extends StatefulWidget {
   final int complaintId;
@@ -76,12 +79,22 @@ class _VdoComplaintDetailsScreenState extends State<VdoComplaintDetailsScreen> {
     // Try to determine complaint type name
     if (complaintType is Map && complaintType['name'] != null) {
       return complaintType['name'];
-    } else if (complaintType is String) {
-      return complaintType;
+    } else if (complaintType is String && complaintType.trim().isNotEmpty) {
+      return complaintType.trim();
     } else if (_complaintData?['complaint_type_name'] != null) {
       return _complaintData!['complaint_type_name'];
     }
-    
+
+    // Resolve from complaint_type_id when API returns id but not type name
+    final typeId = _complaintData?['complaint_type_id'];
+    if (typeId != null && context.mounted) {
+      final id = typeId is int ? typeId : int.tryParse(typeId.toString());
+      if (id != null) {
+        final resolved = context.read<VdoComplaintsProvider>().getComplaintTypeNameById(id);
+        if (resolved != null && resolved.isNotEmpty) return resolved;
+      }
+    }
+
     // Fallback to default
     return 'Road Maintenance';
   }
@@ -100,21 +113,21 @@ class _VdoComplaintDetailsScreenState extends State<VdoComplaintDetailsScreen> {
 
     // First check if closed
     if (status == 4 || closedAt != null) {
-      return l10n.complaintResolved;
+      return 'Complaint has been closed';
     }
 
-    // Then check if verified but not closed
+    // Then check if verified but not closed - show awaiting citizen message
     if (status == 3 || (verifiedAt != null && closedAt == null)) {
-      return l10n.complaintVerified;
+      return l10n.awaitingForCitizenToCloseComplaint;
     }
 
-    // Then check if resolved
-    if (status == 2 || resolvedAt != null) {
-      return l10n.waitingVerificationFromVdo;
+    // Then check if resolved but not verified - show awaiting VDO message
+    if (status == 2 || (resolvedAt != null && verifiedAt == null)) {
+      return l10n.awaitingForVdoToVerify;
     }
 
-    // Open status
-    return l10n.waitingForSupervisorToResolve;
+    // Open status - show awaiting supervisor message
+    return l10n.awaitingForSupervisorToTakeAction;
   }
 
   String get _dynamicStatusSubtext {
@@ -384,8 +397,33 @@ class _VdoComplaintDetailsScreenState extends State<VdoComplaintDetailsScreen> {
 
   Widget _buildImages() {
     final media = _complaintData?['media'] as List<dynamic>? ?? [];
+    // media_urls = original complaint images only (set at creation; resolution
+    // images are added to media, not to media_urls). Use it for the top section
+    // so the supervisor's resolution image never appears next to the complaint.
+    final mediaUrls = _complaintData?['media_urls'] as List<dynamic>? ?? [];
 
-    if (media.isEmpty) {
+    final resolutionImageUrl =
+        ResolutionDetailsSheet.extract(_complaintData).resolutionImageUrl;
+
+    List<dynamic> complaintMedia;
+    if (mediaUrls.isNotEmpty) {
+      complaintMedia = mediaUrls
+          .map<Map<String, dynamic>>((u) => {
+                'media_url': u is String ? u : u.toString(),
+              })
+          .where((m) =>
+              (m['media_url'] as String? ?? '') != (resolutionImageUrl ?? ''))
+          .toList();
+    } else {
+      // Fallback: exclude the resolution image from media (it belongs only in
+      // the "Resolved" timeline bottom sheet).
+      complaintMedia = media
+          .where((m) =>
+              (m['media_url'] as String? ?? '') != (resolutionImageUrl ?? ''))
+          .toList();
+    }
+
+    if (complaintMedia.isEmpty) {
       return Container(
         margin: EdgeInsets.symmetric(horizontal: 16.w),
         height: 200.h,
@@ -403,8 +441,8 @@ class _VdoComplaintDetailsScreenState extends State<VdoComplaintDetailsScreen> {
       );
     }
 
-    if (media.length == 1) {
-      final mediaUrl = ApiConstants.getMediaUrl(media[0]['media_url']);
+    if (complaintMedia.length == 1) {
+      final mediaUrl = ApiConstants.getMediaUrl(complaintMedia[0]['media_url']);
       return Container(
         margin: EdgeInsets.symmetric(horizontal: 16.w),
         height: 200.h,
@@ -441,7 +479,7 @@ class _VdoComplaintDetailsScreenState extends State<VdoComplaintDetailsScreen> {
       );
     }
 
-    // Multiple images
+    // Multiple images (complaint images only; resolution images stay in bottom sheet)
     return Container(
       margin: EdgeInsets.symmetric(horizontal: 16.w),
       child: Row(
@@ -456,7 +494,7 @@ class _VdoComplaintDetailsScreenState extends State<VdoComplaintDetailsScreen> {
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(12.r),
                 child: Image.network(
-                  ApiConstants.getMediaUrl(media[0]['media_url']),
+                  ApiConstants.getMediaUrl(complaintMedia[0]['media_url']),
                   fit: BoxFit.cover,
                   errorBuilder: (context, error, stackTrace) {
                     return Container(
@@ -492,9 +530,9 @@ class _VdoComplaintDetailsScreenState extends State<VdoComplaintDetailsScreen> {
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(12.r),
                 child: Image.network(
-                  media.length > 1
-                      ? ApiConstants.getMediaUrl(media[1]['media_url'])
-                      : ApiConstants.getMediaUrl(media[0]['media_url']),
+                  complaintMedia.length > 1
+                      ? ApiConstants.getMediaUrl(complaintMedia[1]['media_url'])
+                      : ApiConstants.getMediaUrl(complaintMedia[0]['media_url']),
                   fit: BoxFit.cover,
                   errorBuilder: (context, error, stackTrace) {
                     return Container(
@@ -531,8 +569,18 @@ class _VdoComplaintDetailsScreenState extends State<VdoComplaintDetailsScreen> {
     String complaintTypeName = 'Road Maintenance';
     if (complaintType is Map && complaintType['name'] != null) {
       complaintTypeName = complaintType['name'];
-    } else if (complaintType is String) {
-      complaintTypeName = complaintType;
+    } else if (complaintType is String && complaintType.trim().isNotEmpty) {
+      complaintTypeName = complaintType.trim();
+    } else {
+      // Resolve from complaint_type_id when API returns id but not type name
+      final typeId = _complaintData?['complaint_type_id'];
+      if (typeId != null && context.mounted) {
+        final id = typeId is int ? typeId : int.tryParse(typeId.toString());
+        if (id != null) {
+          final resolved = context.read<VdoComplaintsProvider>().getComplaintTypeNameById(id);
+          if (resolved != null && resolved.isNotEmpty) complaintTypeName = resolved;
+        }
+      }
     }
 
     return Container(
@@ -592,6 +640,57 @@ class _VdoComplaintDetailsScreenState extends State<VdoComplaintDetailsScreen> {
             ),
           ),
           SizedBox(height: 16.h),
+
+          // Get Directions Button
+          if (_latitude != null && _longitude != null)
+            GestureDetector(
+              onTap: () {
+                _openGoogleMaps(
+                  _latitude,
+                  _longitude,
+                );
+              },
+              child: Container(
+                padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 14.h),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(8.r),
+                  border: Border.all(color: Colors.grey.shade300, width: 1),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.05),
+                      blurRadius: 4,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: Row(
+                  children: [
+                    Image.asset(
+                      'assets/icons/map.png',
+                      width: 24.w,
+                      height: 24.h,
+                      fit: BoxFit.contain,
+                    ),
+                    SizedBox(width: 12.w),
+                    Text(
+                      AppLocalizations.of(context)!.getDirections,
+                      style: TextStyle(
+                        fontSize: 14.sp,
+                        fontWeight: FontWeight.w500,
+                        color: const Color(0xFF111827),
+                      ),
+                    ),
+                    const Spacer(),
+                    Icon(
+                      Icons.arrow_forward_ios,
+                      size: 16.sp,
+                      color: AppColors.primaryColor,
+                    ),
+                  ],
+                ),
+              ),
+            ),
         ],
       ),
     );
@@ -638,6 +737,7 @@ class _VdoComplaintDetailsScreenState extends State<VdoComplaintDetailsScreen> {
               item['subtitle'],
               item['isCompleted'],
               showLine: item['showLine'],
+              onTap: () => _onTimelineStageTap(item),
             ),
           ),
         ],
@@ -677,16 +777,18 @@ class _VdoComplaintDetailsScreenState extends State<VdoComplaintDetailsScreen> {
           closedAt != null ||
           hasResolutionComment ||
           hasVerificationComment,
+      'stage': 'created',
     });
 
     // Add resolved if present
     if (resolvedAt != null || hasResolutionComment) {
       items.add({
         'title': l10n.resolved,
-        'subtitle': _formatTimelineSubtitle('Vendor / Supervisor', resolvedAt),
+        'subtitle': _formatTimelineSubtitle('Contractor / Supervisor', resolvedAt),
         'isCompleted': true,
         'showLine':
             verifiedAt != null || closedAt != null || hasVerificationComment,
+        'stage': 'resolved',
       });
     }
 
@@ -697,6 +799,7 @@ class _VdoComplaintDetailsScreenState extends State<VdoComplaintDetailsScreen> {
         'subtitle': _formatTimelineSubtitle('VDO', verifiedAt),
         'isCompleted': true,
         'showLine': closedAt != null,
+        'stage': 'verified',
       });
     }
 
@@ -707,6 +810,7 @@ class _VdoComplaintDetailsScreenState extends State<VdoComplaintDetailsScreen> {
         'subtitle': _formatTimelineSubtitle('Citizen', closedAt),
         'isCompleted': true,
         'showLine': false,
+        'stage': 'closed',
       });
     }
 
@@ -714,11 +818,32 @@ class _VdoComplaintDetailsScreenState extends State<VdoComplaintDetailsScreen> {
   }
 
   String _formatTimelineSubtitle(String user, String? dateString) {
-    String formattedDate = DateTimeUtils.formatDateStringIST(dateString);
+    String formattedDate = DateTimeUtils.formatComplaintDetailIST(dateString);
     if (formattedDate == 'Unknown') {
       formattedDate = 'Unknown date';
     }
     return '$user · $formattedDate';
+  }
+
+  void _onTimelineStageTap(Map<String, dynamic> item) {
+    final stage = item['stage'] as String?;
+    if (stage == 'resolved') {
+      ResolutionDetailsSheet.show(context, _complaintData);
+    } else {
+      showDialog<void>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: Text(item['title'] as String),
+          content: Text(item['subtitle'] as String),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: Text(AppLocalizations.of(context)!.cancel),
+            ),
+          ],
+        ),
+      );
+    }
   }
 
   Widget _buildTimelineItem(
@@ -726,8 +851,9 @@ class _VdoComplaintDetailsScreenState extends State<VdoComplaintDetailsScreen> {
     String subtitle,
     bool isCompleted, {
     bool showLine = true,
+    VoidCallback? onTap,
   }) {
-    return Row(
+    final content = Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Column(
@@ -777,18 +903,20 @@ class _VdoComplaintDetailsScreenState extends State<VdoComplaintDetailsScreen> {
         ),
       ],
     );
+    if (onTap != null) {
+      return InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(8.r),
+        child: content,
+      );
+    }
+    return content;
   }
 
   String _formatDate(String? date) {
     if (date == null) return 'N/A';
-    final formatted = DateTimeUtils.formatDateStringIST(date);
-    if (formatted == 'Unknown') return 'N/A';
-    // Extract date only part (without time) from formatted string
-    final parts = formatted.split(', ');
-    if (parts.length >= 2) {
-      return parts[0]; // Return "MMM d, yyyy" part
-    }
-    return formatted;
+    final formatted = DateTimeUtils.formatComplaintDetailIST(date);
+    return formatted == 'Unknown' ? 'N/A' : formatted;
   }
 
   // ignore: unused_element
@@ -804,29 +932,38 @@ class _VdoComplaintDetailsScreenState extends State<VdoComplaintDetailsScreen> {
       return;
     }
 
-    // Create Google Maps URL with lat/long
-    final url = Uri.parse(
-      'https://www.google.com/maps/search/?api=1&query=$lat,$long',
+    const mode = LaunchMode.externalApplication;
+    // Use directions URL so Maps opens the "Get directions" screen, not just the pin
+    final directionsUrl = Uri.parse(
+      'https://www.google.com/maps/dir/?api=1&destination=$lat,$long',
     );
+    final geoUri = Uri.parse('geo:0,0?q=$lat,$long');
 
     try {
-      if (await canLaunchUrl(url)) {
-        await launchUrl(url, mode: LaunchMode.externalApplication);
-      } else {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
-                AppLocalizations.of(context)!.couldNotOpenGoogleMaps,
-              ),
+      bool launched = false;
+      try {
+        launched = await launchUrl(directionsUrl, mode: mode);
+      } catch (_) {}
+      if (!launched) {
+        launched = await launchUrl(geoUri, mode: mode);
+      }
+      if (!launched && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              AppLocalizations.of(context)!.couldNotOpenGoogleMaps,
             ),
-          );
-        }
+          ),
+        );
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('${AppLocalizations.of(context)!.error}: $e')),
+          SnackBar(
+            content: Text(
+              AppLocalizations.of(context)!.couldNotOpenGoogleMaps,
+            ),
+          ),
         );
       }
     }

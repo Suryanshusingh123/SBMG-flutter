@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../../config/connstants.dart';
 import '../../models/api_complaint_model.dart';
 import '../../providers/ceo_complaints_provider.dart';
+import '../../utils/date_time_utils.dart';
 import '../../utils/location_display_helper.dart';
 import '../../widgets/common/custom_bottom_navigation.dart';
 import '../../widgets/common/date_filter_bottom_sheet.dart';
@@ -12,9 +14,14 @@ import 'ceo_complaint_details_screen.dart';
 import '../../services/auth_services.dart';
 import '../../services/api_services.dart';
 import '../../models/geography_model.dart';
+import '../../screens/common/unified_select_location_screen.dart';
+import '../../providers/ceo_provider.dart';
 
 class CeoComplaintsScreen extends StatefulWidget {
-  const CeoComplaintsScreen({super.key});
+  /// When true, this screen is shown inside [CeoShellScreen]; bottom nav is provided by the shell.
+  final bool isEmbeddedInShell;
+
+  const CeoComplaintsScreen({super.key, this.isEmbeddedInShell = false});
 
   @override
   State<CeoComplaintsScreen> createState() => _CeoComplaintsScreenState();
@@ -29,6 +36,8 @@ class _CeoComplaintsScreenState extends State<CeoComplaintsScreen> {
   DateTime? _filterStartDate;
   DateTime? _filterEndDate;
   String? _districtName;
+  Map<String, dynamic>? _complaintLocation;
+  final AuthService _authService = AuthService();
 
   @override
   void initState() {
@@ -36,7 +45,22 @@ class _CeoComplaintsScreenState extends State<CeoComplaintsScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _loadComplaints();
       _loadDistrictName();
+      _loadSavedLocation();
     });
+  }
+
+  Future<void> _loadSavedLocation() async {
+    // Load saved location for COMPLAINTS page if available
+    // Fallback to old inspection location for backward compatibility
+    var savedLocation = await _authService.getPageLocation('ceo', 'complaints');
+    if (savedLocation == null) {
+      savedLocation = await _authService.getInspectionLocation('ceo');
+    }
+    if (savedLocation != null && mounted) {
+      setState(() {
+        _complaintLocation = savedLocation;
+      });
+    }
   }
 
   void _loadComplaints() {
@@ -53,15 +77,16 @@ class _CeoComplaintsScreenState extends State<CeoComplaintsScreen> {
       final districtId = await authService.getDistrictId();
       if (districtId == null) {
         if (mounted) {
-          setState(() => _districtName = 'District');
+          setState(() => _districtName = AppLocalizations.of(context)!.district);
         }
         return;
       }
 
       final districts = await apiService.getDistricts();
+      final districtLabel = AppLocalizations.of(context)!.district;
       final district = districts.firstWhere(
         (d) => d.id == districtId,
-        orElse: () => District(id: districtId, name: 'District'),
+        orElse: () => District(id: districtId, name: districtLabel),
       );
 
       if (mounted) {
@@ -72,68 +97,26 @@ class _CeoComplaintsScreenState extends State<CeoComplaintsScreen> {
     } catch (e) {
       if (mounted) {
         setState(() {
-          _districtName = 'District';
+          _districtName = AppLocalizations.of(context)!.district;
         });
       }
     }
   }
 
-  String _getCurrentMonth() {
-    final months = [
-      'January',
-      'February',
-      'March',
-      'April',
-      'May',
-      'June',
-      'July',
-      'August',
-      'September',
-      'October',
-      'November',
-      'December',
-    ];
-    return months[DateTime.now().month - 1];
+  String _getCurrentMonth(BuildContext context) {
+    final locale = Localizations.localeOf(context).toString();
+    return DateFormat('MMMM', locale).format(DateTime.now());
   }
 
-  String _getDisplayMonth() {
+  String _getDisplayMonth(BuildContext context) {
+    final locale = Localizations.localeOf(context).toString();
     if (_filterDate != null) {
-      final months = [
-        'January',
-        'February',
-        'March',
-        'April',
-        'May',
-        'June',
-        'July',
-        'August',
-        'September',
-        'October',
-        'November',
-        'December',
-      ];
-      return months[_filterDate!.month - 1];
+      return DateFormat('MMMM', locale).format(_filterDate!);
     }
-
     if (_filterStartDate != null) {
-      final months = [
-        'January',
-        'February',
-        'March',
-        'April',
-        'May',
-        'June',
-        'July',
-        'August',
-        'September',
-        'October',
-        'November',
-        'December',
-      ];
-      return months[_filterStartDate!.month - 1];
+      return DateFormat('MMMM', locale).format(_filterStartDate!);
     }
-
-    return _getCurrentMonth();
+    return _getCurrentMonth(context);
   }
 
   void _refreshComplaints() {
@@ -153,46 +136,46 @@ class _CeoComplaintsScreenState extends State<CeoComplaintsScreen> {
           ],
         ),
       ),
-      bottomNavigationBar: CustomBottomNavigationBar(
-        currentIndex: _selectedIndex,
-        onTap: (index) {
-          setState(() {
-            _selectedIndex = index;
-          });
-
-          switch (index) {
-            case 0:
-              Navigator.pushReplacementNamed(context, '/ceo-dashboard');
-              break;
-            case 1:
-              break;
-            case 2:
-              Navigator.pushReplacementNamed(context, '/ceo-monitoring');
-              break;
-            case 3:
-              Navigator.pushReplacementNamed(context, '/ceo-settings');
-              break;
-          }
-        },
-        items: [
-          BottomNavItem(
-            iconPath: 'assets/icons/bottombar/home.png',
-            label: AppLocalizations.of(context)!.home,
-          ),
-          BottomNavItem(
-            iconPath: 'assets/icons/bottombar/complaints.png',
-            label: AppLocalizations.of(context)!.complaints,
-          ),
-          BottomNavItem(
-            iconPath: 'assets/icons/bottombar/inspection.png',
-            label: AppLocalizations.of(context)!.inspection,
-          ),
-          BottomNavItem(
-            iconPath: 'assets/icons/bottombar/settings.png',
-            label: AppLocalizations.of(context)!.settings,
-          ),
-        ],
-      ),
+      // Bottom nav is provided by CeoShellScreen when isEmbeddedInShell
+      bottomNavigationBar: widget.isEmbeddedInShell
+          ? null
+          : CustomBottomNavigationBar(
+              currentIndex: _selectedIndex,
+              onTap: (index) {
+                setState(() => _selectedIndex = index);
+                switch (index) {
+                  case 0:
+                    Navigator.pushReplacementNamed(context, '/ceo-dashboard');
+                    break;
+                  case 1:
+                    break;
+                  case 2:
+                    Navigator.pushReplacementNamed(context, '/ceo-monitoring');
+                    break;
+                  case 3:
+                    Navigator.pushReplacementNamed(context, '/ceo-settings');
+                    break;
+                }
+              },
+              items: [
+                BottomNavItem(
+                  iconPath: 'assets/icons/bottombar/home.png',
+                  label: AppLocalizations.of(context)!.home,
+                ),
+                BottomNavItem(
+                  iconPath: 'assets/icons/bottombar/complaints.png',
+                  label: AppLocalizations.of(context)!.complaints,
+                ),
+                BottomNavItem(
+                  iconPath: 'assets/icons/bottombar/inspection.png',
+                  label: AppLocalizations.of(context)!.inspection,
+                ),
+                BottomNavItem(
+                  iconPath: 'assets/icons/bottombar/settings.png',
+                  label: AppLocalizations.of(context)!.settings,
+                ),
+              ],
+            ),
     );
   }
 
@@ -220,6 +203,53 @@ class _CeoComplaintsScreenState extends State<CeoComplaintsScreen> {
               Row(
                 children: [
                   GestureDetector(
+                    onTap: () async {
+                      final result = await Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const UnifiedSelectLocationScreen(userRole: 'ceo'),
+                        ),
+                      );
+                      if (result is Map<String, dynamic> && result['blockId'] != null && result['gpId'] != null) {
+                        print('📍 Location changed - New location: $result');
+                        print('   - District ID: ${result['districtId']}');
+                        print('   - Block ID: ${result['blockId']}');
+                        print('   - GP ID: ${result['gpId']}');
+                        
+                        // Save the location for COMPLAINTS page
+                        await _authService.savePageLocation('ceo', 'complaints', result);
+                        
+                        // Verify it was saved correctly
+                        final saved = await _authService.getPageLocation('ceo', 'complaints');
+                        print('💾 Verified saved location: $saved');
+                        if (saved == null) {
+                          print('❌ ERROR: Location was not saved correctly!');
+                          return;
+                        }
+                        
+                        // Update state
+                        setState(() {
+                          _complaintLocation = result;
+                        });
+                        
+                        // Reload complaints with new location
+                        if (mounted) {
+                          context.read<CeoComplaintsProvider>().loadComplaints();
+                        }
+                      } else {
+                        print('⚠️ Location change cancelled or invalid result: $result');
+                      }
+                    },
+                    child: Padding(
+                      padding: EdgeInsets.only(right: 8.w),
+                      child: Icon(
+                        Icons.location_on,
+                        size: 18.sp,
+                        color: AppColors.primaryColor,
+                      ),
+                    ),
+                  ),
+                  GestureDetector(
                     onTap: _showDateFilter,
                     child: Icon(
                       Icons.calendar_today,
@@ -241,13 +271,89 @@ class _CeoComplaintsScreenState extends State<CeoComplaintsScreen> {
             ],
           ),
           SizedBox(height: 4.h),
-          Text(
-            '${_districtName ?? 'District'} • ${_getDisplayMonth()}',
-            style: TextStyle(fontSize: 11.sp, color: const Color(0xFF6B7280)),
+          Consumer<CeoProvider>(
+            builder: (context, ceoProvider, child) {
+              String locationText;
+              if (_complaintLocation != null) {
+                final parts = <String>[];
+                if (_complaintLocation!['districtName'] != null) {
+                  parts.add(_complaintLocation!['districtName'] as String);
+                }
+                if (_complaintLocation!['blockName'] != null) {
+                  parts.add(_complaintLocation!['blockName'] as String);
+                }
+                if (_complaintLocation!['gpName'] != null) {
+                  parts.add(_complaintLocation!['gpName'] as String);
+                }
+                locationText = parts.isNotEmpty ? parts.join(' • ') : ceoProvider.locationPath;
+              } else {
+                locationText = ceoProvider.locationPath.isNotEmpty 
+                    ? ceoProvider.locationPath 
+                    : (_districtName ?? 'District');
+              }
+              
+              return Text(
+                '$locationText • ${_getDisplayMonth(context)}',
+                style: TextStyle(fontSize: 11.sp, color: const Color(0xFF6B7280)),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              );
+            },
           ),
         ],
       ),
     );
+  }
+
+  int _getFilteredCount(List<ApiComplaintModel> complaints) {
+    List<ApiComplaintModel> filtered = List.from(complaints);
+
+    if (_filterDate != null) {
+      filtered = filtered.where((complaint) {
+        try {
+          final complaintDate = DateTime.parse(complaint.createdAt).toUtc();
+          final filterDate = DateTime.utc(
+            _filterDate!.year,
+            _filterDate!.month,
+            _filterDate!.day,
+          );
+          return complaintDate.year == filterDate.year &&
+              complaintDate.month == filterDate.month &&
+              complaintDate.day == filterDate.day;
+        } catch (e) {
+          return false;
+        }
+      }).toList();
+    }
+
+    if (_filterStartDate != null && _filterEndDate != null) {
+      filtered = filtered.where((complaint) {
+        try {
+          final complaintDate = DateTime.parse(complaint.createdAt).toUtc();
+          final startDate = DateTime.utc(
+            _filterStartDate!.year,
+            _filterStartDate!.month,
+            _filterStartDate!.day,
+          );
+          final endDate = DateTime.utc(
+            _filterEndDate!.year,
+            _filterEndDate!.month,
+            _filterEndDate!.day,
+            23,
+            59,
+            59,
+          );
+          return (complaintDate.isAfter(startDate.subtract(const Duration(seconds: 1))) ||
+                  complaintDate.isAtSameMomentAs(startDate)) &&
+              (complaintDate.isBefore(endDate) ||
+                  complaintDate.isAtSameMomentAs(endDate));
+        } catch (e) {
+          return false;
+        }
+      }).toList();
+    }
+
+    return filtered.length;
   }
 
   Widget _buildStatusTabs(BuildContext context) {
@@ -262,7 +368,7 @@ class _CeoComplaintsScreenState extends State<CeoComplaintsScreen> {
           _buildTab(
             context,
             AppLocalizations.of(context)!.open,
-            provider.openComplaints.length,
+            _getFilteredCount(provider.openComplaints),
             _selectedStatus == 'Open',
             0,
           ),
@@ -270,7 +376,7 @@ class _CeoComplaintsScreenState extends State<CeoComplaintsScreen> {
           _buildTab(
             context,
             AppLocalizations.of(context)!.resolved,
-            provider.resolvedComplaints.length,
+            _getFilteredCount(provider.resolvedComplaints),
             _selectedStatus == 'Resolved',
             1,
           ),
@@ -278,7 +384,7 @@ class _CeoComplaintsScreenState extends State<CeoComplaintsScreen> {
           _buildTab(
             context,
             AppLocalizations.of(context)!.verified,
-            provider.verifiedComplaints.length,
+            _getFilteredCount(provider.verifiedComplaints),
             _selectedStatus == 'Verified',
             2,
           ),
@@ -286,7 +392,7 @@ class _CeoComplaintsScreenState extends State<CeoComplaintsScreen> {
           _buildTab(
             context,
             AppLocalizations.of(context)!.complaintClosed,
-            provider.closedComplaints.length,
+            _getFilteredCount(provider.closedComplaints),
             _selectedStatus == AppLocalizations.of(context)!.complaintClosed,
             3,
           ),
@@ -518,6 +624,7 @@ class _CeoComplaintsScreenState extends State<CeoComplaintsScreen> {
   }
 
   Widget _buildComplaintCard(ApiComplaintModel complaint) {
+    final provider = context.watch<CeoComplaintsProvider>();
     final firstMediaUrl = complaint.hasMedia ? complaint.firstMediaUrl : null;
     final mediaUrl = firstMediaUrl != null
         ? ApiConstants.getMediaUrl(firstMediaUrl)
@@ -680,7 +787,7 @@ class _CeoComplaintsScreenState extends State<CeoComplaintsScreen> {
                       SizedBox(width: 8.w),
                       Expanded(
                         child: Text(
-                          complaint.complaintType,
+                          provider.getComplaintTypeDisplayName(complaint),
                           style: TextStyle(
                             fontSize: 14.sp,
                             fontWeight: FontWeight.bold,
@@ -729,29 +836,8 @@ class _CeoComplaintsScreenState extends State<CeoComplaintsScreen> {
     );
   }
 
-  String _formatDate(String dateString) {
-    try {
-      final date = DateTime.parse(dateString);
-      final istDate = date.add(const Duration(hours: 5, minutes: 30));
-      final months = [
-        'Jan',
-        'Feb',
-        'Mar',
-        'Apr',
-        'May',
-        'Jun',
-        'Jul',
-        'Aug',
-        'Sep',
-        'Oct',
-        'Nov',
-        'Dec',
-      ];
-      return '${months[istDate.month - 1]} ${istDate.day}, ${istDate.year}';
-    } catch (e) {
-      return 'Recent';
-    }
-  }
+  String _formatDate(String dateString) =>
+      DateTimeUtils.formatComplaintListIST(dateString);
 
   void _showSortOptions() {
     showModalBottomSheet(

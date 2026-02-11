@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:provider/provider.dart';
 import '../../config/connstants.dart';
 import '../../providers/locale_provider.dart';
+import '../../providers/bookmarks_provider.dart';
 import '../../services/auth_services.dart';
 import '../../l10n/app_localizations.dart';
 import '../../widgets/common/custom_bottom_navigation.dart';
@@ -11,7 +13,10 @@ import '../citizen/language_screen.dart';
 import '../citizen/bookmarks_screen.dart';
 
 class CeoSettingsScreen extends StatefulWidget {
-  const CeoSettingsScreen({super.key});
+  /// When true, this screen is shown inside [CeoShellScreen]; bottom nav is provided by the shell.
+  final bool isEmbeddedInShell;
+
+  const CeoSettingsScreen({super.key, this.isEmbeddedInShell = false});
 
   @override
   State<CeoSettingsScreen> createState() => _CeoSettingsScreenState();
@@ -110,10 +115,20 @@ class _CeoSettingsScreenState extends State<CeoSettingsScreen> {
                               ? AppLocalizations.of(context)!.hindi
                               : AppLocalizations.of(context)!.english,
                           onTap: () async {
+                            final locale = localeProvider.locale;
                             await Navigator.push(
                               context,
                               MaterialPageRoute(
-                                builder: (context) => const LanguageScreen(),
+                                builder: (context) => Localizations(
+                                  locale: locale,
+                                  delegates: const [
+                                    AppLocalizations.delegate,
+                                    GlobalMaterialLocalizations.delegate,
+                                    GlobalWidgetsLocalizations.delegate,
+                                    GlobalCupertinoLocalizations.delegate,
+                                  ],
+                                  child: const LanguageScreen(),
+                                ),
                               ),
                             );
                             // Refresh the UI after returning from language screen
@@ -126,11 +141,11 @@ class _CeoSettingsScreenState extends State<CeoSettingsScreen> {
                     ),
                     _buildDivider(),
 
-                    // My Collection (Bookmarks)
+                    // My Collection (schemes only)
                     _buildSettingItemWithSubtitle(
                       icon: Icons.bookmark_outline,
                       title: AppLocalizations.of(context)!.myCollection,
-                      subtitle: AppLocalizations.of(context)!.bookmarks,
+                      subtitle: AppLocalizations.of(context)!.bookmarkedSchemes,
                       onTap: () {
                         Navigator.push(
                           context,
@@ -174,8 +189,10 @@ class _CeoSettingsScreenState extends State<CeoSettingsScreen> {
         ),
       ),
 
-      // Bottom Navigation Bar
-      bottomNavigationBar: _buildBottomNavigationBar(),
+      // Bottom nav is provided by CeoShellScreen when isEmbeddedInShell
+      bottomNavigationBar: widget.isEmbeddedInShell
+          ? null
+          : _buildBottomNavigationBar(),
     );
   }
 
@@ -716,6 +733,12 @@ class _CeoSettingsScreenState extends State<CeoSettingsScreen> {
     // Clear CEO session
     final authService = AuthService();
     await authService.logout();
+    
+    // Clear bookmarks when user logs out
+    if (context.mounted) {
+      final bookmarksProvider = context.read<BookmarksProvider>();
+      bookmarksProvider.clearBookmarks();
+    }
 
     // Navigate to citizen home screen and clear navigation stack
     if (context.mounted) {
@@ -803,6 +826,12 @@ class _CeoSettingsScreenState extends State<CeoSettingsScreen> {
                       onPressed: () async {
                         final authService = AuthService();
                         await authService.logout();
+                        
+                        // Clear bookmarks when user logs out
+                        if (context.mounted) {
+                          final bookmarksProvider = context.read<BookmarksProvider>();
+                          bookmarksProvider.clearBookmarks();
+                        }
 
                         if (context.mounted) {
                           Navigator.pop(context); // Close dialog

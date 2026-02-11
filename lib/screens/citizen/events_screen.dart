@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:provider/provider.dart';
 import '../../config/connstants.dart';
 import '../../services/api_services.dart';
-import '../../providers/citizen_bookmarks_provider.dart';
 import '../../models/event_model.dart';
 import '../../l10n/app_localizations.dart';
 import 'package:intl/intl.dart';
@@ -215,47 +213,6 @@ class _EventsScreenState extends State<EventsScreen> {
                               'assets/images/eventbanner.png',
                               fit: BoxFit.cover,
                             ),
-                    ),
-                    // Bookmark Button
-                    Positioned(
-                      top: 12.h,
-                      right: 12.w,
-                      child: Consumer<BookmarksProvider>(
-                        builder: (context, bookmarksProvider, child) {
-                          final isBookmarked = bookmarksProvider.isEventBookmarked(event.id);
-                          return GestureDetector(
-                            onTap: () {
-                              bookmarksProvider.toggleEventBookmark(event.id, !isBookmarked);
-                            },
-                            child: Container(
-                              width: 40.w,
-                              height: 40.h,
-                              decoration: BoxDecoration(
-                                color: isBookmarked
-                                    ? const Color(0xFF009B56)
-                                    : Colors.white.withOpacity(0.9),
-                                borderRadius: BorderRadius.circular(8.r),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.black.withOpacity(0.2),
-                                    blurRadius: 4,
-                                    offset: const Offset(0, 2),
-                                  ),
-                                ],
-                              ),
-                              child: Icon(
-                                isBookmarked
-                                    ? Icons.bookmark
-                                    : Icons.bookmark_border,
-                                color: isBookmarked
-                                    ? Colors.white
-                                    : const Color(0xFF4CAF50),
-                                size: 20.sp,
-                              ),
-                            ),
-                          );
-                        },
-                      ),
                     ),
                   ],
                 ),

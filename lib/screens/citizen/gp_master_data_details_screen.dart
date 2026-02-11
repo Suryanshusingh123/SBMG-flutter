@@ -419,11 +419,12 @@ class _GpMasterDataDetailsScreenState extends State<GpMasterDataDetailsScreen> {
                   if (selectedDistrict != null &&
                       selectedBlock != null &&
                       selectedVillage != null) {
+                    final gpId = selectedVillage!.gpId ?? selectedVillage!.id;
                     Navigator.push(
                       context,
                       MaterialPageRoute(
                         builder: (context) => VillageMasterDataFormScreen(
-                          villageId: selectedVillage!.id,
+                          gpId: gpId,
                         ),
                       ),
                     );

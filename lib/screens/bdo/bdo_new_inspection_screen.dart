@@ -6,6 +6,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:intl/intl.dart';
 import '../../config/connstants.dart';
 import '../../services/api_services.dart';
+import '../../l10n/app_localizations.dart';
 
 class BdoNewInspectionScreen extends StatefulWidget {
   final int gpId;
@@ -74,117 +75,6 @@ class _BdoNewInspectionScreenState extends State<BdoNewInspectionScreen> {
     _villageController.text = widget.gpName;
     // Auto-expand General Details section initially since Village is pre-filled
     _generalDetailsExpanded = true;
-    _setupAutoExpandListeners();
-  }
-
-  void _setupAutoExpandListeners() {
-    // Listen to General Details fields to auto-expand Household Waste section
-    _numberOfWardsController.addListener(_checkAndAutoExpandGeneralDetails);
-    // Note: Radio button changes are handled in onChanged callbacks
-
-    // Listen to Suggestions field
-    _suggestionsController.addListener(_checkAndAutoExpandSuggestions);
-  }
-
-  void _checkAndAutoExpandGeneralDetails() {
-    if (_numberOfWardsController.text.trim().isNotEmpty &&
-        _dailyRegisterMaintained != null) {
-      _autoExpandNextSection('generalDetails');
-    }
-  }
-
-  void _checkAndAutoExpandHouseholdWaste() {
-    if (_wasteCollectionInterval != null &&
-        _separateCollectionWetDry != null &&
-        _wasteDisposalAtRRC != null &&
-        _arrangementAtRRC != null &&
-        _vehicleProperlyPrepared != null) {
-      _autoExpandNextSection('householdWaste');
-    }
-  }
-
-  void _checkAndAutoExpandRoadCleaning() {
-    if (_roadCleaningInterval != null) {
-      _autoExpandNextSection('roadCleaning');
-    }
-  }
-
-  void _checkAndAutoExpandDrainCleaning() {
-    if (_drainCleaningInterval != null &&
-        _sludgeDisposalArrangement != null &&
-        _drainWasteCollectedRoadside != null) {
-      _autoExpandNextSection('drainCleaning');
-    }
-  }
-
-  void _checkAndAutoExpandCscCleaning() {
-    if (_cscCleaningInterval != null &&
-        _cscElectricityWaterAvailable != null &&
-        _cscUsedByCommunity != null &&
-        _pinkToiletUsedInSchools != null) {
-      _autoExpandNextSection('cscCleaning');
-    }
-  }
-
-  void _checkAndAutoExpandOtherPoints() {
-    if (_firmPaidRegularly != null &&
-        _staffPaidRegularly != null &&
-        _safetyEquipmentProvided != null &&
-        _feedbackRegisterEntry != null &&
-        _rateChartPrepared != null &&
-        _rateChartDisplayed != null) {
-      _autoExpandNextSection('otherPoints');
-    }
-  }
-
-  void _checkAndAutoExpandSuggestions() {
-    // Suggestions are optional, so we don't auto-expand based on them
-  }
-
-  void _autoExpandNextSection(String currentSection) {
-    if (!mounted) return;
-
-    setState(() {
-      // Close current section and open next one
-      switch (currentSection) {
-        case 'generalDetails':
-          _generalDetailsExpanded = false;
-          if (!_householdWasteExpanded) {
-            _householdWasteExpanded = true;
-          }
-          break;
-        case 'householdWaste':
-          _householdWasteExpanded = false;
-          if (!_roadCleaningExpanded) {
-            _roadCleaningExpanded = true;
-          }
-          break;
-        case 'roadCleaning':
-          _roadCleaningExpanded = false;
-          if (!_drainCleaningExpanded) {
-            _drainCleaningExpanded = true;
-          }
-          break;
-        case 'drainCleaning':
-          _drainCleaningExpanded = false;
-          if (!_cscCleaningExpanded) {
-            _cscCleaningExpanded = true;
-          }
-          break;
-        case 'cscCleaning':
-          _cscCleaningExpanded = false;
-          if (!_otherPointsExpanded) {
-            _otherPointsExpanded = true;
-          }
-          break;
-        case 'otherPoints':
-          _otherPointsExpanded = false;
-          if (!_suggestionsExpanded) {
-            _suggestionsExpanded = true;
-          }
-          break;
-      }
-    });
   }
 
   @override
@@ -197,6 +87,7 @@ class _BdoNewInspectionScreenState extends State<BdoNewInspectionScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
@@ -206,9 +97,9 @@ class _BdoNewInspectionScreenState extends State<BdoNewInspectionScreen> {
           icon: const Icon(Icons.arrow_back, color: Colors.black),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text(
-          'Inspection',
-          style: TextStyle(
+        title: Text(
+          l10n.inspection,
+          style: const TextStyle(
             color: Colors.black,
             fontSize: 18,
             fontWeight: FontWeight.w600,
@@ -227,30 +118,28 @@ class _BdoNewInspectionScreenState extends State<BdoNewInspectionScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     _buildFormField(
-                      label: 'Village',
+                      label: l10n.village,
                       controller: _villageController,
-                      placeholder: 'Enter village name',
+                      placeholder: l10n.enterVillageName,
                     ),
                     SizedBox(height: 20.h),
                     _buildExpandableSection(
-                      title: 'General Details',
+                      title: l10n.generalDetails,
                       isExpanded: _generalDetailsExpanded,
                       onToggle: () => setState(() => _generalDetailsExpanded = !_generalDetailsExpanded),
                       children: [
                         _buildFormField(
-                          label: 'Number of Wards',
+                          label: l10n.numberOfWards,
                           controller: _numberOfWardsController,
-                          placeholder: 'Number',
+                          placeholder: l10n.numberPlaceholder,
                           keyboardType: TextInputType.number,
                         ),
                         SizedBox(height: 16.h),
                         _buildYesNoRadioGroup(
-                          label: 'Daily Register maintained at Headquarters',
+                          label: l10n.dailyRegisterMaintainedAtHeadquarters,
                           selectedValue: _dailyRegisterMaintained,
                           onChanged: (value) {
                             setState(() => _dailyRegisterMaintained = value);
-                            // Check if section is complete and auto-expand next
-                            Future.microtask(() => _checkAndAutoExpandGeneralDetails());
                           },
                         ),
                         SizedBox(height: 16.h),
@@ -264,52 +153,48 @@ class _BdoNewInspectionScreenState extends State<BdoNewInspectionScreen> {
                     SizedBox(height: 20.h),
 
                     _buildExpandableSection(
-                      title: 'Household Waste Collection & Disposal Work',
+                      title: l10n.householdWasteCollectionDisposal,
                       isExpanded: _householdWasteExpanded,
                       onToggle: () => setState(() => _householdWasteExpanded = !_householdWasteExpanded),
                       children: [
                         _buildIntervalRadioGroup(
-                          label: 'At what interval is waste collected from houses?',
+                          label: l10n.atWhatIntervalWasteCollected,
                           selectedValue: _wasteCollectionInterval,
                           onChanged: (value) {
                             setState(() => _wasteCollectionInterval = value);
-                            Future.microtask(() => _checkAndAutoExpandHouseholdWaste());
                           },
+                          includeFortnight: false,
                         ),
                         SizedBox(height: 16.h),
                         _buildYesNoRadioGroup(
-                          label: 'Arrangement for separate collection of wet & dry waste in cleaning vehicles',
+                          label: l10n.arrangementSeparateWetDryWaste,
                           selectedValue: _separateCollectionWetDry,
                           onChanged: (value) {
                             setState(() => _separateCollectionWetDry = value);
-                            Future.microtask(() => _checkAndAutoExpandHouseholdWaste());
                           },
                         ),
                         SizedBox(height: 16.h),
                         _buildYesNoRadioGroup(
-                          label: 'Is the waste being disposed of at RRC',
+                          label: l10n.wasteDisposedAtRrc,
                           selectedValue: _wasteDisposalAtRRC,
                           onChanged: (value) {
                             setState(() => _wasteDisposalAtRRC = value);
-                            Future.microtask(() => _checkAndAutoExpandHouseholdWaste());
                           },
                         ),
                         SizedBox(height: 16.h),
                         _buildYesNoRadioGroup(
-                          label: 'Arrangement of waste collection and disposal at RRC',
+                          label: l10n.arrangementWasteAtRrc,
                           selectedValue: _arrangementAtRRC,
                           onChanged: (value) {
                             setState(() => _arrangementAtRRC = value);
-                            Future.microtask(() => _checkAndAutoExpandHouseholdWaste());
                           },
                         ),
                         SizedBox(height: 16.h),
                         _buildYesNoRadioGroup(
-                          label: 'Is the waste collection vehicle properly prepared/functional',
+                          label: l10n.wasteCollectionVehiclePrepared,
                           selectedValue: _vehicleProperlyPrepared,
                           onChanged: (value) {
                             setState(() => _vehicleProperlyPrepared = value);
-                            Future.microtask(() => _checkAndAutoExpandHouseholdWaste());
                           },
                         ),
                         SizedBox(height: 16.h),
@@ -323,17 +208,17 @@ class _BdoNewInspectionScreenState extends State<BdoNewInspectionScreen> {
                     SizedBox(height: 20.h),
 
                     _buildExpandableSection(
-                      title: 'Road Cleaning Work',
+                      title: l10n.roadCleaningWork,
                       isExpanded: _roadCleaningExpanded,
                       onToggle: () => setState(() => _roadCleaningExpanded = !_roadCleaningExpanded),
                       children: [
                         _buildIntervalRadioGroup(
-                          label: 'At what interval are roads/markets/main squares swept/cleaned?',
+                          label: l10n.atWhatIntervalRoadsSwept,
                           selectedValue: _roadCleaningInterval,
                           onChanged: (value) {
                             setState(() => _roadCleaningInterval = value);
-                            Future.microtask(() => _checkAndAutoExpandRoadCleaning());
                           },
+                          includeDaily: false, // API: WEEKLY, FORTNIGHTLY, MONTHLY, NONE only
                         ),
                         SizedBox(height: 16.h),
                         _buildImageUploadSection(
@@ -346,34 +231,32 @@ class _BdoNewInspectionScreenState extends State<BdoNewInspectionScreen> {
                     SizedBox(height: 20.h),
 
                     _buildExpandableSection(
-                      title: 'Drain Cleaning Work',
+                      title: l10n.drainCleaningWork,
                       isExpanded: _drainCleaningExpanded,
                       onToggle: () => setState(() => _drainCleaningExpanded = !_drainCleaningExpanded),
                       children: [
                         _buildIntervalRadioGroup(
-                          label: 'At what interval are drains cleaned?',
+                          label: l10n.atWhatIntervalDrainsCleaned,
                           selectedValue: _drainCleaningInterval,
                           onChanged: (value) {
                             setState(() => _drainCleaningInterval = value);
-                            Future.microtask(() => _checkAndAutoExpandDrainCleaning());
                           },
+                          includeDaily: false, // API: WEEKLY, FORTNIGHTLY, MONTHLY, NONE only
                         ),
                         SizedBox(height: 16.h),
                         _buildYesNoRadioGroup(
-                          label: 'Arrangement for disposal of sludge from drains',
+                          label: l10n.disposalSludgeFromDrains,
                           selectedValue: _sludgeDisposalArrangement,
                           onChanged: (value) {
                             setState(() => _sludgeDisposalArrangement = value);
-                            Future.microtask(() => _checkAndAutoExpandDrainCleaning());
                           },
                         ),
                         SizedBox(height: 16.h),
                         _buildYesNoRadioGroup(
-                          label: 'Is the drain waste collected on the roadside',
+                          label: l10n.drainWasteOnRoadside,
                           selectedValue: _drainWasteCollectedRoadside,
                           onChanged: (value) {
                             setState(() => _drainWasteCollectedRoadside = value);
-                            Future.microtask(() => _checkAndAutoExpandDrainCleaning());
                           },
                         ),
                         SizedBox(height: 16.h),
@@ -387,43 +270,40 @@ class _BdoNewInspectionScreenState extends State<BdoNewInspectionScreen> {
                     SizedBox(height: 20.h),
 
                     _buildExpandableSection(
-                      title: 'Community Sanitation Complex (CSC) Cleaning Work',
+                      title: l10n.cscCleaningWork,
                       isExpanded: _cscCleaningExpanded,
                       onToggle: () => setState(() => _cscCleaningExpanded = !_cscCleaningExpanded),
                       children: [
                         _buildIntervalRadioGroup(
-                          label: 'Interval of CSC cleaning',
+                          label: l10n.intervalCscCleaning,
                           selectedValue: _cscCleaningInterval,
                           onChanged: (value) {
                             setState(() => _cscCleaningInterval = value);
-                            Future.microtask(() => _checkAndAutoExpandCscCleaning());
                           },
+                          includeFortnight: false,
                         ),
                         SizedBox(height: 16.h),
                         _buildYesNoRadioGroup(
-                          label: 'Availability of electricity & water in CSC',
+                          label: l10n.availabilityElectricityWaterCsc,
                           selectedValue: _cscElectricityWaterAvailable,
                           onChanged: (value) {
                             setState(() => _cscElectricityWaterAvailable = value);
-                            Future.microtask(() => _checkAndAutoExpandCscCleaning());
                           },
                         ),
                         SizedBox(height: 16.h),
                         _buildYesNoRadioGroup(
-                          label: 'Is the CSC being used by the community',
+                          label: l10n.cscUsedByCommunity,
                           selectedValue: _cscUsedByCommunity,
                           onChanged: (value) {
                             setState(() => _cscUsedByCommunity = value);
-                            Future.microtask(() => _checkAndAutoExpandCscCleaning());
                           },
                         ),
                         SizedBox(height: 16.h),
                         _buildYesNoRadioGroup(
-                          label: 'Is the pink toilet in schools being used',
+                          label: l10n.pinkToiletInSchoolsUsed,
                           selectedValue: _pinkToiletUsedInSchools,
                           onChanged: (value) {
                             setState(() => _pinkToiletUsedInSchools = value);
-                            Future.microtask(() => _checkAndAutoExpandCscCleaning());
                           },
                         ),
                         SizedBox(height: 16.h),
@@ -437,61 +317,55 @@ class _BdoNewInspectionScreenState extends State<BdoNewInspectionScreen> {
                     SizedBox(height: 20.h),
 
                     _buildExpandableSection(
-                      title: 'Other Points',
+                      title: l10n.otherPoints,
                       isExpanded: _otherPointsExpanded,
                       onToggle: () => setState(() => _otherPointsExpanded = !_otherPointsExpanded),
                       children: [
                         _buildYesNoRadioGroup(
-                          label: 'Is the firm being paid regularly',
+                          label: l10n.firmPaidRegularly,
                           selectedValue: _firmPaidRegularly,
                           onChanged: (value) {
                             setState(() => _firmPaidRegularly = value);
-                            Future.microtask(() => _checkAndAutoExpandOtherPoints());
                           },
                         ),
                         SizedBox(height: 16.h),
                         _buildYesNoRadioGroup(
-                          label: 'Are cleaning staff being paid regularly by the firm',
+                          label: l10n.cleaningStaffPaidRegularly,
                           selectedValue: _staffPaidRegularly,
                           onChanged: (value) {
                             setState(() => _staffPaidRegularly = value);
-                            Future.microtask(() => _checkAndAutoExpandOtherPoints());
                           },
                         ),
                         SizedBox(height: 16.h),
                         _buildYesNoRadioGroup(
-                          label: 'Has the firm provided safety equipment',
+                          label: l10n.safetyEquipmentProvided,
                           selectedValue: _safetyEquipmentProvided,
                           onChanged: (value) {
                             setState(() => _safetyEquipmentProvided = value);
-                            Future.microtask(() => _checkAndAutoExpandOtherPoints());
                           },
                         ),
                         SizedBox(height: 16.h),
                         _buildYesNoRadioGroup(
-                          label: 'Is entry being made regularly in the feedback register',
+                          label: l10n.entryInFeedbackRegister,
                           selectedValue: _feedbackRegisterEntry,
                           onChanged: (value) {
                             setState(() => _feedbackRegisterEntry = value);
-                            Future.microtask(() => _checkAndAutoExpandOtherPoints());
                           },
                         ),
                         SizedBox(height: 16.h),
                         _buildYesNoRadioGroup(
-                          label: 'Is a rate chart prepared for cleaning work',
+                          label: l10n.rateChartPrepared,
                           selectedValue: _rateChartPrepared,
                           onChanged: (value) {
                             setState(() => _rateChartPrepared = value);
-                            Future.microtask(() => _checkAndAutoExpandOtherPoints());
                           },
                         ),
                         SizedBox(height: 16.h),
                         _buildYesNoRadioGroup(
-                          label: 'Is the rate chart displayed at major locations',
+                          label: l10n.rateChartDisplayed,
                           selectedValue: _rateChartDisplayed,
                           onChanged: (value) {
                             setState(() => _rateChartDisplayed = value);
-                            Future.microtask(() => _checkAndAutoExpandOtherPoints());
                           },
                         ),
                         SizedBox(height: 16.h),
@@ -505,7 +379,7 @@ class _BdoNewInspectionScreenState extends State<BdoNewInspectionScreen> {
                     SizedBox(height: 20.h),
 
                     _buildExpandableSection(
-                      title: 'Suggestions by Inspector',
+                      title: l10n.suggestionsByInspector,
                       isExpanded: _suggestionsExpanded,
                       onToggle: () => setState(() => _suggestionsExpanded = !_suggestionsExpanded),
                       children: [
@@ -520,7 +394,7 @@ class _BdoNewInspectionScreenState extends State<BdoNewInspectionScreen> {
                             maxLines: 5,
                             maxLength: 100,
                             decoration: InputDecoration(
-                              hintText: 'Write your comment here...',
+                              hintText: l10n.writeYourCommentHere,
                               hintStyle: TextStyle(color: Colors.grey.shade500),
                               border: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(8.r),
@@ -688,7 +562,22 @@ class _BdoNewInspectionScreenState extends State<BdoNewInspectionScreen> {
     required String label,
     required String? selectedValue,
     required ValueChanged<String?> onChanged,
+    bool includeFortnight = true,
+    bool includeDaily = true,
   }) {
+    final options = <Widget>[
+      if (includeDaily) ...[
+        _buildRadioOption(value: 'Daily', groupValue: selectedValue, onChanged: onChanged),
+        SizedBox(width: 16.w),
+      ],
+      _buildRadioOption(value: 'Weekly', groupValue: selectedValue, onChanged: onChanged),
+      if (includeFortnight) ...[
+        SizedBox(width: 16.w),
+        _buildRadioOption(value: 'Fortnight', groupValue: selectedValue, onChanged: onChanged),
+      ],
+      SizedBox(width: 16.w),
+      _buildRadioOption(value: 'None', groupValue: selectedValue, onChanged: onChanged),
+    ];
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -698,15 +587,7 @@ class _BdoNewInspectionScreenState extends State<BdoNewInspectionScreen> {
           scrollDirection: Axis.horizontal,
           child: Row(
             mainAxisAlignment: MainAxisAlignment.start,
-            children: [
-              _buildRadioOption(value: 'Daily', groupValue: selectedValue, onChanged: onChanged),
-              SizedBox(width: 16.w),
-              _buildRadioOption(value: 'Weekly', groupValue: selectedValue, onChanged: onChanged),
-              SizedBox(width: 16.w),
-              _buildRadioOption(value: 'Fortnight', groupValue: selectedValue, onChanged: onChanged),
-              SizedBox(width: 16.w),
-              _buildRadioOption(value: 'None', groupValue: selectedValue, onChanged: onChanged),
-            ],
+            children: options,
           ),
         ),
       ],
@@ -737,6 +618,7 @@ class _BdoNewInspectionScreenState extends State<BdoNewInspectionScreen> {
   }
 
   Widget _buildImageUploadSection(List<File> images, Function(List<File>) onImagesChanged) {
+    final l10n = AppLocalizations.of(context)!;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -768,7 +650,7 @@ class _BdoNewInspectionScreenState extends State<BdoNewInspectionScreen> {
                 children: [
                   Icon(Icons.image, size: 40.sp, color: Colors.grey.shade400),
                   SizedBox(height: 8.h),
-                  Text('Upload image', style: TextStyle(fontSize: 14, color: Colors.grey.shade600)),
+                  Text(l10n.uploadImage, style: TextStyle(fontSize: 14, color: Colors.grey.shade600)),
                 ],
               ),
             ),
@@ -826,7 +708,7 @@ class _BdoNewInspectionScreenState extends State<BdoNewInspectionScreen> {
                       children: [
                         Icon(Icons.add, size: 24.sp, color: Colors.grey.shade400),
                         SizedBox(height: 4.h),
-                        Text('Add', style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
+                        Text(l10n.add, style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
                       ],
                     ),
                   ),
@@ -841,11 +723,12 @@ class _BdoNewInspectionScreenState extends State<BdoNewInspectionScreen> {
     // Check if already at maximum limit
     if (currentImages.length >= 5) {
       if (mounted) {
+        final l10n = AppLocalizations.of(context)!;
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Maximum 5 photos can be uploaded'),
+          SnackBar(
+            content: Text(l10n.maximumFivePhotosUploaded),
             backgroundColor: Colors.orange,
-            duration: Duration(seconds: 2),
+            duration: const Duration(seconds: 2),
           ),
         );
       }
@@ -866,11 +749,10 @@ class _BdoNewInspectionScreenState extends State<BdoNewInspectionScreen> {
         // Show message if user tried to add more than allowed
         if (pickedImages.length > remainingSlots) {
           if (mounted) {
+            final l10n = AppLocalizations.of(context)!;
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content: Text(
-                  'Only ${remainingSlots} photo(s) added. Maximum 5 photos allowed.',
-                ),
+                content: Text(l10n.onlyPhotosAddedMaximumFive(remainingSlots)),
                 backgroundColor: Colors.orange,
                 duration: const Duration(seconds: 2),
               ),
@@ -880,8 +762,9 @@ class _BdoNewInspectionScreenState extends State<BdoNewInspectionScreen> {
       }
     } catch (e) {
       if (mounted) {
+        final l10n = AppLocalizations.of(context)!;
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to pick images: $e'), backgroundColor: Colors.red),
+          SnackBar(content: Text(l10n.failedToPickImagesError(e.toString())), backgroundColor: Colors.red),
         );
       }
     }
@@ -908,7 +791,7 @@ class _BdoNewInspectionScreenState extends State<BdoNewInspectionScreen> {
               ),
               SizedBox(height: 20.h),
               Text(
-                'Your Inspection has been submitted successfully',
+                AppLocalizations.of(context)!.inspectionSubmittedSuccessfully,
                 textAlign: TextAlign.center,
                 style: TextStyle(fontSize: 15.sp, fontWeight: FontWeight.w600, color: const Color(0xFF111827)),
               ),
@@ -927,7 +810,7 @@ class _BdoNewInspectionScreenState extends State<BdoNewInspectionScreen> {
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.r)),
                     elevation: 0,
                   ),
-                  child: Text('Close', style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.w600)),
+                  child: Text(AppLocalizations.of(context)!.close, style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.w600)),
                 ),
               ),
             ],
@@ -937,7 +820,7 @@ class _BdoNewInspectionScreenState extends State<BdoNewInspectionScreen> {
     );
   }
 
-  String? _convertIntervalToApi(String? value, {bool allowDaily = true}) {
+  String? _convertIntervalToApi(String? value, {bool allowDaily = true, bool allowFortnight = false}) {
     if (value == null) return null;
     switch (value) {
       case 'Daily':
@@ -945,7 +828,7 @@ class _BdoNewInspectionScreenState extends State<BdoNewInspectionScreen> {
       case 'Weekly':
         return 'WEEKLY';
       case 'Fortnight':
-        return 'FORTNIGHTLY';
+        return allowFortnight ? 'FORTNIGHTLY' : 'WEEKLY';
       case 'None':
         return 'NONE';
       default:
@@ -953,11 +836,10 @@ class _BdoNewInspectionScreenState extends State<BdoNewInspectionScreen> {
     }
   }
 
+  // API only accepts WEEKLY, FORTNIGHTLY, MONTHLY, NONE for road/drain (no DAILY; UI hides Daily for these)
   String? _convertRoadDrainIntervalToApi(String? value) {
     if (value == null) return null;
     switch (value) {
-      case 'Daily':
-        return 'WEEKLY';
       case 'Weekly':
         return 'WEEKLY';
       case 'Fortnight':
@@ -984,8 +866,9 @@ class _BdoNewInspectionScreenState extends State<BdoNewInspectionScreen> {
     }
 
     if (_villageController.text.trim().isEmpty) {
+      final l10n = AppLocalizations.of(context)!;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter village name'), backgroundColor: Colors.red),
+        SnackBar(content: Text(l10n.pleaseEnterVillageName), backgroundColor: Colors.red),
       );
       return;
     }
@@ -1014,7 +897,7 @@ class _BdoNewInspectionScreenState extends State<BdoNewInspectionScreen> {
         'long': long.isEmpty ? 'string' : long,
         'register_maintenance': _convertYesNoToBool(_dailyRegisterMaintained) ?? false,
         'household_waste': {
-          'waste_collection_frequency': _convertIntervalToApi(_wasteCollectionInterval) ?? 'DAILY',
+          'waste_collection_frequency': _convertIntervalToApi(_wasteCollectionInterval, allowFortnight: false) ?? 'DAILY',
           'dry_wet_vehicle_segregation': _convertYesNoToBool(_separateCollectionWetDry) ?? false,
           'covered_collection_in_vehicles': _convertYesNoToBool(_separateCollectionWetDry) ?? false,
           'waste_disposed_at_rrc': _convertYesNoToBool(_wasteDisposalAtRRC) ?? false,
@@ -1028,7 +911,7 @@ class _BdoNewInspectionScreenState extends State<BdoNewInspectionScreen> {
           'drain_waste_colllected_on_roadside': _convertYesNoToBool(_drainWasteCollectedRoadside) ?? false,
         },
         'community_sanitation': {
-          'csc_cleaning_frequency': _convertIntervalToApi(_cscCleaningInterval) ?? 'DAILY',
+          'csc_cleaning_frequency': _convertIntervalToApi(_cscCleaningInterval, allowFortnight: false) ?? 'DAILY',
           'electricity_and_water': _convertYesNoToBool(_cscElectricityWaterAvailable) ?? false,
           'csc_used_by_community': _convertYesNoToBool(_cscUsedByCommunity) ?? false,
           'pink_toilets_cleaning': _convertYesNoToBool(_pinkToiletUsedInSchools) ?? false,
@@ -1051,8 +934,9 @@ class _BdoNewInspectionScreenState extends State<BdoNewInspectionScreen> {
       }
     } catch (e) {
       if (mounted) {
+        final l10n = AppLocalizations.of(context)!;
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to submit inspection: $e'), backgroundColor: Colors.red),
+          SnackBar(content: Text(l10n.failedToSubmitInspection(e.toString())), backgroundColor: Colors.red),
         );
       }
     } finally {

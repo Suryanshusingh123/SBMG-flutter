@@ -1,10 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:provider/provider.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../services/api_services.dart';
 import '../../config/connstants.dart';
+import '../../providers/ceo_complaints_provider.dart';
 import '../../l10n/app_localizations.dart';
 import '../../utils/location_display_helper.dart';
 import '../../utils/date_time_utils.dart';
+import '../../widgets/resolution_details_sheet.dart';
 
 class CeoComplaintDetailsScreen extends StatefulWidget {
   final int complaintId;
@@ -23,7 +27,7 @@ class _CeoComplaintDetailsScreenState extends State<CeoComplaintDetailsScreen> {
   // State for fetching complaint details
   Map<String, dynamic>? _complaintData;
   bool _isLoading = true;
-  String? _errorMessage;
+  bool _loadFailed = false;
   double? _latitude;
   double? _longitude;
 
@@ -55,9 +59,16 @@ class _CeoComplaintDetailsScreenState extends State<CeoComplaintDetailsScreen> {
     } catch (e) {
       setState(() {
         _isLoading = false;
-        _errorMessage = 'Failed to load complaint details';
+        _loadFailed = true;
       });
     }
+  }
+
+  String _getComplaintTypeDisplay(BuildContext context) {
+    final name = _getComplaintTypeName;
+    return name == 'Road Maintenance'
+        ? AppLocalizations.of(context)!.roadMaintenance
+        : name;
   }
 
   String get _getComplaintTypeName {
@@ -66,12 +77,22 @@ class _CeoComplaintDetailsScreenState extends State<CeoComplaintDetailsScreen> {
     // Try to determine complaint type name
     if (complaintType is Map && complaintType['name'] != null) {
       return complaintType['name'];
-    } else if (complaintType is String) {
-      return complaintType;
+    } else if (complaintType is String && complaintType.trim().isNotEmpty) {
+      return complaintType.trim();
     } else if (_complaintData?['complaint_type_name'] != null) {
       return _complaintData!['complaint_type_name'];
     }
-    
+
+    // Resolve from complaint_type_id when API returns id but not type name
+    final typeId = _complaintData?['complaint_type_id'];
+    if (typeId != null && context.mounted) {
+      final id = typeId is int ? typeId : int.tryParse(typeId.toString());
+      if (id != null) {
+        final resolved = context.read<CeoComplaintsProvider>().getComplaintTypeNameById(id);
+        if (resolved != null && resolved.isNotEmpty) return resolved;
+      }
+    }
+
     // Fallback to default
     return 'Road Maintenance';
   }
@@ -86,21 +107,21 @@ class _CeoComplaintDetailsScreenState extends State<CeoComplaintDetailsScreen> {
 
     // First check if closed
     if (status == 4 || closedAt != null) {
-      return l10n.complaintResolved;
+      return l10n.complaintHasBeenClosed;
     }
 
-    // Then check if verified but not closed
+    // Then check if verified but not closed - show awaiting citizen message
     if (status == 3 || (verifiedAt != null && closedAt == null)) {
-      return l10n.complaintVerified;
+      return l10n.awaitingForCitizenToCloseComplaint;
     }
 
-    // Then check if resolved
-    if (status == 2 || resolvedAt != null) {
-      return l10n.waitingVerificationFromVdo;
+    // Then check if resolved but not verified - show awaiting VDO message
+    if (status == 2 || (resolvedAt != null && verifiedAt == null)) {
+      return l10n.awaitingForVdoToVerify;
     }
 
-    // Open status
-    return l10n.waitingForSupervisorToResolve;
+    // Open status - show awaiting supervisor message
+    return l10n.awaitingForSupervisorToTakeAction;
   }
 
   String get _dynamicStatusSubtext {
@@ -193,7 +214,8 @@ class _CeoComplaintDetailsScreenState extends State<CeoComplaintDetailsScreen> {
       );
     }
 
-    if (_errorMessage != null || _complaintData == null) {
+    if (_loadFailed || _complaintData == null) {
+      final l10n = AppLocalizations.of(context)!;
       return Scaffold(
         backgroundColor: Colors.white,
         appBar: AppBar(
@@ -211,7 +233,7 @@ class _CeoComplaintDetailsScreenState extends State<CeoComplaintDetailsScreen> {
               Icon(Icons.error_outline, size: 64.sp, color: Colors.grey),
               SizedBox(height: 16.h),
               Text(
-                _errorMessage ?? 'Failed to load complaint details',
+                l10n.failedToLoadComplaintDetails,
                 style: TextStyle(fontSize: 16.sp, color: Colors.grey),
                 textAlign: TextAlign.center,
               ),
@@ -234,7 +256,7 @@ class _CeoComplaintDetailsScreenState extends State<CeoComplaintDetailsScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              _getComplaintTypeName,
+              _getComplaintTypeDisplay(context),
               style: TextStyle(
                 fontSize: 16.sp,
                 fontWeight: FontWeight.w600,
@@ -242,7 +264,7 @@ class _CeoComplaintDetailsScreenState extends State<CeoComplaintDetailsScreen> {
               ),
             ),
             Text(
-              '${_complaintData!['district_name'] ?? 'District'}',
+              '${_complaintData!['district_name'] ?? AppLocalizations.of(context)!.district}',
               style: TextStyle(
                 fontSize: 10.sp,
                 fontWeight: FontWeight.w400,
@@ -378,7 +400,7 @@ class _CeoComplaintDetailsScreenState extends State<CeoComplaintDetailsScreen> {
         ),
         child: Center(
           child: Text(
-            'No images available',
+            AppLocalizations.of(context)!.noImagesAvailable,
             style: TextStyle(fontSize: 14.sp, color: const Color(0xFF6B7280)),
           ),
         ),
@@ -507,15 +529,29 @@ class _CeoComplaintDetailsScreenState extends State<CeoComplaintDetailsScreen> {
   }
 
   Widget _buildComplaintDetails() {
+    final l10n = AppLocalizations.of(context)!;
     final complaintType = _complaintData?['complaint_type'];
 
     // Try to determine complaint type name
     String complaintTypeName = 'Road Maintenance';
     if (complaintType is Map && complaintType['name'] != null) {
       complaintTypeName = complaintType['name'];
-    } else if (complaintType is String) {
-      complaintTypeName = complaintType;
+    } else if (complaintType is String && complaintType.trim().isNotEmpty) {
+      complaintTypeName = complaintType.trim();
+    } else {
+      // Resolve from complaint_type_id when API returns id but not type name
+      final typeId = _complaintData?['complaint_type_id'];
+      if (typeId != null && context.mounted) {
+        final id = typeId is int ? typeId : int.tryParse(typeId.toString());
+        if (id != null) {
+          final resolved = context.read<CeoComplaintsProvider>().getComplaintTypeNameById(id);
+          if (resolved != null && resolved.isNotEmpty) complaintTypeName = resolved;
+        }
+      }
     }
+    final displayTypeName = complaintTypeName == 'Road Maintenance'
+        ? l10n.roadMaintenance
+        : complaintTypeName;
 
     return Container(
       margin: EdgeInsets.symmetric(horizontal: 16.w),
@@ -526,7 +562,7 @@ class _CeoComplaintDetailsScreenState extends State<CeoComplaintDetailsScreen> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                complaintTypeName,
+                displayTypeName,
                 style: TextStyle(
                   fontSize: 16.sp,
                   fontWeight: FontWeight.w600,
@@ -565,7 +601,7 @@ class _CeoComplaintDetailsScreenState extends State<CeoComplaintDetailsScreen> {
           SizedBox(height: 16.h),
 
           Text(
-            _complaintData?['description'] ?? 'No description available',
+            _complaintData?['description'] ?? AppLocalizations.of(context)!.noDescriptionAvailable,
             style: TextStyle(
               fontSize: 12.sp,
               fontWeight: FontWeight.w400,
@@ -574,6 +610,57 @@ class _CeoComplaintDetailsScreenState extends State<CeoComplaintDetailsScreen> {
             ),
           ),
           SizedBox(height: 16.h),
+
+          // Get Directions Button
+          if (_latitude != null && _longitude != null)
+            GestureDetector(
+              onTap: () {
+                _openGoogleMaps(
+                  _latitude,
+                  _longitude,
+                );
+              },
+              child: Container(
+                padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 14.h),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(8.r),
+                  border: Border.all(color: Colors.grey.shade300, width: 1),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.05),
+                      blurRadius: 4,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: Row(
+                  children: [
+                    Image.asset(
+                      'assets/icons/map.png',
+                      width: 24.w,
+                      height: 24.h,
+                      fit: BoxFit.contain,
+                    ),
+                    SizedBox(width: 12.w),
+                    Text(
+                      AppLocalizations.of(context)!.getDirections,
+                      style: TextStyle(
+                        fontSize: 14.sp,
+                        fontWeight: FontWeight.w500,
+                        color: const Color(0xFF111827),
+                      ),
+                    ),
+                    const Spacer(),
+                    Icon(
+                      Icons.arrow_forward_ios,
+                      size: 16.sp,
+                      color: AppColors.primaryColor,
+                    ),
+                  ],
+                ),
+              ),
+            ),
         ],
       ),
     );
@@ -602,6 +689,7 @@ class _CeoComplaintDetailsScreenState extends State<CeoComplaintDetailsScreen> {
               item['subtitle'],
               item['isCompleted'],
               showLine: item['showLine'],
+              onTap: () => _onTimelineStageTap(item),
             ),
           ),
         ],
@@ -633,7 +721,7 @@ class _CeoComplaintDetailsScreenState extends State<CeoComplaintDetailsScreen> {
     // Always add complaint created
     items.add({
       'title': l10n.complaintCreated,
-      'subtitle': _formatTimelineSubtitle('Citizen', createdAt),
+      'subtitle': _formatTimelineSubtitle(AppLocalizations.of(context)!.citizen, createdAt),
       'isCompleted': true,
       'showLine':
           resolvedAt != null ||
@@ -641,16 +729,18 @@ class _CeoComplaintDetailsScreenState extends State<CeoComplaintDetailsScreen> {
           closedAt != null ||
           hasResolutionComment ||
           hasVerificationComment,
+      'stage': 'created',
     });
 
     // Add resolved if present
     if (resolvedAt != null || hasResolutionComment) {
       items.add({
         'title': l10n.resolved,
-        'subtitle': _formatTimelineSubtitle('Vendor / Supervisor', resolvedAt),
+        'subtitle': _formatTimelineSubtitle(l10n.contractorSupervisor, resolvedAt),
         'isCompleted': true,
         'showLine':
             verifiedAt != null || closedAt != null || hasVerificationComment,
+        'stage': 'resolved',
       });
     }
 
@@ -658,9 +748,10 @@ class _CeoComplaintDetailsScreenState extends State<CeoComplaintDetailsScreen> {
     if (verifiedAt != null || hasVerificationComment) {
       items.add({
         'title': l10n.verified,
-        'subtitle': _formatTimelineSubtitle('VDO', verifiedAt),
+        'subtitle': _formatTimelineSubtitle(AppLocalizations.of(context)!.vdo, verifiedAt),
         'isCompleted': true,
         'showLine': closedAt != null,
+        'stage': 'verified',
       });
     }
 
@@ -668,9 +759,10 @@ class _CeoComplaintDetailsScreenState extends State<CeoComplaintDetailsScreen> {
     if (closedAt != null) {
       items.add({
         'title': l10n.closed,
-        'subtitle': _formatTimelineSubtitle('Citizen', closedAt),
+        'subtitle': _formatTimelineSubtitle(AppLocalizations.of(context)!.citizen, closedAt),
         'isCompleted': true,
         'showLine': false,
+        'stage': 'closed',
       });
     }
 
@@ -678,11 +770,33 @@ class _CeoComplaintDetailsScreenState extends State<CeoComplaintDetailsScreen> {
   }
 
   String _formatTimelineSubtitle(String user, String? dateString) {
-    String formattedDate = DateTimeUtils.formatDateStringIST(dateString);
+    final l10n = AppLocalizations.of(context)!;
+    String formattedDate = DateTimeUtils.formatComplaintDetailIST(dateString);
     if (formattedDate == 'Unknown') {
-      formattedDate = 'Unknown date';
+      formattedDate = l10n.unknownDate;
     }
     return '$user · $formattedDate';
+  }
+
+  void _onTimelineStageTap(Map<String, dynamic> item) {
+    final stage = item['stage'] as String?;
+    if (stage == 'resolved') {
+      ResolutionDetailsSheet.show(context, _complaintData);
+    } else {
+      showDialog<void>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: Text(item['title'] as String),
+          content: Text(item['subtitle'] as String),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: Text(AppLocalizations.of(context)!.cancel),
+            ),
+          ],
+        ),
+      );
+    }
   }
 
   Widget _buildTimelineItem(
@@ -690,8 +804,9 @@ class _CeoComplaintDetailsScreenState extends State<CeoComplaintDetailsScreen> {
     String subtitle,
     bool isCompleted, {
     bool showLine = true,
+    VoidCallback? onTap,
   }) {
-    return Row(
+    final content = Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Column(
@@ -741,12 +856,21 @@ class _CeoComplaintDetailsScreenState extends State<CeoComplaintDetailsScreen> {
         ),
       ],
     );
+    if (onTap != null) {
+      return InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(8.r),
+        child: content,
+      );
+    }
+    return content;
   }
 
   String _formatDate(String? date) {
-    if (date == null) return 'N/A';
-    final formatted = DateTimeUtils.formatDateStringIST(date);
-    return formatted == 'Unknown' ? 'N/A' : formatted;
+    final l10n = AppLocalizations.of(context)!;
+    if (date == null) return l10n.na;
+    final formatted = DateTimeUtils.formatComplaintDetailIST(date);
+    return formatted == 'Unknown' ? l10n.na : formatted;
   }
 
   String _getLocationDisplay() {
@@ -765,5 +889,54 @@ class _CeoComplaintDetailsScreenState extends State<CeoComplaintDetailsScreen> {
       },
       unavailableLabel: l10n.locationNotAvailable,
     );
+  }
+
+  Future<void> _openGoogleMaps(double? lat, double? long) async {
+    if (lat == null || long == null) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(AppLocalizations.of(context)!.locationNotAvailable),
+          ),
+        );
+      }
+      return;
+    }
+
+    const mode = LaunchMode.externalApplication;
+    // Use directions URL so Maps opens the "Get directions" screen, not just the pin
+    final directionsUrl = Uri.parse(
+      'https://www.google.com/maps/dir/?api=1&destination=$lat,$long',
+    );
+    final geoUri = Uri.parse('geo:0,0?q=$lat,$long');
+
+    try {
+      bool launched = false;
+      try {
+        launched = await launchUrl(directionsUrl, mode: mode);
+      } catch (_) {}
+      if (!launched) {
+        launched = await launchUrl(geoUri, mode: mode);
+      }
+      if (!launched && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              AppLocalizations.of(context)!.couldNotOpenGoogleMaps,
+            ),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              AppLocalizations.of(context)!.couldNotOpenGoogleMaps,
+            ),
+          ),
+        );
+      }
+    }
   }
 }

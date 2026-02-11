@@ -6,6 +6,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:intl/intl.dart';
 import '../../config/connstants.dart';
 import '../../services/api_services.dart';
+import '../../l10n/app_localizations.dart';
 
 class CeoNewInspectionScreen extends StatefulWidget {
   final int gpId;
@@ -148,6 +149,7 @@ class _CeoNewInspectionScreenState extends State<CeoNewInspectionScreen> {
                           label: 'At what interval is waste collected from houses?',
                           selectedValue: _wasteCollectionInterval,
                           onChanged: (value) => setState(() => _wasteCollectionInterval = value),
+                          includeFortnight: false,
                         ),
                         SizedBox(height: 16.h),
                         _buildYesNoRadioGroup(
@@ -190,6 +192,7 @@ class _CeoNewInspectionScreenState extends State<CeoNewInspectionScreen> {
                           label: 'At what interval are roads/markets/main squares swept/cleaned?',
                           selectedValue: _roadCleaningInterval,
                           onChanged: (value) => setState(() => _roadCleaningInterval = value),
+                          includeDaily: false, // API: WEEKLY, FORTNIGHTLY, MONTHLY, NONE only
                         ),
                         SizedBox(height: 16.h),
                         _buildImageUploadSection(
@@ -208,6 +211,7 @@ class _CeoNewInspectionScreenState extends State<CeoNewInspectionScreen> {
                           label: 'At what interval are drains cleaned?',
                           selectedValue: _drainCleaningInterval,
                           onChanged: (value) => setState(() => _drainCleaningInterval = value),
+                          includeDaily: false, // API: WEEKLY, FORTNIGHTLY, MONTHLY, NONE only
                         ),
                         SizedBox(height: 16.h),
                         _buildYesNoRadioGroup(
@@ -238,6 +242,7 @@ class _CeoNewInspectionScreenState extends State<CeoNewInspectionScreen> {
                           label: 'Interval of CSC cleaning',
                           selectedValue: _cscCleaningInterval,
                           onChanged: (value) => setState(() => _cscCleaningInterval = value),
+                          includeFortnight: false,
                         ),
                         SizedBox(height: 16.h),
                         _buildYesNoRadioGroup(
@@ -532,7 +537,15 @@ class _CeoNewInspectionScreenState extends State<CeoNewInspectionScreen> {
     required String label,
     required String? selectedValue,
     required ValueChanged<String?> onChanged,
+    bool includeFortnight = true,
+    bool includeDaily = true,
   }) {
+    final options = <Widget>[
+      if (includeDaily) _buildRadioOption(value: 'Daily', groupValue: selectedValue, onChanged: onChanged),
+      _buildRadioOption(value: 'Weekly', groupValue: selectedValue, onChanged: onChanged),
+      if (includeFortnight) _buildRadioOption(value: 'Fortnight', groupValue: selectedValue, onChanged: onChanged),
+      _buildRadioOption(value: 'None', groupValue: selectedValue, onChanged: onChanged),
+    ];
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -548,28 +561,7 @@ class _CeoNewInspectionScreenState extends State<CeoNewInspectionScreen> {
         Wrap(
           spacing: 16.w,
           runSpacing: 8.h,
-          children: [
-            _buildRadioOption(
-              value: 'Daily',
-              groupValue: selectedValue,
-              onChanged: onChanged,
-            ),
-            _buildRadioOption(
-              value: 'Weekly',
-              groupValue: selectedValue,
-              onChanged: onChanged,
-            ),
-            _buildRadioOption(
-              value: 'Fortnight',
-              groupValue: selectedValue,
-              onChanged: onChanged,
-            ),
-            _buildRadioOption(
-              value: 'None',
-              groupValue: selectedValue,
-              onChanged: onChanged,
-            ),
-          ],
+          children: options,
         ),
       ],
     );
@@ -740,7 +732,7 @@ class _CeoNewInspectionScreenState extends State<CeoNewInspectionScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Failed to pick images: $e'),
+            content: Text(AppLocalizations.of(context)!.failedToPickImagesError(e.toString())),
             backgroundColor: Colors.red,
           ),
         );
@@ -777,7 +769,7 @@ class _CeoNewInspectionScreenState extends State<CeoNewInspectionScreen> {
               ),
               SizedBox(height: 20.h),
               Text(
-                'Your Inspection has been submitted successfully',
+                AppLocalizations.of(context)!.inspectionSubmittedSuccessfully,
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontSize: 15.sp,
@@ -803,7 +795,7 @@ class _CeoNewInspectionScreenState extends State<CeoNewInspectionScreen> {
                     elevation: 0,
                   ),
                   child: Text(
-                    'Close',
+                    AppLocalizations.of(context)!.close,
                     style: TextStyle(
                       fontSize: 16.sp,
                       fontWeight: FontWeight.w600,
@@ -818,7 +810,7 @@ class _CeoNewInspectionScreenState extends State<CeoNewInspectionScreen> {
     );
   }
 
-  String? _convertIntervalToApi(String? value, {bool allowDaily = true}) {
+  String? _convertIntervalToApi(String? value, {bool allowDaily = true, bool allowFortnight = false}) {
     if (value == null) return null;
     switch (value) {
       case 'Daily':
@@ -826,7 +818,7 @@ class _CeoNewInspectionScreenState extends State<CeoNewInspectionScreen> {
       case 'Weekly':
         return 'WEEKLY';
       case 'Fortnight':
-        return 'FORTNIGHTLY';
+        return allowFortnight ? 'FORTNIGHTLY' : 'WEEKLY';
       case 'None':
         return 'NONE';
       default:
@@ -834,11 +826,10 @@ class _CeoNewInspectionScreenState extends State<CeoNewInspectionScreen> {
     }
   }
 
+  // API only accepts WEEKLY, FORTNIGHTLY, MONTHLY, NONE for road/drain (no DAILY; UI hides Daily for these)
   String? _convertRoadDrainIntervalToApi(String? value) {
     if (value == null) return null;
     switch (value) {
-      case 'Daily':
-        return 'WEEKLY';
       case 'Weekly':
         return 'WEEKLY';
       case 'Fortnight':
@@ -866,8 +857,8 @@ class _CeoNewInspectionScreenState extends State<CeoNewInspectionScreen> {
 
     if (_villageController.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please enter village name'),
+        SnackBar(
+          content: Text(AppLocalizations.of(context)!.pleaseEnterVillageName),
           backgroundColor: Colors.red,
         ),
       );
@@ -907,7 +898,7 @@ class _CeoNewInspectionScreenState extends State<CeoNewInspectionScreen> {
             _convertYesNoToBool(_dailyRegisterMaintained) ?? false,
         'household_waste': {
           'waste_collection_frequency':
-              _convertIntervalToApi(_wasteCollectionInterval) ?? 'DAILY',
+              _convertIntervalToApi(_wasteCollectionInterval, allowFortnight: false) ?? 'DAILY',
           'dry_wet_vehicle_segregation':
               _convertYesNoToBool(_separateCollectionWetDry) ?? false,
           'covered_collection_in_vehicles':
@@ -931,7 +922,7 @@ class _CeoNewInspectionScreenState extends State<CeoNewInspectionScreen> {
         },
         'community_sanitation': {
           'csc_cleaning_frequency':
-              _convertIntervalToApi(_cscCleaningInterval) ?? 'DAILY',
+              _convertIntervalToApi(_cscCleaningInterval, allowFortnight: false) ?? 'DAILY',
           'electricity_and_water':
               _convertYesNoToBool(_cscElectricityWaterAvailable) ?? false,
           'csc_used_by_community':
@@ -967,7 +958,7 @@ class _CeoNewInspectionScreenState extends State<CeoNewInspectionScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Failed to submit inspection: $e'),
+            content: Text(AppLocalizations.of(context)!.failedToSubmitInspection(e.toString())),
             backgroundColor: Colors.red,
           ),
         );

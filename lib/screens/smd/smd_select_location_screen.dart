@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../config/connstants.dart';
+import '../../l10n/app_localizations.dart';
 import '../../services/api_services.dart';
 import '../../services/auth_services.dart';
 import '../../models/geography_model.dart';
@@ -103,9 +104,9 @@ class _SmdSelectLocationScreenState extends State<SmdSelectLocationScreen> {
           icon: const Icon(Icons.arrow_back, color: Color(0xFF111827)),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text(
-          'Select Location',
-          style: TextStyle(
+        title: Text(
+          AppLocalizations.of(context)!.selectLocation,
+          style: const TextStyle(
             fontFamily: 'Noto Sans',
             fontSize: 18,
             fontWeight: FontWeight.w600,
@@ -115,9 +116,9 @@ class _SmdSelectLocationScreenState extends State<SmdSelectLocationScreen> {
         actions: [
           TextButton(
             onPressed: _resetSelections,
-            child: const Text(
-              'Reset',
-              style: TextStyle(
+            child: Text(
+              AppLocalizations.of(context)!.reset,
+              style: const TextStyle(
                 fontFamily: 'Noto Sans',
                 fontSize: 16,
                 fontWeight: FontWeight.w500,
@@ -136,7 +137,7 @@ class _SmdSelectLocationScreenState extends State<SmdSelectLocationScreen> {
             child: TextField(
               controller: _searchController,
               decoration: InputDecoration(
-                hintText: 'Search....',
+                hintText: AppLocalizations.of(context)!.searchPlaceholder,
                 hintStyle: const TextStyle(
                   fontFamily: 'Noto Sans',
                   fontSize: 16,
@@ -169,7 +170,7 @@ class _SmdSelectLocationScreenState extends State<SmdSelectLocationScreen> {
                 children: [
                   // Block Selection
                   _buildLocationField(
-                    label: 'Block',
+                    label: AppLocalizations.of(context)!.block,
                     value: _selectedBlock?.name,
                     onTap: _isLoadingBlocks ? null : () => _showBlockBottomSheet(),
                     isLoading: _isLoadingBlocks,
@@ -179,7 +180,7 @@ class _SmdSelectLocationScreenState extends State<SmdSelectLocationScreen> {
                   // Gram Panchayat Selection
                   if (_requiresGpSelection)
                     _buildLocationField(
-                      label: 'Gram Panchayat',
+                      label: AppLocalizations.of(context)!.gramPanchayat,
                       value: _selectedGP?.name,
                       onTap: (_selectedBlock == null || _isLoadingGPs)
                           ? null
@@ -211,9 +212,9 @@ class _SmdSelectLocationScreenState extends State<SmdSelectLocationScreen> {
                   ),
                   elevation: 0,
                 ),
-                child: const Text(
-                  'Apply',
-                  style: TextStyle(
+                child: Text(
+                  AppLocalizations.of(context)!.apply,
+                  style: const TextStyle(
                     fontFamily: 'Noto Sans',
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
@@ -274,9 +275,9 @@ class _SmdSelectLocationScreenState extends State<SmdSelectLocationScreen> {
                               ),
                             ),
                             const SizedBox(width: 8),
-                            const Text(
-                              'Loading...',
-                              style: TextStyle(
+                            Text(
+                              AppLocalizations.of(context)!.loading,
+                              style: const TextStyle(
                                 fontFamily: 'Noto Sans',
                                 fontSize: 16,
                                 fontWeight: FontWeight.w400,
@@ -286,7 +287,7 @@ class _SmdSelectLocationScreenState extends State<SmdSelectLocationScreen> {
                           ],
                         )
                       : Text(
-                          value ?? 'Select option',
+                          value ?? AppLocalizations.of(context)!.selectOption,
                           style: TextStyle(
                             fontFamily: 'Noto Sans',
                             fontSize: 16,
@@ -358,13 +359,13 @@ class _SmdSelectLocationScreenState extends State<SmdSelectLocationScreen> {
 
     BottomSheetPicker.show<Block>(
       context: context,
-      title: 'Select Block',
+      title: AppLocalizations.of(context)!.selectBlock,
       items: _blocks,
       itemBuilder: (block) => block.name,
       selectedItem: _selectedBlock,
       isLoading: _isLoadingBlocks,
       showSearch: true,
-      searchHint: 'Search block...',
+      searchHint: AppLocalizations.of(context)!.searchBlock,
       onSelected: (block) {
         setState(() {
           _selectedBlock = block;
@@ -387,13 +388,13 @@ class _SmdSelectLocationScreenState extends State<SmdSelectLocationScreen> {
 
     BottomSheetPicker.show<GramPanchayat>(
       context: context,
-      title: 'Select Gram Panchayat',
+      title: AppLocalizations.of(context)!.selectGramPanchayat,
       items: _gramPanchayats,
       itemBuilder: (gp) => gp.name,
       selectedItem: _selectedGP,
       isLoading: _isLoadingGPs,
       showSearch: true,
-      searchHint: 'Search GP...',
+      searchHint: AppLocalizations.of(context)!.searchGp,
       onSelected: (gp) {
         setState(() {
           _selectedGP = gp;

@@ -110,18 +110,14 @@ class AppLocalizationsHi extends AppLocalizations {
   String get bookmarks => 'बुकमार्क';
 
   @override
-  String get noBookmarkedSchemes => 'कोई बुकमार्क की गई योजना नहीं';
+  String get bookmarkedSchemes => 'बुकमार्क की गई योजनाएं';
 
   @override
-  String get noBookmarkedEvents => 'कोई बुकमार्क किया गया कार्यक्रम नहीं';
+  String get noBookmarkedSchemes => 'कोई बुकमार्क की गई योजना नहीं';
 
   @override
   String get bookmarkSchemesToSeeHere =>
       'योजनाओं को यहां देखने के लिए बुकमार्क करें';
-
-  @override
-  String get bookmarkEventsToSeeHere =>
-      'कार्यक्रमों को यहां देखने के लिए बुकमार्क करें';
 
   @override
   String get open => 'खुला';
@@ -435,10 +431,10 @@ class AppLocalizationsHi extends AppLocalizations {
   String get close => 'बंद करें';
 
   @override
-  String get knowYourAreasVendor => 'अपने क्षेत्र के विक्रेता को जानें';
+  String get knowYourAreasContractor => 'अपने क्षेत्र के ठेकेदार को जानें';
 
   @override
-  String get vendorDetails => 'विक्रेता विवरण';
+  String get contractorDetails => 'ठेकेदार विवरण';
 
   @override
   String get agencyInformation => 'एजेंसी की जानकारी';
@@ -454,9 +450,6 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String get agencyAddress => 'एजेंसी का पता';
-
-  @override
-  String get contractorDetails => 'ठेकेदार विवरण';
 
   @override
   String get personName => 'व्यक्ति का नाम';
@@ -758,6 +751,22 @@ class AppLocalizationsHi extends AppLocalizations {
   String get todayComplaints => 'आज की शिकायतें';
 
   @override
+  String get tooltipTotalReportedComplaintDescription =>
+      'चयनित तारीख सीमा में रिपोर्ट की गई शिकायतों की कुल संख्या। इसमें खुली, हल, सत्यापित और बंद शिकायतें शामिल हैं।';
+
+  @override
+  String get tooltipOpenComplaintDescription =>
+      'वे शिकायतें जो अभी तक हल नहीं हुई हैं। संबंधित अधिकारी से कार्रवाई लंबित है।';
+
+  @override
+  String get tooltipResolvedComplaintsDescription =>
+      'हल की गई संख्या में शामिल: हल + सत्यापित + बंद शिकायतें।';
+
+  @override
+  String get tooltipTodayComplaintsDescription =>
+      'आज रिपोर्ट की गई शिकायतों की संख्या।';
+
+  @override
   String get overview => 'अवलोकन';
 
   @override
@@ -771,6 +780,9 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String get resolution => 'समाधान';
+
+  @override
+  String get noResolutionDetailsAvailable => 'कोई समाधान विवरण उपलब्ध नहीं है';
 
   @override
   String get writeYourCommentHere => 'अपनी टिप्पणी यहाँ लिखें...';
@@ -937,14 +949,23 @@ class AppLocalizationsHi extends AppLocalizations {
   String get total => 'कुल';
 
   @override
-  String get checkVendorSupervisorAttendance =>
-      'वेंडर / सुपरवाइज़र उपस्थिति जांचें';
+  String get checkContractorSupervisorAttendance =>
+      'ठेकेदार / सुपरवाइज़र उपस्थिति जांचें';
 
   @override
   String get updateContractorDetails => 'ठेकेदार विवरण अपडेट करें';
 
   @override
   String get startVillageMasterData => 'जीपी मास्टर डेटा शुरू करें';
+
+  @override
+  String get viewGpMasterData => 'जीपी मास्टर डेटा देखें';
+
+  @override
+  String get editGpMasterData => 'जीपी मास्टर डेटा संपादित करें';
+
+  @override
+  String get addGpMasterData => 'जीपी मास्टर डेटा जोड़ें';
 
   @override
   String get export => 'निर्यात';
@@ -954,4 +975,735 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String get noComplaintsAvailable => 'कोई शिकायत उपलब्ध नहीं';
+
+  @override
+  String get awaitingForCitizenToCloseComplaint =>
+      'नागरिक द्वारा शिकायत बंद करने की प्रतीक्षा';
+
+  @override
+  String get awaitingForSupervisorToTakeAction =>
+      'पर्यवेक्षक द्वारा कार्रवाई की प्रतीक्षा';
+
+  @override
+  String get awaitingForVdoToVerify => 'VDO द्वारा सत्यापन की प्रतीक्षा';
+
+  @override
+  String get pleaseSelectDateRangeFirst => 'कृपया पहले तारीख की सीमा चुनें';
+
+  @override
+  String get selectDateRangeToEnableExport =>
+      'निर्यात सक्षम करने के लिए तारीख की सीमा चुनें';
+
+  @override
+  String get totalReportedComplaints => 'कुल दर्ज शिकायतें';
+
+  @override
+  String get openComplaints => 'खुली शिकायतें';
+
+  @override
+  String get resolvedComplaints => 'निपटाई गई शिकायतें';
+
+  @override
+  String csvExportedToDownloads(String fileName) {
+    return 'CSV फ़ाइल डाउनलोड फ़ोल्डर में सफलतापूर्वक निर्यात: $fileName';
+  }
+
+  @override
+  String errorExportingCsv(String error) {
+    return 'CSV निर्यात करने में त्रुटि: $error';
+  }
+
+  @override
+  String couldNotOpenLink(String platform) {
+    return '$platform लिंक नहीं खोल सके।';
+  }
+
+  @override
+  String get connectWithSwachhRajasthan => 'स्वच्छ राजस्थान से जुड़ें';
+
+  @override
+  String get noContractorDetailsAvailable => 'कोई ठेकेदार विवरण उपलब्ध नहीं';
+
+  @override
+  String get viewRankingsOfGp => 'ग्राम पंचायत की रैंकिंग देखें';
+
+  @override
+  String get exitApp => 'ऐप से बाहर निकलें';
+
+  @override
+  String get areYouSureExitApp => 'क्या आप वाकई ऐप से बाहर निकलना चाहते हैं?';
+
+  @override
+  String get exit => 'बाहर निकलें';
+
+  @override
+  String get somethingWentWrong => 'कुछ गलत हो गया';
+
+  @override
+  String get noComplaintsFound => 'कोई शिकायत नहीं मिली';
+
+  @override
+  String complaintCount(int count) {
+    return 'शिकायत ($count)';
+  }
+
+  @override
+  String openCount(int count) {
+    return 'खुली ($count)';
+  }
+
+  @override
+  String resolvedCount(int count) {
+    return 'निपटाई गई ($count)';
+  }
+
+  @override
+  String verifiedCount(int count) {
+    return 'सत्यापित ($count)';
+  }
+
+  @override
+  String disposedComplaintsCount(int count) {
+    return 'निपटाई गई शिकायतें ($count)';
+  }
+
+  @override
+  String get startNewInspection => 'नया निरीक्षण शुरू करें';
+
+  @override
+  String get noInspectionsFound => 'कोई निरीक्षण नहीं मिला';
+
+  @override
+  String inspectionLogCount(int count) {
+    return 'निरीक्षण लॉग ($count)';
+  }
+
+  @override
+  String get viewGpsInspection => 'जीपी निरीक्षण देखें';
+
+  @override
+  String get selectLocation => 'स्थान चुनें';
+
+  @override
+  String get reset => 'रीसेट';
+
+  @override
+  String get searchPlaceholder => 'खोजें....';
+
+  @override
+  String get searchBlock => 'ब्लॉक खोजें...';
+
+  @override
+  String get searchGp => 'जीपी खोजें...';
+
+  @override
+  String get pleaseSelectDistrictFirstForGp =>
+      'ग्राम पंचायतें देखने के लिए कृपया पहले जिला चुनें।';
+
+  @override
+  String get failedToLoadGramPanchayats => 'ग्राम पंचायतें लोड करने में विफल';
+
+  @override
+  String get noBlocksFound => 'कोई ब्लॉक नहीं मिला';
+
+  @override
+  String noGramPanchayatsFoundForBlock(String block) {
+    return '$block के लिए कोई ग्राम पंचायत नहीं मिली';
+  }
+
+  @override
+  String get chooseAnotherBlock => 'दूसरा ब्लॉक चुनें';
+
+  @override
+  String get districtOrBlockNotFound => 'जिला या ब्लॉक जानकारी नहीं मिली';
+
+  @override
+  String get inspectionLog => 'निरीक्षण लॉग';
+
+  @override
+  String get noGramPanchayatsFound => 'कोई ग्राम पंचायत नहीं मिली';
+
+  @override
+  String get pleaseSelectDistrictFirst => 'कृपया पहले जिला चुनें।';
+
+  @override
+  String get noDataAvailableForBlock =>
+      'चयनित ब्लॉक के लिए कोई डेटा उपलब्ध नहीं।';
+
+  @override
+  String get districtInfoNotFound =>
+      'जिला जानकारी नहीं मिली। कृपया पहले जिला चुनें।';
+
+  @override
+  String viewingInspectionDetailsFor(String gpName) {
+    return '$gpName के लिए निरीक्षण विवरण देख रहे हैं';
+  }
+
+  @override
+  String get failedToLoadAttendance => 'उपस्थिति लोड करने में विफल';
+
+  @override
+  String errorLoadingAttendance(String error) {
+    return 'उपस्थिति लोड करने में त्रुटि: $error';
+  }
+
+  @override
+  String attendanceLogFor(String gpName) {
+    return 'उपस्थिति लॉग - $gpName';
+  }
+
+  @override
+  String attendanceLogPresentTotal(int present, int total) {
+    return 'उपस्थिति लॉग ($present/$total)';
+  }
+
+  @override
+  String get unknown => 'अज्ञात';
+
+  @override
+  String get unknownDate => 'अज्ञात तारीख';
+
+  @override
+  String get roadMaintenance => 'सड़क रखरखाव';
+
+  @override
+  String get complaintHasBeenClosed => 'शिकायत बंद कर दी गई है';
+
+  @override
+  String get closeComplaint => 'शिकायत बंद करें';
+
+  @override
+  String get closeComplaintConfirmation =>
+      'क्या आप वाकई इस शिकायत को बंद करना चाहते हैं?';
+
+  @override
+  String get contractorSupervisor => 'ठेकेदार / पर्यवेक्षक';
+
+  @override
+  String get maximumFivePhotosUploaded => 'अधिकतम 5 फोटो अपलोड किए जा सकते हैं';
+
+  @override
+  String onlyPhotosAddedMaximumFive(int count) {
+    return 'केवल $count फोटो जोड़े गए। अधिकतम 5 फोटो अनुमत।';
+  }
+
+  @override
+  String failedToPickImagesError(String error) {
+    return 'फोटो चुनने में विफल: $error';
+  }
+
+  @override
+  String get inspectionSubmittedSuccessfully =>
+      'आपका निरीक्षण सफलतापूर्वक जमा हो गया';
+
+  @override
+  String get pleaseEnterVillageName => 'कृपया गाँव का नाम दर्ज करें';
+
+  @override
+  String failedToSubmitInspection(String error) {
+    return 'निरीक्षण जमा करने में विफल: $error';
+  }
+
+  @override
+  String get enterVillageName => 'गाँव का नाम दर्ज करें';
+
+  @override
+  String get generalDetails => 'सामान्य विवरण';
+
+  @override
+  String get numberOfWards => 'वार्डों की संख्या';
+
+  @override
+  String get numberPlaceholder => 'संख्या';
+
+  @override
+  String get dailyRegisterMaintainedAtHeadquarters =>
+      'मुख्यालय में दैनिक रजिस्टर रखा जाता है';
+
+  @override
+  String get householdWasteCollectionDisposal =>
+      'घरेलू कचरा संग्रह और निपटान कार्य';
+
+  @override
+  String get atWhatIntervalWasteCollected =>
+      'घरों से कचरा कितने अंतराल पर एकत्र किया जाता है?';
+
+  @override
+  String get arrangementSeparateWetDryWaste =>
+      'सफाई वाहनों में गीले और सूखे कचरे के अलग संग्रह की व्यवस्था';
+
+  @override
+  String get wasteDisposedAtRrc => 'क्या कचरा RRC पर निपटाया जा रहा है';
+
+  @override
+  String get arrangementWasteAtRrc =>
+      'RRC पर कचरा संग्रह और निपटान की व्यवस्था';
+
+  @override
+  String get wasteCollectionVehiclePrepared =>
+      'क्या कचरा संग्रह वाहन ठीक से तैयार/कार्यात्मक है';
+
+  @override
+  String get roadCleaningWork => 'सड़क सफाई कार्य';
+
+  @override
+  String get atWhatIntervalRoadsSwept =>
+      'सड़कों/बाजारों/मुख्य चौकों की सफाई कितने अंतराल पर होती है?';
+
+  @override
+  String get drainCleaningWork => 'नाली सफाई कार्य';
+
+  @override
+  String get atWhatIntervalDrainsCleaned =>
+      'नालियों की सफाई कितने अंतराल पर होती है?';
+
+  @override
+  String get disposalSludgeFromDrains =>
+      'नालियों से कीचड़ के निपटान की व्यवस्था';
+
+  @override
+  String get drainWasteOnRoadside =>
+      'क्या नाली का कचरा सड़क किनारे एकत्र किया जाता है';
+
+  @override
+  String get cscCleaningWork => 'सामुदायिक स्वच्छता परिसर (CSC) सफाई कार्य';
+
+  @override
+  String get intervalCscCleaning => 'CSC सफाई का अंतराल';
+
+  @override
+  String get availabilityElectricityWaterCsc =>
+      'CSC में बिजली और पानी की उपलब्धता';
+
+  @override
+  String get cscUsedByCommunity =>
+      'क्या समुदाय द्वारा CSC का उपयोग किया जा रहा है';
+
+  @override
+  String get pinkToiletInSchoolsUsed =>
+      'क्या स्कूलों में गुलाबी शौचालय उपयोग में है';
+
+  @override
+  String get otherPoints => 'अन्य बिंदु';
+
+  @override
+  String get firmPaidRegularly => 'क्या फर्म को नियमित भुगतान किया जा रहा है';
+
+  @override
+  String get cleaningStaffPaidRegularly =>
+      'क्या फर्म द्वारा सफाई कर्मचारियों को नियमित भुगतान किया जा रहा है';
+
+  @override
+  String get safetyEquipmentProvided =>
+      'क्या फर्म ने सुरक्षा उपकरण उपलब्ध कराए हैं';
+
+  @override
+  String get entryInFeedbackRegister =>
+      'क्या फीडबैक रजिस्टर में नियमित प्रविष्टि की जा रही है';
+
+  @override
+  String get rateChartPrepared =>
+      'क्या सफाई कार्य के लिए दर चार्ट तैयार किया गया है';
+
+  @override
+  String get rateChartDisplayed =>
+      'क्या दर चार्ट प्रमुख स्थानों पर प्रदर्शित है';
+
+  @override
+  String get suggestionsByInspector => 'निरीक्षक के सुझाव';
+
+  @override
+  String get daily => 'दैनिक';
+
+  @override
+  String get weekly => 'साप्ताहिक';
+
+  @override
+  String get fortnight => 'पंद्रह दिन';
+
+  @override
+  String get none => 'कोई नहीं';
+
+  @override
+  String get gp => 'जीपी';
+
+  @override
+  String get bdo => 'बीडीओ';
+
+  @override
+  String get selectGp => 'जीपी चुनें';
+
+  @override
+  String errorLoadingGps(String error) {
+    return 'जीपी लोड करने में त्रुटि: $error';
+  }
+
+  @override
+  String failedToLoadRankings(String error) {
+    return 'रैंकिंग लोड करने में विफल: $error';
+  }
+
+  @override
+  String get add => 'जोड़ें';
+
+  @override
+  String get failedToLoadComplaintDetails => 'शिकायत विवरण लोड करने में विफल';
+
+  @override
+  String get unknownLocation => 'अज्ञात स्थान';
+
+  @override
+  String get invalidCoordinates => 'अमान्य निर्देशांक';
+
+  @override
+  String get testLocation => 'परीक्षण स्थान';
+
+  @override
+  String locationAtCoordinates(String lat, String long) {
+    return 'स्थान $lat, $long पर';
+  }
+
+  @override
+  String get todaySuffix => '(आज)';
+
+  @override
+  String attendanceLogTitle(int present, int total, String filter) {
+    return 'उपस्थिति लॉग ($present/$total) - $filter';
+  }
+
+  @override
+  String get failedToMarkAttendance => 'उपस्थिति अंकित करने में विफल';
+
+  @override
+  String get gramPanchayatName => 'ग्राम पंचायत का नाम';
+
+  @override
+  String noComplaintsForStatus(String status) {
+    return 'कोई $status शिकायत नहीं';
+  }
+
+  @override
+  String get na => 'लागू नहीं';
+
+  @override
+  String get noDescription => 'कोई विवरण नहीं';
+
+  @override
+  String get filterMonth => 'महीना';
+
+  @override
+  String get filterWeek => 'सप्ताह';
+
+  @override
+  String get filterDay => 'दिन';
+
+  @override
+  String get tapToScanQRCode => 'QR कोड स्कैन करने के लिए बटन दबाएं';
+
+  @override
+  String get scan => 'स्कैन करें';
+
+  @override
+  String get gpMasterData => 'जीपी मास्टर डेटा';
+
+  @override
+  String get gpVillageNotAssignedContactAdmin =>
+      'जीपी/गाँव आपके खाते में निर्दिष्ट नहीं है। कृपया व्यवस्थापक से संपर्क करें।';
+
+  @override
+  String get exportingData => 'डेटा निर्यात हो रहा है...';
+
+  @override
+  String get exportSuccessful => 'निर्यात सफल';
+
+  @override
+  String get exportFailed => 'निर्यात विफल';
+
+  @override
+  String csvFileSavedSuccessfully(String path) {
+    return 'CSV फ़ाइल सफलतापूर्वक सहेजी गई!\n\nस्थान: $path';
+  }
+
+  @override
+  String get failedToExportDataPleaseTryAgain =>
+      'डेटा निर्यात करने में विफल। कृपया पुनः प्रयास करें।';
+
+  @override
+  String get addNewAgency => 'नई एजेंसी जोड़ें';
+
+  @override
+  String get agencyNameRequired => 'एजेंसी का नाम*';
+
+  @override
+  String get enterAgencyName => 'एजेंसी का नाम दर्ज करें';
+
+  @override
+  String get required => 'आवश्यक';
+
+  @override
+  String get enter10Digits => '10 अंक दर्ज करें';
+
+  @override
+  String get enterEmailAddress => 'ईमेल पता दर्ज करें';
+
+  @override
+  String get enterAddress => 'पता दर्ज करें';
+
+  @override
+  String failedToAddAgency(String error) {
+    return 'एजेंसी जोड़ने में विफल: $error';
+  }
+
+  @override
+  String get agency => 'एजेंसी';
+
+  @override
+  String get selectAgency => 'एजेंसी चुनें';
+
+  @override
+  String get pleaseSelectAgency => 'कृपया एजेंसी चुनें';
+
+  @override
+  String get pleaseSelectWorkOrderDate => 'कृपया कार्य आदेश तिथि चुनें';
+
+  @override
+  String get pleaseSelectDuration => 'कृपया अवधि चुनें';
+
+  @override
+  String get pleaseSelectDurationToCalculateEndDate =>
+      'कृपया समाप्ति तिथि की गणना के लिए अवधि चुनें';
+
+  @override
+  String get phoneNumberRequired => 'फ़ोन नंबर आवश्यक है';
+
+  @override
+  String get contractorAddedSuccessfully => 'ठेकेदार सफलतापूर्वक जोड़ा गया!';
+
+  @override
+  String get contractorDetailsUpdatedSuccessfully =>
+      'ठेकेदार विवरण सफलतापूर्वक अपडेट किया गया!';
+
+  @override
+  String get addNew => 'नया जोड़ें';
+
+  @override
+  String get addContractor => 'ठेकेदार जोड़ें';
+
+  @override
+  String get enterContractorName => 'ठेकेदार का नाम दर्ज करें';
+
+  @override
+  String get phoneNumberLabel => 'फ़ोन नंबर';
+
+  @override
+  String get workOrderDatePlaceholder => 'कार्य आदेश तिथि';
+
+  @override
+  String get workOrderAmount => 'कार्य आदेश राशि';
+
+  @override
+  String get enterAmount => 'राशि दर्ज करें';
+
+  @override
+  String get selectDuration => 'अवधि चुनें';
+
+  @override
+  String get selectFrequency => 'आवृत्ति चुनें';
+
+  @override
+  String get thisFieldIsRequired => 'यह फ़ील्ड आवश्यक है';
+
+  @override
+  String get pleaseSelectValue => 'कृपया एक मान चुनें';
+
+  @override
+  String get alternateDays => 'अल्टरनेट दिन';
+
+  @override
+  String get twiceAWeek => 'सप्ताह में दो बार';
+
+  @override
+  String get gramPanchayatFallback => 'ग्राम पंचायत';
+
+  @override
+  String get vdoName => 'VDO Name';
+
+  @override
+  String get sarpanchDetails => 'Sarpanch details';
+
+  @override
+  String get contactNumber => 'Contact Number';
+
+  @override
+  String get numberPlaceholder10Digits => 'Number (10 digits)';
+
+  @override
+  String get numberOfWardPanchs => 'Number of Ward Panchs';
+
+  @override
+  String get noShort => 'No';
+
+  @override
+  String get workOrderDetails => 'Work order details';
+
+  @override
+  String get workOrderNo => 'Work order no';
+
+  @override
+  String get noDot => 'No.';
+
+  @override
+  String get date => 'Date';
+
+  @override
+  String get amount => 'Amount';
+
+  @override
+  String get fundSanctioned => 'Fund Sanctioned';
+
+  @override
+  String get doorToDoorCollectionDetails => 'Door to door collection details';
+
+  @override
+  String get noOfHouseholds => 'No. of households';
+
+  @override
+  String get noOfShops => 'No. of shops';
+
+  @override
+  String get collectionFrequency => 'Collection frequency';
+
+  @override
+  String get roadSweepingDetails => 'Road sweeping details';
+
+  @override
+  String get widthM => 'Width (m)';
+
+  @override
+  String get widthInMetres => 'Width in metres';
+
+  @override
+  String get lengthM => 'Length (m)';
+
+  @override
+  String get lengthInMetres => 'Length in metres';
+
+  @override
+  String get cleaningFrequency => 'Cleaning frequency';
+
+  @override
+  String get drainCleaningDetails => 'Drain cleaning details';
+
+  @override
+  String get length => 'Length';
+
+  @override
+  String get swmAssetsTitle => 'SWM Assets (Solid Waste Management Assets)';
+
+  @override
+  String get rrcResourceRecoveryCentre => 'RRC (Resource Recovery Centre)';
+
+  @override
+  String get pwmuPlasticWaste => 'PWMU (Plastic Waste Management Unit)';
+
+  @override
+  String get compositPit => 'Composit pit';
+
+  @override
+  String get collectionVehicle => 'Collection vehicle';
+
+  @override
+  String get sbmgYearTargetsTitle =>
+      'SBMG Year Targets (Swachh Bharat Mission - Gramin Year Targets)';
+
+  @override
+  String get ihhlIndividualHousehold => 'IHHL (Individual Household Latrine)';
+
+  @override
+  String get cscCommunitySanitation => 'CSC (Community Sanitation Complex)';
+
+  @override
+  String get soakPit => 'Soak pit';
+
+  @override
+  String get magicPit => 'Magic pit';
+
+  @override
+  String get leachPit => 'Leach pit';
+
+  @override
+  String get wspWasteStabilisation => 'WSP (Waste Stabilisation Pond)';
+
+  @override
+  String get dewatsTitle =>
+      'DEWATS (Decentralised Wastewater Treatment System)';
+
+  @override
+  String get headName => 'Head name';
+
+  @override
+  String get enterHeadName => 'Enter head name';
+
+  @override
+  String get addVillage => 'Add Village';
+
+  @override
+  String villagesCount(int count) {
+    return 'Villages ($count)';
+  }
+
+  @override
+  String villageNumber(int number) {
+    return 'Village $number';
+  }
+
+  @override
+  String get villageNameLabel => 'Village name';
+
+  @override
+  String get population => 'Population';
+
+  @override
+  String get noOfHouseholdsLabel => 'No. of households';
+
+  @override
+  String get sbmgAssets => 'SBMG Assets';
+
+  @override
+  String get gwmAssets => 'GWM Assets';
+
+  @override
+  String get viewAllSearchAgency => 'View all / Search…';
+
+  @override
+  String get ownIncome => 'Own income';
+
+  @override
+  String get ceo => 'सीईओ';
+
+  @override
+  String get districtInfoNotAvailable => 'जिला जानकारी उपलब्ध नहीं है।';
+
+  @override
+  String get noBlocksAvailable => 'कोई ब्लॉक उपलब्ध नहीं है।';
+
+  @override
+  String get citizen => 'नागरिक';
+
+  @override
+  String get pleaseSelectBlockFirst => 'कृपया पहले ब्लॉक चुनें।';
+
+  @override
+  String get noGramPanchayatsFoundForThisBlock =>
+      'इस ब्लॉक के लिए कोई ग्राम पंचायत नहीं मिली।';
+
+  @override
+  String failedToLoadBlocksError(String error) {
+    return 'ब्लॉक लोड करने में विफल: $error';
+  }
+
+  @override
+  String failedToLoadGramPanchayatsError(String error) {
+    return 'ग्राम पंचायतें लोड करने में विफल: $error';
+  }
 }

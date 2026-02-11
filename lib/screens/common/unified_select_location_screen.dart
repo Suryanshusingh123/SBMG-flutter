@@ -130,6 +130,95 @@ class _UnifiedSelectLocationScreenState
             }
           }
         }
+        
+        // For SMD, try to load saved Block/GP selection
+        if (widget.userRole == 'smd') {
+          final savedLocation = await _authService.getInspectionLocation('smd');
+          if (savedLocation != null) {
+            final savedBlockId = savedLocation['blockId'] as int?;
+            final savedGpId = savedLocation['gpId'] as int?;
+            
+            if (savedBlockId != null) {
+              // Find and select the saved block
+              final savedBlock = _blocks.firstWhere(
+                (b) => b.id == savedBlockId,
+                orElse: () => Block(
+                  id: savedBlockId,
+                  name: savedLocation['blockName'] as String? ?? 'Block',
+                  districtId: _districtId!,
+                  description: null,
+                ),
+              );
+              
+              setState(() {
+                _selectedBlock = savedBlock;
+              });
+              
+              // Load GPs for the saved block
+              if (savedGpId != null) {
+                await _loadGramPanchayats(_districtId!, savedBlockId);
+                
+                // Find and select the saved GP
+                final savedGP = _gramPanchayats.firstWhere(
+                  (g) => g.id == savedGpId,
+                  orElse: () => GramPanchayat(
+                    id: savedGpId,
+                    name: savedLocation['gpName'] as String? ?? 'Gram Panchayat',
+                    blockId: savedBlockId,
+                    description: null,
+                  ),
+                );
+                
+                setState(() {
+                  _selectedGP = savedGP;
+                });
+              }
+            }
+          }
+        }
+        
+        // For BDO, district and block are FIXED from login (auth). Only GP is optional from saved location.
+        if (widget.userRole == 'bdo') {
+          final authBlockId = await _authService.getBlockId();
+          if (authBlockId != null && _blocks.isNotEmpty) {
+            final authBlock = _blocks.firstWhere(
+              (b) => b.id == authBlockId,
+              orElse: () => Block(
+                id: authBlockId,
+                name: 'Block',
+                districtId: _districtId!,
+                description: null,
+              ),
+            );
+            setState(() {
+              _selectedBlock = authBlock;
+            });
+            await _loadGramPanchayats(_districtId!, authBlockId);
+            // Restore only optional GP from saved location
+            var savedLocation = await _authService.getPageLocation('bdo', 'complaints');
+            if (savedLocation == null) {
+              savedLocation = await _authService.getPageLocation('bdo', 'inspections');
+            }
+            if (savedLocation == null) {
+              savedLocation = await _authService.getInspectionLocation('bdo');
+            }
+            final savedGpId = savedLocation?['gpId'] as int?;
+            if (savedGpId != null && _gramPanchayats.isNotEmpty) {
+              final savedGP = _gramPanchayats.firstWhere(
+                (g) => g.id == savedGpId,
+                orElse: () => GramPanchayat(
+                  id: savedGpId,
+                  name: savedLocation!['gpName'] as String? ?? 'Gram Panchayat',
+                  blockId: authBlockId,
+                  description: null,
+                ),
+              );
+              setState(() {
+                _selectedGP = savedGP;
+              });
+            }
+          }
+        }
       }
     } catch (e) {
       debugPrint('Error initializing location screen: $e');
@@ -201,6 +290,7 @@ class _UnifiedSelectLocationScreenState
           ),
         ),
         actions: [
+          // For BDO, Reset only clears optional GP (district/block are fixed)
           TextButton(
             onPressed: _resetSelections,
             child: const Text(
@@ -227,8 +317,8 @@ class _UnifiedSelectLocationScreenState
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   SizedBox(height: 24.h),
-                  // District Field - Fixed for CEO, selectable for others
-                  widget.userRole == 'ceo'
+                  // District: Fixed for CEO and BDO (from login), selectable for SMD
+                  (widget.userRole == 'ceo' || widget.userRole == 'bdo')
                       ? _buildFixedLocationField(
                           label: 'District',
                           value: _districtName.isNotEmpty ? _districtName : null,
@@ -242,19 +332,28 @@ class _UnifiedSelectLocationScreenState
                           isLoading: _isLoadingDistricts,
                         ),
                   SizedBox(height: 16.h),
-                  // Block Field
-                  _buildLocationField(
-                    label: 'Block',
-                    value: _selectedBlock?.name,
-                    onTap: (_districtId == null || _isLoadingBlocks)
-                        ? null
-                        : () => _showBlockBottomSheet(),
-                    isLoading: _isLoadingBlocks,
-                  ),
+                  // Block: Fixed for BDO (from login). Optional for SMD; selectable for CEO.
+                  (widget.userRole == 'bdo')
+                      ? _buildFixedLocationField(
+                          label: 'Block',
+                          value: _selectedBlock?.name,
+                        )
+                      : _buildLocationField(
+                          label: (widget.userRole == 'smd')
+                              ? 'Block (Optional)'
+                              : 'Block',
+                          value: _selectedBlock?.name,
+                          onTap: (_districtId == null || _isLoadingBlocks)
+                              ? null
+                              : () => _showBlockBottomSheet(),
+                          isLoading: _isLoadingBlocks,
+                        ),
                   SizedBox(height: 16.h),
-                  // Gram Panchayat Field
+                  // Gram Panchayat Field - Optional for SMD and BDO
                   _buildLocationField(
-                    label: 'Gram Panchayat',
+                    label: (widget.userRole == 'smd' || widget.userRole == 'bdo')
+                        ? 'Gram Panchayat (Optional)'
+                        : 'Gram Panchayat',
                     value: _selectedGP?.name,
                     onTap: (_selectedBlock == null ||
                             _districtId == null ||
@@ -446,7 +545,16 @@ class _UnifiedSelectLocationScreenState
     if (widget.userRole == 'ceo') {
       return _selectedBlock != null && _selectedGP != null;
     }
-    // For others (SMD), District, Block, and GP are all required
+    // For SMD, District is required, Block and GP are optional
+    // User can apply with just District, or District+Block, or District+Block+GP
+    if (widget.userRole == 'smd') {
+      return _selectedDistrict != null;
+    }
+    // For BDO, District and Block are required, GP is optional (same as SMD but block required)
+    if (widget.userRole == 'bdo') {
+      return _selectedDistrict != null && _selectedBlock != null;
+    }
+    // For others, District, Block, and GP are all required
     if (_selectedDistrict == null || _selectedBlock == null) {
       return false;
     }
@@ -455,9 +563,14 @@ class _UnifiedSelectLocationScreenState
 
   void _resetSelections() {
     setState(() {
-      _selectedBlock = null;
+      // BDO: district and block are fixed from login; only clear optional GP
+      if (widget.userRole != 'bdo') {
+        _selectedBlock = null;
+      }
       _selectedGP = null;
-      _gramPanchayats = [];
+      if (widget.userRole != 'bdo') {
+        _gramPanchayats = [];
+      }
     });
   }
 
@@ -466,7 +579,78 @@ class _UnifiedSelectLocationScreenState
     // For SMD, we use _selectedDistrict
     final districtId = widget.userRole == 'ceo' ? _districtId : _selectedDistrict?.id;
     
-    if (_canApply() && districtId != null && _selectedBlock != null && _selectedGP != null) {
+    if (!_canApply() || districtId == null) {
+      return;
+    }
+    
+    // For CEO, Block and GP are required
+    if (widget.userRole == 'ceo') {
+      if (_selectedBlock == null || _selectedGP == null) {
+        return;
+      }
+      final result = {
+        'districtId': districtId,
+        'districtName': _districtName.isNotEmpty ? _districtName : (_selectedDistrict?.name ?? 'District'),
+        'blockId': _selectedBlock!.id,
+        'blockName': _selectedBlock!.name,
+        'gpId': _selectedGP!.id,
+        'gpName': _selectedGP!.name,
+      };
+
+      // Save inspection location based on user role
+      _saveInspectionLocation(result);
+
+      if (widget.onLocationSelected != null) {
+        widget.onLocationSelected!(result);
+      }
+      Navigator.pop(context, result);
+      return;
+    }
+    
+    // For SMD, Block and GP are optional
+    if (widget.userRole == 'smd') {
+      final result = {
+        'districtId': districtId,
+        'districtName': _districtName.isNotEmpty ? _districtName : (_selectedDistrict?.name ?? 'District'),
+        'blockId': _selectedBlock?.id,
+        'blockName': _selectedBlock?.name,
+        'gpId': _selectedGP?.id,
+        'gpName': _selectedGP?.name,
+      };
+
+      // Save inspection location based on user role
+      _saveInspectionLocation(result);
+
+      if (widget.onLocationSelected != null) {
+        widget.onLocationSelected!(result);
+      }
+      Navigator.pop(context, result);
+      return;
+    }
+    
+    // For BDO, Block is required, GP is optional (same shape as SMD result)
+    if (widget.userRole == 'bdo') {
+      if (_selectedBlock == null) return;
+      final result = {
+        'districtId': districtId,
+        'districtName': _districtName.isNotEmpty ? _districtName : (_selectedDistrict?.name ?? 'District'),
+        'blockId': _selectedBlock!.id,
+        'blockName': _selectedBlock!.name,
+        'gpId': _selectedGP?.id,
+        'gpName': _selectedGP?.name,
+      };
+
+      _saveInspectionLocation(result);
+
+      if (widget.onLocationSelected != null) {
+        widget.onLocationSelected!(result);
+      }
+      Navigator.pop(context, result);
+      return;
+    }
+    
+    // For others, all are required
+    if (_selectedBlock != null && _selectedGP != null) {
       final result = {
         'districtId': districtId,
         'districtName': _districtName.isNotEmpty ? _districtName : (_selectedDistrict?.name ?? 'District'),

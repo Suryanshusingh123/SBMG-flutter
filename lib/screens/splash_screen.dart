@@ -1,7 +1,9 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:provider/provider.dart';
 import 'package:sbmg/services/auth_services.dart';
+import 'package:sbmg/providers/bookmarks_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class SplashScreen extends StatefulWidget {
@@ -60,6 +62,15 @@ class _SplashScreenState extends State<SplashScreen>
       if (!mounted) return;
 
       if (isLoggedIn) {
+        // Reload bookmarks for the logged-in user
+        try {
+          final bookmarksProvider = Provider.of<BookmarksProvider>(context, listen: false);
+          await bookmarksProvider.reloadForCurrentUser();
+          print('✅ Bookmarks reloaded for logged-in user');
+        } catch (e) {
+          print('⚠️ Error reloading bookmarks: $e');
+        }
+
         // User is logged in, first check for stored role (from admin/login)
         final storedRole = await authService.getRole();
 

@@ -13,7 +13,10 @@ import '../../services/auth_services.dart';
 import '../common/unified_select_location_screen.dart';
 
 class SmdInspectionScreen extends StatefulWidget {
-  const SmdInspectionScreen({super.key});
+  /// When true, this screen is shown inside [SmdShellScreen]; bottom nav is provided by the shell.
+  final bool isEmbeddedInShell;
+
+  const SmdInspectionScreen({super.key, this.isEmbeddedInShell = false});
 
   @override
   State<SmdInspectionScreen> createState() => _SmdInspectionScreenState();
@@ -47,10 +50,14 @@ class _SmdInspectionScreenState extends State<SmdInspectionScreen> {
 
     if (_hasCheckedLocation) return;
 
-    // Check if inspection location exists
-    final location = await _authService.getInspectionLocation('smd');
+    // Check if INSPECTION page location exists
+    // Fallback to old inspection location for backward compatibility
+    var location = await _authService.getPageLocation('smd', 'inspections');
+    if (location == null) {
+      location = await _authService.getInspectionLocation('smd');
+    }
     
-    if (location == null || location['gpId'] == null) {
+    if (location == null || location['districtId'] == null) {
       // Show location selection screen once
       if (!mounted) return;
       final result = await Navigator.push(
@@ -60,7 +67,15 @@ class _SmdInspectionScreenState extends State<SmdInspectionScreen> {
         ),
       );
 
-      if (result is Map<String, dynamic> && result['gpId'] != null) {
+      if (result is Map<String, dynamic> && result['districtId'] != null) {
+        // Save the location for INSPECTIONS page
+        await _authService.savePageLocation('smd', 'inspections', result);
+        
+        // Also update the old district ID storage for backward compatibility
+        if (result['districtId'] != null) {
+          await _authService.setSmdSelectedDistrictId(result['districtId'] as int);
+        }
+        
         setState(() {
           _inspectionLocation = result;
         });
@@ -131,46 +146,46 @@ class _SmdInspectionScreenState extends State<SmdInspectionScreen> {
           ],
         ),
       ),
-      bottomNavigationBar: CustomBottomNavigationBar(
-        currentIndex: _selectedIndex,
-        onTap: (index) {
-          setState(() {
-            _selectedIndex = index;
-          });
-          switch (index) {
-            case 0:
-              Navigator.pushReplacementNamed(context, '/smd-dashboard');
-              break;
-            case 1:
-              Navigator.pushReplacementNamed(context, '/smd-complaints');
-              break;
-            case 2:
-              // already on inspections
-              break;
-            case 3:
-              Navigator.pushReplacementNamed(context, '/smd-settings');
-              break;
-          }
-        },
-        items: [
-          BottomNavItem(
-            iconPath: 'assets/icons/bottombar/home.png',
-            label: AppLocalizations.of(context)!.home,
-          ),
-          BottomNavItem(
-            iconPath: 'assets/icons/bottombar/complaints.png',
-            label: AppLocalizations.of(context)!.complaints,
-          ),
-          BottomNavItem(
-            iconPath: 'assets/icons/bottombar/inspection.png',
-            label: AppLocalizations.of(context)!.inspection,
-          ),
-          BottomNavItem(
-            iconPath: 'assets/icons/bottombar/settings.png',
-            label: AppLocalizations.of(context)!.settings,
-          ),
-        ],
-      ),
+      // Bottom nav is provided by SmdShellScreen when isEmbeddedInShell
+      bottomNavigationBar: widget.isEmbeddedInShell
+          ? null
+          : CustomBottomNavigationBar(
+              currentIndex: _selectedIndex,
+              onTap: (index) {
+                setState(() => _selectedIndex = index);
+                switch (index) {
+                  case 0:
+                    Navigator.pushReplacementNamed(context, '/smd-dashboard');
+                    break;
+                  case 1:
+                    Navigator.pushReplacementNamed(context, '/smd-complaints');
+                    break;
+                  case 2:
+                    break;
+                  case 3:
+                    Navigator.pushReplacementNamed(context, '/smd-settings');
+                    break;
+                }
+              },
+              items: [
+                BottomNavItem(
+                  iconPath: 'assets/icons/bottombar/home.png',
+                  label: AppLocalizations.of(context)!.home,
+                ),
+                BottomNavItem(
+                  iconPath: 'assets/icons/bottombar/complaints.png',
+                  label: AppLocalizations.of(context)!.complaints,
+                ),
+                BottomNavItem(
+                  iconPath: 'assets/icons/bottombar/inspection.png',
+                  label: AppLocalizations.of(context)!.inspection,
+                ),
+                BottomNavItem(
+                  iconPath: 'assets/icons/bottombar/settings.png',
+                  label: AppLocalizations.of(context)!.settings,
+                ),
+              ],
+            ),
     );
   }
 
@@ -205,10 +220,40 @@ class _SmdInspectionScreenState extends State<SmdInspectionScreen> {
                             builder: (_) => const UnifiedSelectLocationScreen(userRole: 'smd'),
                           ),
                         );
-                        if (result is Map<String, dynamic> && result['gpId'] != null) {
+                        if (result is Map<String, dynamic> && result['districtId'] != null) {
+                          print('📍 Location changed - New location: $result');
+                          print('   - District ID: ${result['districtId']}');
+                          print('   - Block ID: ${result['blockId']}');
+                          print('   - GP ID: ${result['gpId']}');
+                          
+                        // Save the location for INSPECTIONS page
+                        await _authService.savePageLocation('smd', 'inspections', result);
+                        
+                        // Also update the old district ID storage for backward compatibility
+                        if (result['districtId'] != null) {
+                          await _authService.setSmdSelectedDistrictId(result['districtId'] as int);
+                        }
+                        
+                        // Verify it was saved correctly
+                        final saved = await _authService.getPageLocation('smd', 'inspections');
+                          print('💾 Verified saved location: $saved');
+                          if (saved == null) {
+                            print('❌ ERROR: Location was not saved correctly!');
+                            return;
+                          }
+                          
+                          // Update state
                           setState(() {
                             _inspectionLocation = result;
                           });
+                          
+                          // Reload inspections with new location
+                          if (mounted) {
+                            // Clear provider state first to show loading
+                            context.read<SmdInspectionProvider>().loadInspections();
+                          }
+                        } else {
+                          print('⚠️ Location change cancelled or invalid result: $result');
                         }
                       },
                       child: Padding(
@@ -235,7 +280,7 @@ class _SmdInspectionScreenState extends State<SmdInspectionScreen> {
           SizedBox(height: 4.h),
           Text(
             _inspectionLocation != null
-                ? '${_inspectionLocation!['districtName']} • ${_inspectionLocation!['blockName']} • ${_inspectionLocation!['gpName']} • ${_displayMonth()}'
+                ? '${_inspectionLocation!['districtName'] ?? ''}${_inspectionLocation!['blockName'] != null ? ' • ${_inspectionLocation!['blockName']}' : ''}${_inspectionLocation!['gpName'] != null ? ' • ${_inspectionLocation!['gpName']}' : ''} • ${_displayMonth()}'
                 : '${smdProvider.districtName} • ${_displayMonth()}',
             style: TextStyle(fontSize: 11.sp, color: const Color(0xFF6B7280)),
           ),
@@ -281,7 +326,7 @@ class _SmdInspectionScreenState extends State<SmdInspectionScreen> {
           SizedBox(
             width: double.infinity,
             child: ElevatedButton(
-              onPressed: _inspectionLocation == null ? null : () {
+              onPressed: (_inspectionLocation == null || _inspectionLocation!['gpId'] == null) ? null : () {
                 // Use stored location for new inspection
                 Navigator.pushNamed(
                   context,
@@ -303,7 +348,7 @@ class _SmdInspectionScreenState extends State<SmdInspectionScreen> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Text(
-                    'Start new inspection',
+                    AppLocalizations.of(context)!.startNewInspection,
                     style: TextStyle(
                       fontSize: 14.sp,
                       fontWeight: FontWeight.w600,
@@ -341,7 +386,7 @@ class _SmdInspectionScreenState extends State<SmdInspectionScreen> {
           Expanded(
             child: Center(
               child: Text(
-                'No inspections found',
+                AppLocalizations.of(context)!.noInspectionsFound,
                 style: TextStyle(fontSize: 16.sp, color: Colors.grey.shade600),
               ),
             ),
@@ -364,7 +409,7 @@ class _SmdInspectionScreenState extends State<SmdInspectionScreen> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                'Inspection log (${provider.totalInspections})',
+                AppLocalizations.of(context)!.inspectionLogCount(provider.totalInspections),
                 style: TextStyle(
                   fontSize: 15.sp,
                   fontWeight: FontWeight.w600,
@@ -372,7 +417,7 @@ class _SmdInspectionScreenState extends State<SmdInspectionScreen> {
                 ),
               ),
               Text(
-                'Month',
+                AppLocalizations.of(context)!.month,
                 style: TextStyle(
                   fontSize: 13.sp,
                   fontWeight: FontWeight.w400,
@@ -408,77 +453,86 @@ class _SmdInspectionScreenState extends State<SmdInspectionScreen> {
   }
 
   Widget _buildInspectionCard(Inspection inspection) {
-    return Container(
-      margin: EdgeInsets.only(bottom: 12.h),
-      padding: EdgeInsets.all(16.r),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12.r),
-        border: Border.all(color: Colors.grey.shade200),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 4,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 40.w,
-            height: 40.h,
-            decoration: BoxDecoration(
-              color: AppColors.primaryColor,
-              borderRadius: BorderRadius.circular(8.r),
+    return GestureDetector(
+      onTap: () {
+        Navigator.pushNamed(
+          context,
+          '/inspection-details',
+          arguments: {'inspectionId': inspection.id},
+        );
+      },
+      child: Container(
+        margin: EdgeInsets.only(bottom: 12.h),
+        padding: EdgeInsets.all(16.r),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12.r),
+          border: Border.all(color: Colors.grey.shade200),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 4,
+              offset: const Offset(0, 2),
             ),
-            child: Stack(
-              alignment: Alignment.center,
-              children: [
-                Icon(Icons.description, color: Colors.white, size: 18.sp),
-                Positioned(
-                  left: 6.w,
-                  top: 6.h,
-                  child: Icon(
-                    Icons.description,
-                    color: Colors.white.withOpacity(0.7),
-                    size: 14.sp,
+          ],
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 40.w,
+              height: 40.h,
+              decoration: BoxDecoration(
+                color: AppColors.primaryColor,
+                borderRadius: BorderRadius.circular(8.r),
+              ),
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  Icon(Icons.description, color: Colors.white, size: 18.sp),
+                  Positioned(
+                    left: 6.w,
+                    top: 6.h,
+                    child: Icon(
+                      Icons.description,
+                      color: Colors.white.withOpacity(0.7),
+                      size: 14.sp,
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
-          SizedBox(width: 12.w),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  _formatDate(inspection.date),
-                  style: TextStyle(
-                    fontSize: 13.sp,
-                    fontWeight: FontWeight.w600,
-                    color: const Color(0xFF111827),
+            SizedBox(width: 12.w),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    _formatDate(inspection.date),
+                    style: TextStyle(
+                      fontSize: 13.sp,
+                      fontWeight: FontWeight.w600,
+                      color: const Color(0xFF111827),
+                    ),
                   ),
-                ),
-                SizedBox(height: 4.h),
-                Text(
-                  inspection.villageName,
-                  style: TextStyle(
-                    fontSize: 11.sp,
-                    fontWeight: FontWeight.w400,
-                    color: const Color(0xFF6B7280),
+                  SizedBox(height: 4.h),
+                  Text(
+                    inspection.villageName,
+                    style: TextStyle(
+                      fontSize: 11.sp,
+                      fontWeight: FontWeight.w400,
+                      color: const Color(0xFF6B7280),
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
-          Icon(
-            Icons.arrow_forward_ios,
-            color: Colors.grey.shade400,
-            size: 14.sp,
-          ),
-        ],
+            Icon(
+              Icons.arrow_forward_ios,
+              color: Colors.grey.shade400,
+              size: 14.sp,
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -570,7 +624,7 @@ class _SmdInspectionScreenState extends State<SmdInspectionScreen> {
             SizedBox(width: 12.w),
             Expanded(
               child: Text(
-                'View GPs inspection',
+                AppLocalizations.of(context)!.viewGpsInspection,
                 style: TextStyle(
                   fontSize: 15.sp,
                   fontWeight: FontWeight.w600,
@@ -717,7 +771,7 @@ class _SmdGpInspectionScreenState extends State<_SmdGpInspectionScreen> {
           Padding(
             padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 6.h),
             child: Text(
-              'Inspection log (${provider.totalInspections})',
+              AppLocalizations.of(context)!.inspectionLogCount(provider.totalInspections),
               style: TextStyle(
                 fontSize: 16.sp,
                 fontWeight: FontWeight.w600,
@@ -738,7 +792,7 @@ class _SmdGpInspectionScreenState extends State<_SmdGpInspectionScreen> {
                   ),
                 ),
                 Text(
-                  'Month',
+                  AppLocalizations.of(context)!.month,
                   style: TextStyle(
                     fontSize: 13.sp,
                     color: const Color(0xFF6B7280),
@@ -760,81 +814,90 @@ class _SmdGpInspectionScreenState extends State<_SmdGpInspectionScreen> {
                     itemCount: _filtered(provider.inspections).length,
                     itemBuilder: (context, index) {
                       final inspection = _filtered(provider.inspections)[index];
-                      return Container(
-                        margin: EdgeInsets.only(bottom: 12.h),
-                        padding: EdgeInsets.all(16.r),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(12.r),
-                          border: Border.all(color: Colors.grey.shade200),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withOpacity(0.05),
-                              blurRadius: 4,
-                              offset: const Offset(0, 2),
-                            ),
-                          ],
-                        ),
-                        child: Row(
-                          children: [
-                            Container(
-                              width: 40.w,
-                              height: 40.h,
-                              decoration: BoxDecoration(
-                                color: AppColors.primaryColor,
-                                borderRadius: BorderRadius.circular(8.r),
+                      return GestureDetector(
+                        onTap: () {
+                          Navigator.pushNamed(
+                            context,
+                            '/inspection-details',
+                            arguments: {'inspectionId': inspection.id},
+                          );
+                        },
+                        child: Container(
+                          margin: EdgeInsets.only(bottom: 12.h),
+                          padding: EdgeInsets.all(16.r),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(12.r),
+                            border: Border.all(color: Colors.grey.shade200),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.05),
+                                blurRadius: 4,
+                                offset: const Offset(0, 2),
                               ),
-                              child: Stack(
-                                alignment: Alignment.center,
-                                children: [
-                                  Icon(
-                                    Icons.description,
-                                    color: Colors.white,
-                                    size: 18.sp,
-                                  ),
-                                  Positioned(
-                                    left: 6.w,
-                                    top: 6.h,
-                                    child: Icon(
+                            ],
+                          ),
+                          child: Row(
+                            children: [
+                              Container(
+                                width: 40.w,
+                                height: 40.h,
+                                decoration: BoxDecoration(
+                                  color: AppColors.primaryColor,
+                                  borderRadius: BorderRadius.circular(8.r),
+                                ),
+                                child: Stack(
+                                  alignment: Alignment.center,
+                                  children: [
+                                    Icon(
                                       Icons.description,
-                                      color: Colors.white.withOpacity(0.7),
-                                      size: 14.sp,
+                                      color: Colors.white,
+                                      size: 18.sp,
                                     ),
-                                  ),
-                                ],
+                                    Positioned(
+                                      left: 6.w,
+                                      top: 6.h,
+                                      child: Icon(
+                                        Icons.description,
+                                        color: Colors.white.withOpacity(0.7),
+                                        size: 14.sp,
+                                      ),
+                                    ),
+                                  ],
+                                ),
                               ),
-                            ),
-                            SizedBox(width: 12.w),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    _formatDate(inspection.date),
-                                    style: TextStyle(
-                                      fontSize: 13.sp,
-                                      fontWeight: FontWeight.w600,
-                                      color: const Color(0xFF111827),
+                              SizedBox(width: 12.w),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      _formatDate(inspection.date),
+                                      style: TextStyle(
+                                        fontSize: 13.sp,
+                                        fontWeight: FontWeight.w600,
+                                        color: const Color(0xFF111827),
+                                      ),
                                     ),
-                                  ),
-                                  SizedBox(height: 4.h),
-                                  Text(
-                                    inspection.villageName,
-                                    style: TextStyle(
-                                      fontSize: 11.sp,
-                                      fontWeight: FontWeight.w400,
-                                      color: const Color(0xFF6B7280),
+                                    SizedBox(height: 4.h),
+                                    Text(
+                                      inspection.villageName,
+                                      style: TextStyle(
+                                        fontSize: 11.sp,
+                                        fontWeight: FontWeight.w400,
+                                        color: const Color(0xFF6B7280),
+                                      ),
                                     ),
-                                  ),
-                                ],
+                                  ],
+                                ),
                               ),
-                            ),
-                            Icon(
-                              Icons.arrow_forward_ios,
-                              color: Colors.grey.shade400,
-                              size: 14.sp,
-                            ),
-                          ],
+                              Icon(
+                                Icons.arrow_forward_ios,
+                                color: Colors.grey.shade400,
+                                size: 14.sp,
+                              ),
+                            ],
+                          ),
                         ),
                       );
                     },

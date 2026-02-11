@@ -1,13 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:provider/provider.dart';
 import 'package:sbmg/screens/citizen/scheme_details_screen.dart';
 import 'package:sbmg/widgets/common/banner_carousel.dart';
-import '../../providers/citizen_bookmarks_provider.dart';
 import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:csv/csv.dart';
+import '../../utils/api_error_utils.dart';
 import '../../utils/download_helper.dart';
 import '../../config/connstants.dart';
 import '../../widgets/common/custom_bottom_navigation.dart';
@@ -20,9 +21,17 @@ import '../../services/auth_services.dart';
 import '../../screens/common/unified_select_location_screen.dart';
 import 'ceo_select_location_screen.dart';
 import 'ceo_gp_attendance_screen.dart';
+import '../../l10n/app_localizations.dart';
+import '../../providers/locale_provider.dart';
+import '../citizen/gp_master_data_details_screen.dart';
+import '../citizen/language_screen.dart';
+import '../citizen/notifications_screen.dart';
 
 class CeoHomeScreen extends StatefulWidget {
-  const CeoHomeScreen({super.key});
+  /// When true, this screen is shown inside [CeoShellScreen]. Bottom nav is provided by the shell.
+  final bool isEmbeddedInShell;
+
+  const CeoHomeScreen({super.key, this.isEmbeddedInShell = false});
 
   @override
   State<CeoHomeScreen> createState() => _CeoHomeScreenState();
@@ -59,6 +68,17 @@ class _CeoHomeScreenState extends State<CeoHomeScreen> {
   }
 
   Future<void> _exportToCSV(CeoProvider provider) async {
+    if (provider.fromDate == null || provider.toDate == null) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(AppLocalizations.of(context)!.pleaseSelectDateRangeFirst),
+            backgroundColor: const Color(0xFF6B7280),
+          ),
+        );
+      }
+      return;
+    }
     try {
       // Request storage permission for Android
       await DownloadHelper.requestStoragePermission();
@@ -105,7 +125,7 @@ class _CeoHomeScreenState extends State<CeoHomeScreen> {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(
-                'CSV file exported successfully to Downloads folder: $fileName',
+                AppLocalizations.of(context)!.csvExportedToDownloads(fileName),
               ),
               backgroundColor: const Color(0xFF009B56),
               duration: const Duration(seconds: 3),
@@ -119,7 +139,7 @@ class _CeoHomeScreenState extends State<CeoHomeScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error exporting CSV: $e'),
+            content: Text(AppLocalizations.of(context)!.errorExportingCsv(e.toString())),
             backgroundColor: Colors.red,
             duration: const Duration(seconds: 3),
           ),
@@ -160,10 +180,14 @@ class _CeoHomeScreenState extends State<CeoHomeScreen> {
 
                           SizedBox(height: 24.h),
 
+                         
                           // Inspection Section
                           _buildInspectionSection(provider),
+ // View GP Master Data
+                          _buildGpMasterDataSection(),
 
                           SizedBox(height: 24.h),
+
 
                           // Featured Schemes Section
                           _buildFeaturedSchemesSection(provider),
@@ -188,35 +212,34 @@ class _CeoHomeScreenState extends State<CeoHomeScreen> {
               ],
             ),
           ),
-          bottomNavigationBar: CustomBottomNavigationBar(
-            currentIndex: _selectedIndex,
-            onTap: (index) {
-              setState(() {
-                _selectedIndex = index;
-              });
-
-              switch (index) {
-                case 0:
-                  // Already on home screen, do nothing
-                  break;
-                case 1:
-                  Navigator.pushNamed(context, '/ceo-complaints');
-                  break;
-                case 2:
-                  Navigator.pushNamed(context, '/ceo-monitoring');
-                  break;
-                case 3:
-                  Navigator.pushNamed(context, '/ceo-settings');
-                  break;
-              }
-            },
-            items: const [
-              BottomNavItem(iconPath: 'assets/icons/bottombar/home.png', label: 'Home'),
-              BottomNavItem(iconPath: 'assets/icons/bottombar/complaints.png', label: 'Complaint'),
-              BottomNavItem(iconPath: 'assets/icons/bottombar/inspection.png', label: 'Inspection'),
-              BottomNavItem(iconPath: 'assets/icons/bottombar/settings.png', label: 'Settings'),
-            ],
-          ),
+          // Bottom nav is provided by CeoShellScreen when isEmbeddedInShell
+          bottomNavigationBar: widget.isEmbeddedInShell
+              ? null
+              : CustomBottomNavigationBar(
+                  currentIndex: _selectedIndex,
+                  onTap: (index) {
+                    setState(() => _selectedIndex = index);
+                    switch (index) {
+                      case 0:
+                        break;
+                      case 1:
+                        Navigator.pushNamed(context, '/ceo-complaints');
+                        break;
+                      case 2:
+                        Navigator.pushNamed(context, '/ceo-monitoring');
+                        break;
+                      case 3:
+                        Navigator.pushNamed(context, '/ceo-settings');
+                        break;
+                    }
+                  },
+                  items: [
+                    BottomNavItem(iconPath: 'assets/icons/bottombar/home.png', label: AppLocalizations.of(context)!.home),
+                    BottomNavItem(iconPath: 'assets/icons/bottombar/complaints.png', label: AppLocalizations.of(context)!.complaints),
+                    BottomNavItem(iconPath: 'assets/icons/bottombar/inspection.png', label: AppLocalizations.of(context)!.inspection),
+                    BottomNavItem(iconPath: 'assets/icons/bottombar/settings.png', label: AppLocalizations.of(context)!.settings),
+                  ],
+                ),
         );
       },
     );
@@ -232,7 +255,7 @@ class _CeoHomeScreenState extends State<CeoHomeScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'CEO',
+                AppLocalizations.of(context)!.ceo,
                 style: TextStyle(
                   fontFamily: 'Noto Sans',
                   fontSize: 18.sp,
@@ -243,7 +266,7 @@ class _CeoHomeScreenState extends State<CeoHomeScreen> {
               ),
               SizedBox(height: 2.h),
               Text(
-                provider.districtName,
+                provider.locationPath.isNotEmpty ? provider.locationPath : provider.districtName,
                 style: TextStyle(
                   fontFamily: 'Noto Sans',
                   fontSize: 12.sp,
@@ -251,6 +274,8 @@ class _CeoHomeScreenState extends State<CeoHomeScreen> {
                   color: const Color(0xFF111827),
                   letterSpacing: 0.5,
                 ),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
               ),
             ],
           ),
@@ -266,10 +291,10 @@ class _CeoHomeScreenState extends State<CeoHomeScreen> {
                   );
 
                   if (result != null && result['blockId'] != null && result['gpId'] != null) {
-                    // Save the selected Block/GP location
+                    // Save the location for HOME page
                     final authService = AuthService();
-                    await authService.saveInspectionLocation('ceo', result);
-                    // Reload data based on new location (if needed)
+                    await authService.savePageLocation('ceo', 'home', result);
+                    // Reload data based on new location
                     if (mounted) {
                       context.read<CeoProvider>().loadAllData();
                     }
@@ -285,7 +310,24 @@ class _CeoHomeScreenState extends State<CeoHomeScreen> {
                 ),
               ),
               IconButton(
-                onPressed: () {},
+                onPressed: () {
+                  final locale = Provider.of<LocaleProvider>(context, listen: false).locale;
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => Localizations(
+                        locale: locale,
+                        delegates: const [
+                          AppLocalizations.delegate,
+                          GlobalMaterialLocalizations.delegate,
+                          GlobalWidgetsLocalizations.delegate,
+                          GlobalCupertinoLocalizations.delegate,
+                        ],
+                        child: const NotificationsScreen(),
+                      ),
+                    ),
+                  );
+                },
                 icon: Image.asset(
                   'assets/icons/Vector.png',
                   width: 24.w,
@@ -295,7 +337,22 @@ class _CeoHomeScreenState extends State<CeoHomeScreen> {
               ),
               IconButton(
                 onPressed: () {
-                  // Language selection
+                  final locale = Provider.of<LocaleProvider>(context, listen: false).locale;
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => Localizations(
+                        locale: locale,
+                        delegates: const [
+                          AppLocalizations.delegate,
+                          GlobalMaterialLocalizations.delegate,
+                          GlobalWidgetsLocalizations.delegate,
+                          GlobalCupertinoLocalizations.delegate,
+                        ],
+                        child: const LanguageScreen(),
+                      ),
+                    ),
+                  );
                 },
                 icon: Image.asset(
                   'assets/icons/Translate.png',
@@ -320,7 +377,7 @@ class _CeoHomeScreenState extends State<CeoHomeScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Overview',
+            AppLocalizations.of(context)!.overview,
             style: TextStyle(
               fontFamily: 'Noto Sans',
               fontSize: 18.sp,
@@ -377,31 +434,56 @@ class _CeoHomeScreenState extends State<CeoHomeScreen> {
               ),
               SizedBox(width: 12.w),
               // Export Button
-              GestureDetector(
-                onTap: () => _exportToCSV(provider),
-                child: Container(
-                  padding: EdgeInsets.symmetric(
-                    horizontal: 16.w,
-                    vertical: 8.h,
-                  ),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF009B56),
-                    borderRadius: BorderRadius.circular(8.r),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(Icons.download, size: 16.sp, color: Colors.white),
-                      SizedBox(width: 8.w),
-                      Text(
-                        'Export',
-                        style: TextStyle(
-                          fontSize: 14.sp,
-                          color: Colors.white,
-                          fontWeight: FontWeight.w600,
-                        ),
+              Tooltip(
+                message: provider.fromDate != null && provider.toDate != null
+                    ? AppLocalizations.of(context)!.export
+                    : AppLocalizations.of(context)!.selectDateRangeToEnableExport,
+                child: Opacity(
+                  opacity:
+                      provider.fromDate != null && provider.toDate != null
+                          ? 1.0
+                          : 0.5,
+                  child: GestureDetector(
+                    onTap: () {
+                      if (provider.fromDate == null ||
+                          provider.toDate == null) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(
+                                AppLocalizations.of(context)!.pleaseSelectDateRangeFirst),
+                            backgroundColor: const Color(0xFF6B7280),
+                          ),
+                        );
+                        return;
+                      }
+                      _exportToCSV(provider);
+                    },
+                    child: Container(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: 16.w,
+                        vertical: 8.h,
                       ),
-                    ],
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF009B56),
+                        borderRadius: BorderRadius.circular(8.r),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.download,
+                              size: 16.sp, color: Colors.white),
+                          SizedBox(width: 8.w),
+                          Text(
+                            AppLocalizations.of(context)!.export,
+                            style: TextStyle(
+                              fontSize: 14.sp,
+                              color: Colors.white,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
                 ),
               ),
@@ -435,7 +517,7 @@ class _CeoHomeScreenState extends State<CeoHomeScreen> {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text(
-                          'Total Reported Complaint',
+                          AppLocalizations.of(context)!.totalReportedComplaint,
                           style: TextStyle(
                             fontFamily: 'Noto Sans',
                             fontSize: 14.sp,
@@ -445,10 +527,23 @@ class _CeoHomeScreenState extends State<CeoHomeScreen> {
                           ),
                         ),
                         SizedBox(width: 8.w),
-                        Icon(
-                          Icons.info_outline,
-                          size: 16.sp,
-                          color: const Color(0xFF6B7280),
+                        Tooltip(
+                          message: AppLocalizations.of(context)!.tooltipTotalReportedComplaintDescription,
+                          child: GestureDetector(
+                            onTap: () {
+                              final l10n = AppLocalizations.of(context)!;
+                              _showInfoDialog(
+                                context,
+                                l10n.totalReportedComplaint,
+                                l10n.tooltipTotalReportedComplaintDescription,
+                              );
+                            },
+                            child: Icon(
+                              Icons.info_outline,
+                              size: 16.sp,
+                              color: const Color(0xFF6B7280),
+                            ),
+                          ),
                         ),
                       ],
                     ),
@@ -474,7 +569,7 @@ class _CeoHomeScreenState extends State<CeoHomeScreen> {
             children: [
               Expanded(
                 child: _buildOverviewCard(
-                  'Open Complaint',
+                  AppLocalizations.of(context)!.openComplaint,
                   provider.isComplaintsLoading
                       ? '...'
                       : provider.analytics['openComplaints'].toString(),
@@ -485,7 +580,7 @@ class _CeoHomeScreenState extends State<CeoHomeScreen> {
               SizedBox(width: 12.w),
               Expanded(
                 child: _buildOverviewCard(
-                  'Resolved complaints',
+                  AppLocalizations.of(context)!.resolvedComplaints,
                   provider.isComplaintsLoading
                       ? '...'
                       : (provider.analytics['resolvedComplaints'] +
@@ -503,6 +598,63 @@ class _CeoHomeScreenState extends State<CeoHomeScreen> {
     );
   }
 
+  Widget _buildGpMasterDataSection() {
+    final l10n = AppLocalizations.of(context)!;
+    return Padding(
+      padding: EdgeInsets.symmetric(horizontal: 16.w),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+       
+          GestureDetector(
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const GpMasterDataDetailsScreen(),
+                ),
+              );
+            },
+            child: Container(
+              width: double.infinity,
+              height: 56,
+              padding: EdgeInsets.symmetric(horizontal: 16.w),
+              decoration: BoxDecoration(
+                color: const Color(0xFF009B56),
+                borderRadius: BorderRadius.circular(12.r),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.05),
+                    blurRadius: 4,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.visibility_outlined, size: 22.sp, color: Colors.white),
+                  SizedBox(width: 12.w),
+                  Expanded(
+                    child: Text(
+                      l10n.viewGpMasterData,
+                      style: TextStyle(
+                        fontFamily: 'Noto Sans',
+                        fontSize: 13.sp,
+                        fontWeight: FontWeight.w500,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+                  Icon(Icons.chevron_right, size: 20.sp, color: Colors.white),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildInspectionSection(CeoProvider provider) {
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: 16.w),
@@ -514,7 +666,7 @@ class _CeoHomeScreenState extends State<CeoHomeScreen> {
             children: [
               Expanded(
                 child: _buildInspectionActionCard(
-                  'Check Vender / Supervisor attendance',
+                  AppLocalizations.of(context)!.checkContractorSupervisorAttendance,
                   Icons.calendar_today,
                   'attendance',
                 ),
@@ -522,7 +674,7 @@ class _CeoHomeScreenState extends State<CeoHomeScreen> {
               SizedBox(width: 12.w),
               Expanded(
                 child: _buildInspectionActionCard(
-                  'Contractor details',
+                  AppLocalizations.of(context)!.contractorDetails,
                   Icons.business,
                   'contractor',
                 ),
@@ -609,7 +761,7 @@ class _CeoHomeScreenState extends State<CeoHomeScreen> {
             // Text
             Expanded(
               child: Text(
-                'View Rankings of GP',
+                AppLocalizations.of(context)!.viewRankingsOfGp,
                 style: TextStyle(
                   fontFamily: 'Noto Sans',
                   fontSize: 14.sp,
@@ -732,15 +884,74 @@ class _CeoHomeScreenState extends State<CeoHomeScreen> {
     }
   }
 
+  void _showInfoDialog(BuildContext context, String title, String message) {
+    final l10n = AppLocalizations.of(context)!;
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12.r),
+        ),
+        title: Row(
+          children: [
+            Icon(
+              Icons.info_outline,
+              color: const Color(0xFF6B7280),
+              size: 20.sp,
+            ),
+            SizedBox(width: 8.w),
+            Expanded(
+              child: Text(
+                title,
+                style: TextStyle(
+                  fontSize: 16.sp,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ],
+        ),
+        content: Text(
+          message,
+          style: TextStyle(
+            fontSize: 14.sp,
+            color: const Color(0xFF6B7280),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: Text(
+              l10n.ok,
+              style: TextStyle(
+                fontSize: 14.sp,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildOverviewCard(
     String title,
     String value,
     dynamic icon, // Can be IconData or String (asset path)
     Color color,
   ) {
-    final bool isResolvedCard = title.toLowerCase().contains('resolved') || 
-                                 title.toLowerCase().contains('disposed');
-    
+    final l10n = AppLocalizations.of(context)!;
+    final bool isResolvedCard = title.toLowerCase().contains('resolved') ||
+        title.toLowerCase().contains('disposed');
+    final bool isOpenCard = title.toLowerCase().contains('open');
+
+    String tooltipMessage = '';
+    if (isResolvedCard) {
+      tooltipMessage = l10n.tooltipResolvedComplaintsDescription;
+    } else if (isOpenCard) {
+      tooltipMessage = l10n.tooltipOpenComplaintDescription;
+    }
+
     return Container(
       height: 100.h, // Fixed height for consistent sizing
       decoration: BoxDecoration(
@@ -777,15 +988,18 @@ class _CeoHomeScreenState extends State<CeoHomeScreen> {
                         ),
                       ),
                     ),
-                    if (isResolvedCard) ...[
+                    if (tooltipMessage.isNotEmpty) ...[
                       SizedBox(width: 4.w),
                       Tooltip(
-                        message: 'Resolved count includes: Resolved + Verified + Closed complaints',
-                        preferBelow: false,
-                        child: Icon(
-                          Icons.info_outline,
-                          size: 14.sp,
-                          color: const Color(0xFF6B7280),
+                        message: tooltipMessage,
+                        child: GestureDetector(
+                          onTap: () =>
+                              _showInfoDialog(context, title, tooltipMessage),
+                          child: Icon(
+                            Icons.info_outline,
+                            size: 14.sp,
+                            color: const Color(0xFF6B7280),
+                          ),
                         ),
                       ),
                     ],
@@ -802,6 +1016,7 @@ class _CeoHomeScreenState extends State<CeoHomeScreen> {
               ],
             ),
           ),
+          // PLACEHOLDER_POSITIONED
           // Icon positioned in bottom-right corner with white overlay fade
           Positioned(
             bottom: 0,
@@ -829,7 +1044,7 @@ class _CeoHomeScreenState extends State<CeoHomeScreen> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                'Featured Scheme',
+                AppLocalizations.of(context)!.featuredScheme,
                 style: TextStyle(
                   fontFamily: 'Noto Sans',
                   fontSize: 18.sp,
@@ -842,9 +1057,9 @@ class _CeoHomeScreenState extends State<CeoHomeScreen> {
                 onPressed: () {
                   Navigator.pushNamed(context, '/schemes');
                 },
-                child: const Text(
-                  'View all',
-                  style: TextStyle(
+                child: Text(
+                  AppLocalizations.of(context)!.viewAll,
+                  style: const TextStyle(
                     color: Color(0xFF009B56),
                     fontWeight: FontWeight.w600,
                   ),
@@ -868,7 +1083,7 @@ class _CeoHomeScreenState extends State<CeoHomeScreen> {
               : provider.schemes.isEmpty
               ? Center(
                   child: Text(
-                    'No schemes available',
+                    AppLocalizations.of(context)!.noSchemesAvailable,
                     style: TextStyle(color: const Color(0xFF9CA3AF)),
                   ),
                 )
@@ -970,6 +1185,7 @@ class _CeoHomeScreenState extends State<CeoHomeScreen> {
   }
 
   Widget _buildEventsSection(CeoProvider provider) {
+    final l10n = AppLocalizations.of(context)!;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -979,7 +1195,7 @@ class _CeoHomeScreenState extends State<CeoHomeScreen> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                '${provider.events.length} Event${provider.events.length != 1 ? 's' : ''}',
+                '${provider.events.length} ${provider.events.length != 1 ? l10n.eventsPlural : l10n.events}',
                 style: TextStyle(
                   fontFamily: 'Noto Sans',
                   fontSize: 18.sp,
@@ -993,9 +1209,9 @@ class _CeoHomeScreenState extends State<CeoHomeScreen> {
                 onPressed: () {
                   Navigator.pushNamed(context, '/events');
                 },
-                child: const Text(
-                  'View all',
-                  style: TextStyle(
+                child: Text(
+                  l10n.viewAll,
+                  style: const TextStyle(
                     color: Color(0xFF009B56),
                     fontWeight: FontWeight.w600,
                   ),
@@ -1024,8 +1240,8 @@ class _CeoHomeScreenState extends State<CeoHomeScreen> {
                 child: Padding(
                   padding: EdgeInsets.all(20.r),
                   child: Text(
-                    'No events available',
-                    style: TextStyle(color: const Color(0xFF9CA3AF)),
+                    l10n.noEventsAvailable,
+                    style: const TextStyle(color: Color(0xFF9CA3AF)),
                   ),
                 ),
               )
@@ -1099,48 +1315,6 @@ class _CeoHomeScreenState extends State<CeoHomeScreen> {
                             'assets/images/eventbanner.png',
                             fit: BoxFit.cover,
                           ),
-                  ),
-
-                  // Bookmark Button
-                  Positioned(
-                    top: 12.h,
-                    right: 12.w,
-                    child: Consumer<BookmarksProvider>(
-                      builder: (context, bookmarksProvider, child) {
-                        final isBookmarked = bookmarksProvider.isEventBookmarked(event.id);
-                        return GestureDetector(
-                          onTap: () {
-                            bookmarksProvider.toggleEventBookmark(event.id, !isBookmarked);
-                          },
-                          child: Container(
-                            width: 40.w,
-                            height: 40.h,
-                            decoration: BoxDecoration(
-                              color: isBookmarked
-                                  ? const Color(0xFF009B56)
-                                  : Colors.white.withOpacity(0.9),
-                              borderRadius: BorderRadius.circular(8.r),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withOpacity(0.2),
-                                  blurRadius: 4,
-                                  offset: const Offset(0, 2),
-                                ),
-                              ],
-                            ),
-                            child: Icon(
-                              isBookmarked
-                                  ? Icons.bookmark
-                                  : Icons.bookmark_border,
-                              color: isBookmarked
-                                  ? Colors.white
-                                  : const Color(0xFF4CAF50),
-                              size: 20.sp,
-                            ),
-                          ),
-                        );
-                      },
-                    ),
                   ),
                 ],
               ),
@@ -1389,7 +1563,7 @@ class _CeoHomeScreenState extends State<CeoHomeScreen> {
           mainAxisSize: MainAxisSize.min,
           children: [
             Text(
-              'Connect with Swachh Rajasthan',
+              AppLocalizations.of(context)!.connectWithSwachhRajasthan,
               style: TextStyle(
                 fontSize: 16.sp,
                 fontWeight: FontWeight.w600,
@@ -1511,7 +1685,7 @@ class _CeoHomeScreenState extends State<CeoHomeScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error loading contractor details: $e'),
+            content: Text(userFriendlyApiMessage(e)),
             backgroundColor: Colors.red,
           ),
         );
@@ -1526,8 +1700,64 @@ class _GPContractorDetailsBottomSheet extends StatelessWidget {
 
   const _GPContractorDetailsBottomSheet({this.contractorDetails, this.gpName});
 
+  String _formatDate(String dateString) {
+    try {
+      final date = DateTime.parse(dateString);
+      return DateFormat('dd MMMM yyyy').format(date);
+    } catch (_) {
+      return dateString;
+    }
+  }
+
+  String _calculateDuration(String? startDate, String? endDate) {
+    if (startDate == null || endDate == null) return 'N/A';
+    try {
+      final start = DateTime.parse(startDate);
+      final end = DateTime.parse(endDate);
+      final duration = end.difference(start);
+      final months = (duration.inDays / 30).round();
+      return '$months months';
+    } catch (_) {
+      return 'N/A';
+    }
+  }
+
+  Widget _buildDetailRow(String label, String value) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Expanded(
+          flex: 2,
+          child: Text(
+            '$label:',
+            style: const TextStyle(
+              fontFamily: 'Noto Sans',
+              fontSize: 14,
+              fontWeight: FontWeight.w500,
+              color: Colors.grey,
+            ),
+          ),
+        ),
+        SizedBox(width: 8.w),
+        Expanded(
+          flex: 3,
+          child: Text(
+            value,
+            style: const TextStyle(
+              fontFamily: 'Noto Sans',
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+              color: Color(0xFF111827),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Container(
       decoration: const BoxDecoration(
         color: Colors.white,
@@ -1548,12 +1778,12 @@ class _GPContractorDetailsBottomSheet extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    'Contractor details',
-                    style: TextStyle(
+                    l10n.contractorDetails,
+                    style: const TextStyle(
                       fontFamily: 'Noto Sans',
-                      fontSize: 20.sp,
+                      fontSize: 20,
                       fontWeight: FontWeight.bold,
-                      color: const Color(0xFF111827),
+                      color: Color(0xFF111827),
                     ),
                   ),
                   IconButton(
@@ -1567,45 +1797,42 @@ class _GPContractorDetailsBottomSheet extends StatelessWidget {
 
               if (contractorDetails != null) ...[
                 if (gpName != null && gpName!.isNotEmpty) ...[
-                  _buildDetailRow('Gram Panchayat', gpName!),
+                  _buildDetailRow(AppLocalizations.of(context)!.gramPanchayat, gpName!),
                   SizedBox(height: 16.h),
                 ],
-                _buildDetailRow('Agency name', contractorDetails!.agency.name),
+                _buildDetailRow(l10n.agencyName, contractorDetails!.agency.name),
+                SizedBox(height: 16.h),
+                _buildDetailRow(l10n.personName, contractorDetails!.personName),
+                SizedBox(height: 16.h),
+                _buildDetailRow(l10n.personPhone, contractorDetails!.personPhone),
                 SizedBox(height: 16.h),
                 _buildDetailRow(
-                  'Contact person',
-                  contractorDetails!.personName,
-                ),
-                SizedBox(height: 16.h),
-                _buildDetailRow(
-                  'Contact phone',
-                  contractorDetails!.personPhone,
-                ),
-                SizedBox(height: 16.h),
-                _buildDetailRow(
-                  'Agency phone',
-                  contractorDetails!.agency.phone,
-                ),
-                SizedBox(height: 16.h),
-                _buildDetailRow(
-                  'Agency email',
-                  contractorDetails!.agency.email,
-                ),
-                SizedBox(height: 16.h),
-                _buildDetailRow(
-                  'Contract start date',
+                  l10n.workOrderDate,
                   _formatDate(contractorDetails!.contractStartDate),
                 ),
                 SizedBox(height: 16.h),
                 _buildDetailRow(
-                  'Contract end date',
-                  contractorDetails!.contractEndDate != null
-                      ? _formatDate(contractorDetails!.contractEndDate!)
-                      : 'N/A',
+                  l10n.durationOfWork,
+                  _calculateDuration(
+                    contractorDetails!.contractStartDate,
+                    contractorDetails!.contractEndDate,
+                  ),
+                ),
+                SizedBox(height: 16.h),
+                _buildDetailRow(
+                  l10n.annualContractAmount,
+                  '₹ ${contractorDetails!.workOrderAmount.toStringAsFixed(2)}',
+                ),
+                SizedBox(height: 16.h),
+                _buildDetailRow(
+                  l10n.frequencyOfWork,
+                  contractorDetails!.cleaningFrequency.toUpperCase() == 'FORTNIGHTLY'
+                      ? '—'
+                      : contractorDetails!.cleaningFrequency,
                 ),
               ] else ...[
                 Text(
-                  'No contractor details available',
+                  AppLocalizations.of(context)!.noContractorDetailsAvailable,
                   style: TextStyle(fontSize: 14.sp, color: Colors.grey),
                 ),
               ],
@@ -1626,10 +1853,10 @@ class _GPContractorDetailsBottomSheet extends StatelessWidget {
                     elevation: 0,
                   ),
                   child: Text(
-                    'Close',
-                    style: TextStyle(
+                    l10n.close,
+                    style: const TextStyle(
                       fontFamily: 'Noto Sans',
-                      fontSize: 16.sp,
+                      fontSize: 16,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
@@ -1640,47 +1867,5 @@ class _GPContractorDetailsBottomSheet extends StatelessWidget {
         ),
       ),
     );
-  }
-
-  Widget _buildDetailRow(String label, String value) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Expanded(
-          flex: 2,
-          child: Text(
-            '$label:',
-            style: TextStyle(
-              fontFamily: 'Noto Sans',
-              fontSize: 14.sp,
-              fontWeight: FontWeight.w500,
-              color: const Color(0xFF6B7280),
-            ),
-          ),
-        ),
-        SizedBox(width: 12.w),
-        Expanded(
-          flex: 3,
-          child: Text(
-            value,
-            style: TextStyle(
-              fontFamily: 'Noto Sans',
-              fontSize: 14.sp,
-              fontWeight: FontWeight.w600,
-              color: const Color(0xFF111827),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  String _formatDate(String dateString) {
-    try {
-      final date = DateTime.parse(dateString);
-      return DateFormat('dd MMMM yyyy').format(date);
-    } catch (_) {
-      return dateString;
-    }
   }
 }

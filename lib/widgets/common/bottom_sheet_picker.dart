@@ -11,6 +11,7 @@ class BottomSheetPicker<T> extends StatefulWidget {
   final bool showSearch;
   final String? resetButtonText;
   final VoidCallback? onReset;
+  final VoidCallback? onAdd;
 
   const BottomSheetPicker({
     super.key,
@@ -24,6 +25,7 @@ class BottomSheetPicker<T> extends StatefulWidget {
     this.showSearch = true,
     this.resetButtonText,
     this.onReset,
+    this.onAdd,
   });
 
   @override
@@ -41,6 +43,7 @@ class BottomSheetPicker<T> extends StatefulWidget {
     bool showSearch = false,
     String? resetButtonText,
     VoidCallback? onReset,
+    VoidCallback? onAdd,
   }) {
     showModalBottomSheet(
       context: context,
@@ -57,6 +60,7 @@ class BottomSheetPicker<T> extends StatefulWidget {
         showSearch: showSearch,
         resetButtonText: resetButtonText,
         onReset: onReset,
+        onAdd: onAdd,
       ),
     );
   }
@@ -93,7 +97,8 @@ class _BottomSheetPickerState<T> extends State<BottomSheetPicker<T>> {
   }
 
   void _filterItems() {
-    final query = _searchController.text.toLowerCase();
+    if (!mounted) return;
+    final query = _searchController.text.toLowerCase().trim();
     setState(() {
       _filteredItems = widget.items.where((item) {
         final itemText = widget.itemBuilder(item).toLowerCase();
@@ -110,13 +115,15 @@ class _BottomSheetPickerState<T> extends State<BottomSheetPicker<T>> {
       padding: EdgeInsets.only(
         bottom: MediaQuery.of(context).viewInsets.bottom,
       ),
-      child: Container(
-        height: screenHeight * 0.8,
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-        ),
-        child: Column(
+      child: Material(
+        color: Colors.transparent,
+        child: Container(
+          height: screenHeight * 0.8,
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+          ),
+          child: Column(
           children: [
             // Handle bar
             Container(
@@ -162,11 +169,23 @@ class _BottomSheetPickerState<T> extends State<BottomSheetPicker<T>> {
                       ),
                     )
                   else
-                    IconButton(
-                      icon: Icon(Icons.close, color: Colors.grey),
-                      onPressed: () => Navigator.pop(context),
-                      padding: EdgeInsets.zero,
-                      constraints: const BoxConstraints(),
+                    Row(
+                      children: [
+                        if (widget.onAdd != null)
+                          IconButton(
+                            icon: Icon(Icons.add, color: Color(0xFF009B56)),
+                            onPressed: widget.onAdd,
+                            padding: EdgeInsets.zero,
+                            constraints: const BoxConstraints(),
+                          ),
+                        if (widget.onAdd != null) SizedBox(width: 8),
+                        IconButton(
+                          icon: Icon(Icons.close, color: Colors.grey),
+                          onPressed: () => Navigator.pop(context),
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(),
+                        ),
+                      ],
                     ),
                 ],
               ),
@@ -180,6 +199,9 @@ class _BottomSheetPickerState<T> extends State<BottomSheetPicker<T>> {
                   controller: _searchController,
                   focusNode: _searchFocusNode,
                   autofocus: false,
+                  keyboardType: TextInputType.text,
+                  textInputAction: TextInputAction.search,
+                  onChanged: (_) => _filterItems(),
                   decoration: InputDecoration(
                     hintText: widget.searchHint ?? 'Search...',
                     hintStyle: TextStyle(
@@ -220,6 +242,7 @@ class _BottomSheetPickerState<T> extends State<BottomSheetPicker<T>> {
                   : _buildContent(context),
             ),
           ],
+        ),
         ),
       ),
     );

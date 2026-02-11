@@ -186,10 +186,11 @@ class _ComplaintLocationScreenState extends State<ComplaintLocationScreen> {
                 height: 50.h,
                 child: ElevatedButton(
                   onPressed: () {
-                    Navigator.of(context).pop();
-                    Navigator.pushReplacementNamed(
+                    Navigator.of(context).pop(); // Close success dialog
+                    Navigator.pushNamedAndRemoveUntil(
                       context,
                       '/citizen-dashboard',
+                      (route) => false,
                     );
                   },
                   style: ElevatedButton.styleFrom(

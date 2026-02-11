@@ -15,13 +15,15 @@ class SupervisorAttendanceProvider with ChangeNotifier {
   static const String _startLatKey = 'attendance_start_lat';
   static const String _startLongKey = 'attendance_start_long';
   static const String _villageIdKey = 'attendance_village_id';
+  static const String _attendanceMarkedDateKey = 'attendance_marked_date';
 
-  // Attendance state
+  // Attendance state (single punch: mark once per day, no end attendance)
   bool _isAttendanceActive = false;
   int? _currentAttendanceId;
   String? _startLat;
   String? _startLong;
   int? _villageId;
+  String? _attendanceMarkedDate; // yyyy-MM-dd when user last marked attendance
   bool _isLoading = false;
 
   // Attendance logs data
@@ -44,6 +46,12 @@ class SupervisorAttendanceProvider with ChangeNotifier {
   String? get startLong => _startLong;
   int? get villageId => _villageId;
   bool get isLoading => _isLoading;
+  /// True if user has already marked attendance today (one scan per day).
+  bool get isAttendanceMarkedToday {
+    if (_attendanceMarkedDate == null) return false;
+    final today = DateFormat('yyyy-MM-dd').format(DateTime.now());
+    return _attendanceMarkedDate == today;
+  }
   List<Map<String, dynamic>> get attendanceLog => _attendanceLog;
   List<Map<String, dynamic>> get filteredAttendanceLog =>
       _filteredAttendanceLog;
@@ -99,12 +107,14 @@ class SupervisorAttendanceProvider with ChangeNotifier {
     final startLat = await _storageService.getString(_startLatKey);
     final startLong = await _storageService.getString(_startLongKey);
     final villageId = await _storageService.getInt(_villageIdKey);
+    final markedDate = await _storageService.getString(_attendanceMarkedDateKey);
 
     _isAttendanceActive = isActive ?? false;
     _currentAttendanceId = attendanceId;
     _startLat = startLat;
     _startLong = startLong;
     _villageId = villageId;
+    _attendanceMarkedDate = markedDate;
     notifyListeners();
   }
 
@@ -113,15 +123,26 @@ class SupervisorAttendanceProvider with ChangeNotifier {
     await _storageService.saveBool(_attendanceActiveKey, _isAttendanceActive);
     if (_currentAttendanceId != null) {
       await _storageService.saveInt(_attendanceIdKey, _currentAttendanceId!);
+    } else {
+      await _storageService.remove(_attendanceIdKey);
     }
     if (_startLat != null) {
       await _storageService.saveString(_startLatKey, _startLat!);
+    } else {
+      await _storageService.remove(_startLatKey);
     }
     if (_startLong != null) {
       await _storageService.saveString(_startLongKey, _startLong!);
+    } else {
+      await _storageService.remove(_startLongKey);
     }
     if (_villageId != null) {
       await _storageService.saveInt(_villageIdKey, _villageId!);
+    } else {
+      await _storageService.remove(_villageIdKey);
+    }
+    if (_attendanceMarkedDate != null) {
+      await _storageService.saveString(_attendanceMarkedDateKey, _attendanceMarkedDate!);
     }
   }
 
@@ -132,6 +153,7 @@ class SupervisorAttendanceProvider with ChangeNotifier {
     await _storageService.remove(_startLatKey);
     await _storageService.remove(_startLongKey);
     await _storageService.remove(_villageIdKey);
+    // Do not remove _attendanceMarkedDateKey - we need it to show "Attendance marked" for the rest of the day
   }
 
   // Fetch attendance logs
@@ -150,6 +172,21 @@ class SupervisorAttendanceProvider with ChangeNotifier {
 
       _attendanceLog = attendances.cast<Map<String, dynamic>>();
       _totalAttendances = data['total'] ?? 0;
+
+      // If any log entry is for today, consider attendance marked today (sync with server)
+      final today = DateFormat('yyyy-MM-dd').format(DateTime.now());
+      final hasMarkedToday = _attendanceLog.any((e) {
+        final dateStr = e['date']?.toString();
+        if (dateStr == null) return false;
+        final d = DateTime.tryParse(dateStr);
+        if (d == null) return false;
+        return DateFormat('yyyy-MM-dd').format(d) == today;
+      });
+      if (hasMarkedToday && _attendanceMarkedDate != today) {
+        _attendanceMarkedDate = today;
+        await _storageService.saveString(_attendanceMarkedDateKey, today);
+      }
+
       _isLoadingLogs = false;
       notifyListeners();
 
@@ -197,11 +234,13 @@ class SupervisorAttendanceProvider with ChangeNotifier {
 
       if (response['success']) {
         final data = response['data'];
-        _isAttendanceActive = true;
-        _currentAttendanceId = data['id'];
-        _startLat = lat;
-        _startLong = long;
-        _villageId = villageId;
+        // Single punch: no "end attendance". Mark today as done so button shows "Attendance marked" until next day.
+        _attendanceMarkedDate = DateFormat('yyyy-MM-dd').format(DateTime.now());
+        _isAttendanceActive = false;
+        _currentAttendanceId = null;
+        _startLat = null;
+        _startLong = null;
+        _villageId = null;
         await saveAttendanceState();
         notifyListeners();
 

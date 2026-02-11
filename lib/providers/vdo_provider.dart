@@ -4,6 +4,7 @@ import '../models/scheme_model.dart';
 import '../models/event_model.dart';
 import '../models/contractor_model.dart';
 import '../services/api_services.dart';
+import '../services/auth_services.dart';
 import '../services/complaints_service.dart';
 
 class VdoProvider with ChangeNotifier {
@@ -40,6 +41,9 @@ class VdoProvider with ChangeNotifier {
   bool _isVillageMasterDataCompleted = false;
   String _completionDate = '';
 
+  // Annual survey exists for VDO's GP: null = loading, true = exists, false = none
+  bool? _hasAnnualSurveyForGp;
+
   // Services
   final ApiService _apiService = ApiService();
   final ComplaintsService _complaintsService = ComplaintsService();
@@ -66,22 +70,33 @@ class VdoProvider with ChangeNotifier {
 
   bool get isVillageMasterDataCompleted => _isVillageMasterDataCompleted;
   String get completionDate => _completionDate;
+  bool? get hasAnnualSurveyForGp => _hasAnnualSurveyForGp;
 
   // Load all data
   Future<void> loadAllData() async {
     await Future.wait([
       loadSchemes(),
       loadEvents(),
+      loadVillageName(),
       loadComplaintsAnalytics(),
       loadInspections(),
       loadContractor(),
+      checkVillageMasterDataStatus(),
     ]);
-    checkVillageMasterDataStatus();
   }
 
   // Refresh all data
   Future<void> refresh() async {
-    await Future.wait([loadComplaintsAnalytics(), loadInspections()]);
+    await Future.wait([
+      loadComplaintsAnalytics(),
+      loadInspections(),
+      checkVillageMasterDataStatus(),
+    ]);
+  }
+
+  /// Rechecks only whether annual survey exists for the VDO's GP. Call after user adds GP master data.
+  Future<void> recheckAnnualSurveyStatus() async {
+    await checkVillageMasterDataStatus();
   }
 
   void setComplaintsTab(int index) {
@@ -100,7 +115,6 @@ class VdoProvider with ChangeNotifier {
       _isSchemesLoading = false;
       notifyListeners();
     } catch (e) {
-      print('Error loading schemes: $e');
       _isSchemesLoading = false;
       notifyListeners();
     }
@@ -116,9 +130,21 @@ class VdoProvider with ChangeNotifier {
       _isEventsLoading = false;
       notifyListeners();
     } catch (e) {
-      print('Error loading events: $e');
       _isEventsLoading = false;
       notifyListeners();
+    }
+  }
+
+  /// Load GP name from geography API so it displays even when there are no complaints.
+  Future<void> loadVillageName() async {
+    try {
+      final gpId = await AuthService().getVillageId();
+      if (gpId == null) return;
+      final gp = await _apiService.getGramPanchayatById(gpId);
+      _villageName = gp.name;
+      notifyListeners();
+    } catch (e) {
+      print('Error loading village/GP name: $e');
     }
   }
 
@@ -135,10 +161,10 @@ class VdoProvider with ChangeNotifier {
       if (response['success'] == true) {
         final complaints = response['complaints'] as List<dynamic>;
 
-        // Extract village name from first complaint if available
-        String villageName = 'Gram Panchayat';
+        // Extract village name from first complaint only when we have complaints;
+        // otherwise keep existing _villageName (set by loadVillageName() from geography API).
         if (complaints.isNotEmpty && complaints[0]['village_name'] != null) {
-          villageName = complaints[0]['village_name'];
+          _villageName = complaints[0]['village_name'] as String;
         }
 
         // Extract date range from complaints (oldest and newest)
@@ -163,7 +189,6 @@ class VdoProvider with ChangeNotifier {
         }
 
         _analytics = response['analytics'];
-        _villageName = villageName;
 
         // Set default date range if not already set
         if (_fromDate == null && oldestDate != null) {
@@ -239,8 +264,16 @@ class VdoProvider with ChangeNotifier {
       _isContractorLoading = true;
       notifyListeners();
 
-      print('📡 Calling API service to fetch contractor for GP ID: 1');
-      final contractor = await _apiService.getContractorByGpId(1);
+      final gpId = await AuthService().getVillageId();
+      if (gpId == null) {
+        print('⚠️ No village/GP ID from auth, skipping contractor load');
+        _isContractorLoading = false;
+        notifyListeners();
+        return;
+      }
+
+      print('📡 Calling API service to fetch contractor for GP ID: $gpId');
+      final contractor = await _apiService.getContractorByGpId(gpId);
 
       print('📊 Contractor data loaded successfully:');
       print('   - Contractor ID: ${contractor.id}');
@@ -259,12 +292,33 @@ class VdoProvider with ChangeNotifier {
     }
   }
 
-  // Check GP Master Data status
-  void checkVillageMasterDataStatus() {
-    // This would typically come from API or local storage
-    // For demo purposes, we'll simulate checking completion status
-    _isVillageMasterDataCompleted = false;
-    _completionDate = '';
+  // Check GP Master Data status: does an annual survey exist for the VDO's GP?
+  Future<void> checkVillageMasterDataStatus() async {
+    _hasAnnualSurveyForGp = null;
+    notifyListeners();
+
+    final villageId = await AuthService().getVillageId();
+    if (villageId == null) {
+      _hasAnnualSurveyForGp = false;
+      _isVillageMasterDataCompleted = false;
+      _completionDate = '';
+      notifyListeners();
+      return;
+    }
+
+    try {
+      final latest = await _apiService.getLatestAnnualSurveyForGp(villageId);
+      final rawId = latest['id'];
+      final surveyId = rawId is int
+          ? rawId
+          : int.tryParse(rawId?.toString() ?? '');
+      _hasAnnualSurveyForGp = surveyId != null;
+    } catch (e) {
+      print('Error checking annual survey for GP: $e');
+      _hasAnnualSurveyForGp = false;
+    }
+    _isVillageMasterDataCompleted = _hasAnnualSurveyForGp ?? false;
+    if (!_isVillageMasterDataCompleted) _completionDate = '';
     notifyListeners();
   }
 

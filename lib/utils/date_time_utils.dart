@@ -1,13 +1,18 @@
 import 'package:intl/intl.dart';
 
-/// Utility class for handling date and time conversions to IST (Indian Standard Time)
-/// IST is UTC+5:30
+/// Utility class for handling date and time conversions to IST (Indian Standard Time).
+/// IST is UTC+5:30.
+///
+/// **Backend always works in UTC.** All API timestamps (e.g. `created_at`,
+/// `resolved_at`, `uploaded_at`) are in UTC. This util parses them as UTC and
+/// converts to IST for display. When sending dates to the API, use [formatForAPI]
+/// or [nowForAPI] to produce UTC ISO8601 strings.
 class DateTimeUtils {
   // IST offset: UTC+5:30 = 5 hours and 30 minutes
   static const Duration istOffset = Duration(hours: 5, minutes: 30);
 
-  /// Converts a DateTime to IST (Indian Standard Time)
-  /// Assumes the input DateTime is in UTC
+  /// Converts a DateTime to IST (Indian Standard Time).
+  /// Assumes the input DateTime is in UTC.
   static DateTime toIST(DateTime dateTime) {
     // If the dateTime is already in local time, convert to UTC first
     DateTime utcDateTime;
@@ -21,10 +26,10 @@ class DateTimeUtils {
     return utcDateTime.add(istOffset);
   }
 
-  /// Parses a date string and converts it to IST
-  /// Assumes the input string is in ISO8601 format (UTC)
+  /// Parses a date string (UTC from backend) and converts it to IST.
+  /// Input is ISO8601; if no timezone, treated as UTC.
   static DateTime parseToIST(String dateString) {
-    // Parse the date string - assume UTC if no timezone info
+    // Backend always UTC; assume UTC if no timezone info
     DateTime dateTime;
     if (dateString.endsWith('Z') || dateString.contains('+') || dateString.contains('-', dateString.indexOf('T'))) {
       // Has timezone info, parse as is
@@ -69,31 +74,57 @@ class DateTimeUtils {
     return DateFormat('h:mm a').format(istDateTime);
   }
 
-  /// Formats a date string (from backend, in UTC) to IST display format
+  /// Formats a UTC date string from the backend to IST display format.
   /// Format: "MMM d, yyyy, h:mm a" (e.g., "Jan 15, 2024, 2:30 PM")
-  /// Assumes the input string is in UTC format from the backend
   static String formatDateStringIST(String? dateString) {
     if (dateString == null || dateString.isEmpty) {
       return 'Unknown';
     }
     try {
-      final utcDateTime = parseToIST(dateString);
-      return DateFormat('MMM d, yyyy, h:mm a').format(utcDateTime);
+      final ist = parseToIST(dateString);
+      return DateFormat('MMM d, yyyy, h:mm a').format(ist);
     } catch (e) {
       return 'Unknown';
     }
   }
 
-  /// Formats a DateTime in IST for API submission (ISO8601 format in IST)
-  /// Returns ISO8601 string without timezone (treated as IST)
+  /// Unified format for complaint list tiles (VDO, SMD, BDO, CEO, etc.).
+  /// Input: UTC string from backend (e.g. `created_at`). Output: "dd/MM/yyyy" in IST.
+  static String formatComplaintListIST(String? dateString) {
+    if (dateString == null || dateString.isEmpty) {
+      return '—';
+    }
+    try {
+      final ist = parseToIST(dateString);
+      return DateFormat('dd/MM/yyyy').format(ist);
+    } catch (e) {
+      return '—';
+    }
+  }
+
+  /// Unified format for complaint details (header, timeline); includes time for verification.
+  /// Input: UTC string from backend. Output: "dd/MM/yyyy, h:mm a" in IST.
+  static String formatComplaintDetailIST(String? dateString) {
+    if (dateString == null || dateString.isEmpty) {
+      return 'Unknown';
+    }
+    try {
+      final ist = parseToIST(dateString);
+      return DateFormat('dd/MM/yyyy, h:mm a').format(ist);
+    } catch (e) {
+      return 'Unknown';
+    }
+  }
+
+  /// Converts a DateTime to UTC ISO8601 for API submission.
+  /// Backend always expects UTC.
   static String formatForAPI(DateTime dateTime) {
     final istDateTime = dateTime.isUtc ? toIST(dateTime) : toIST(dateTime.toUtc());
-    // Convert IST back to UTC for API (subtract offset)
     final utcForAPI = istDateTime.subtract(istOffset);
     return utcForAPI.toIso8601String();
   }
 
-  /// Gets current date and time formatted for API submission (UTC ISO8601)
+  /// Current date and time in UTC ISO8601 for API submission. Backend expects UTC.
   static String nowForAPI() {
     return DateTime.now().toUtc().toIso8601String();
   }

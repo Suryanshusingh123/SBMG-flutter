@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:provider/provider.dart';
 import 'package:sbmg/screens/citizen/scheme_details_screen.dart';
 import 'package:sbmg/widgets/common/banner_carousel.dart';
-import '../../providers/citizen_bookmarks_provider.dart';
 import 'package:intl/intl.dart';
 import 'package:csv/csv.dart';
+import '../../utils/api_error_utils.dart';
 import '../../utils/download_helper.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../config/connstants.dart';
@@ -21,9 +22,17 @@ import '../../screens/common/unified_select_location_screen.dart';
 import 'smd_select_location_screen.dart';
 import 'smd_gp_attendance_screen.dart';
 import 'smd_gp_ranking_screen.dart';
+import '../../l10n/app_localizations.dart';
+import '../../providers/locale_provider.dart';
+import '../citizen/gp_master_data_details_screen.dart';
+import '../citizen/language_screen.dart';
+import '../citizen/notifications_screen.dart';
 
 class SmdHomeScreen extends StatefulWidget {
-  const SmdHomeScreen({super.key});
+  /// When true, this screen is shown inside [SmdShellScreen]. Bottom nav is provided by the shell.
+  final bool isEmbeddedInShell;
+
+  const SmdHomeScreen({super.key, this.isEmbeddedInShell = false});
 
   @override
   State<SmdHomeScreen> createState() => _SmdHomeScreenState();
@@ -76,25 +85,37 @@ class _SmdHomeScreenState extends State<SmdHomeScreen> {
   }
 
   Future<void> _exportToCSV(SmdProvider provider) async {
+    if (provider.fromDate == null || provider.toDate == null) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(AppLocalizations.of(context)!.pleaseSelectDateRangeFirst),
+            backgroundColor: const Color(0xFF6B7280),
+          ),
+        );
+      }
+      return;
+    }
     try {
       // Request storage permission for Android
       await DownloadHelper.requestStoragePermission();
 
       // Create CSV data
+      final l10n = AppLocalizations.of(context)!;
       final csvData = [
         ['Metric', 'Count', 'Date Range'],
         [
-          'Total Reported Complaints',
+          l10n.totalReportedComplaints,
           provider.analytics['totalComplaints'].toString(),
           provider.dateRangeText,
         ],
         [
-          'Open Complaints',
+          l10n.openComplaints,
           provider.analytics['openComplaints'].toString(),
           provider.dateRangeText,
         ],
         [
-          'Resolved complaints',
+          l10n.resolvedComplaints,
           (provider.analytics['resolvedComplaints'] +
                   provider.analytics['verifiedComplaints'] +
                   provider.analytics['closedComplaints'])
@@ -122,7 +143,7 @@ class _SmdHomeScreenState extends State<SmdHomeScreen> {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(
-                'CSV file exported successfully to Downloads folder: $fileName',
+                AppLocalizations.of(context)!.csvExportedToDownloads(fileName),
               ),
               backgroundColor: const Color(0xFF009B56),
               duration: const Duration(seconds: 3),
@@ -136,7 +157,7 @@ class _SmdHomeScreenState extends State<SmdHomeScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error exporting CSV: $e'),
+            content: Text(AppLocalizations.of(context)!.errorExportingCsv(e.toString())),
             backgroundColor: Colors.red,
             duration: const Duration(seconds: 3),
           ),
@@ -177,11 +198,15 @@ class _SmdHomeScreenState extends State<SmdHomeScreen> {
 
                           SizedBox(height: 24.h),
 
+                         
+
                           // Inspection Section
                           _buildInspectionSection(provider),
 
-                          SizedBox(height: 24.h),
+ // View GP Master Data
+                          _buildGpMasterDataSection(),
 
+                          SizedBox(height: 24.h),
                           // Featured Schemes Section
                           _buildFeaturedSchemesSection(provider),
 
@@ -205,35 +230,34 @@ class _SmdHomeScreenState extends State<SmdHomeScreen> {
               ],
             ),
           ),
-          bottomNavigationBar: CustomBottomNavigationBar(
-            currentIndex: _selectedIndex,
-            onTap: (index) {
-              setState(() {
-                _selectedIndex = index;
-              });
-
-              switch (index) {
-                case 0:
-                  // Already on home screen, do nothing
-                  break;
-                case 1:
-                  Navigator.pushNamed(context, '/smd-complaints');
-                  break;
-                case 2:
-                  Navigator.pushNamed(context, '/smd-monitoring');
-                  break;
-                case 3:
-                  Navigator.pushNamed(context, '/smd-settings');
-                  break;
-              }
-            },
-            items: const [
-              BottomNavItem(iconPath: 'assets/icons/bottombar/home.png', label: 'Home'),
-              BottomNavItem(iconPath: 'assets/icons/bottombar/complaints.png', label: 'Complaint'),
-              BottomNavItem(iconPath: 'assets/icons/bottombar/inspection.png', label: 'Inspection'),
-              BottomNavItem(iconPath: 'assets/icons/bottombar/settings.png', label: 'Settings'),
-            ],
-          ),
+          // Bottom nav is provided by SmdShellScreen when isEmbeddedInShell
+          bottomNavigationBar: widget.isEmbeddedInShell
+              ? null
+              : CustomBottomNavigationBar(
+                  currentIndex: _selectedIndex,
+                  onTap: (index) {
+                    setState(() => _selectedIndex = index);
+                    switch (index) {
+                      case 0:
+                        break;
+                      case 1:
+                        Navigator.pushNamed(context, '/smd-complaints');
+                        break;
+                      case 2:
+                        Navigator.pushNamed(context, '/smd-monitoring');
+                        break;
+                      case 3:
+                        Navigator.pushNamed(context, '/smd-settings');
+                        break;
+                    }
+                  },
+                  items: [
+                    BottomNavItem(iconPath: 'assets/icons/bottombar/home.png', label: AppLocalizations.of(context)!.home),
+                    BottomNavItem(iconPath: 'assets/icons/bottombar/complaints.png', label: AppLocalizations.of(context)!.complaints),
+                    BottomNavItem(iconPath: 'assets/icons/bottombar/inspection.png', label: AppLocalizations.of(context)!.inspection),
+                    BottomNavItem(iconPath: 'assets/icons/bottombar/settings.png', label: AppLocalizations.of(context)!.settings),
+                  ],
+                ),
         );
       },
     );
@@ -260,7 +284,7 @@ class _SmdHomeScreenState extends State<SmdHomeScreen> {
               ),
               SizedBox(height: 2.h),
               Text(
-                provider.districtName,
+                provider.locationPath.isNotEmpty ? provider.locationPath : provider.districtName,
                 style: TextStyle(
                   fontFamily: 'Noto Sans',
                   fontSize: 12.sp,
@@ -268,6 +292,8 @@ class _SmdHomeScreenState extends State<SmdHomeScreen> {
                   color: const Color(0xFF111827),
                   letterSpacing: 0.5,
                 ),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
               ),
             ],
           ),
@@ -285,6 +311,8 @@ class _SmdHomeScreenState extends State<SmdHomeScreen> {
                   if (result != null && result['districtId'] != null) {
                     final authService = AuthService();
                     await authService.setSmdSelectedDistrictId(result['districtId'] as int);
+                    // Save the full location selection for HOME page
+                    await authService.savePageLocation('smd', 'home', result);
                     // Reload data based on new location
                     if (mounted) {
                       context.read<SmdProvider>().loadAllData();
@@ -301,7 +329,24 @@ class _SmdHomeScreenState extends State<SmdHomeScreen> {
                 ),
               ),
               IconButton(
-                onPressed: () {},
+                onPressed: () {
+                  final locale = Provider.of<LocaleProvider>(context, listen: false).locale;
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => Localizations(
+                        locale: locale,
+                        delegates: const [
+                          AppLocalizations.delegate,
+                          GlobalMaterialLocalizations.delegate,
+                          GlobalWidgetsLocalizations.delegate,
+                          GlobalCupertinoLocalizations.delegate,
+                        ],
+                        child: const NotificationsScreen(),
+                      ),
+                    ),
+                  );
+                },
                 icon: Image.asset(
                   'assets/icons/Vector.png',
                   width: 24.w,
@@ -311,7 +356,22 @@ class _SmdHomeScreenState extends State<SmdHomeScreen> {
               ),
               IconButton(
                 onPressed: () {
-                  // Language selection
+                  final locale = Provider.of<LocaleProvider>(context, listen: false).locale;
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => Localizations(
+                        locale: locale,
+                        delegates: const [
+                          AppLocalizations.delegate,
+                          GlobalMaterialLocalizations.delegate,
+                          GlobalWidgetsLocalizations.delegate,
+                          GlobalCupertinoLocalizations.delegate,
+                        ],
+                        child: const LanguageScreen(),
+                      ),
+                    ),
+                  );
                 },
                 icon: Image.asset(
                   'assets/icons/Translate.png',
@@ -338,7 +398,7 @@ class _SmdHomeScreenState extends State<SmdHomeScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Overview',
+            AppLocalizations.of(context)!.overview,
             style: TextStyle(
               fontFamily: 'Noto Sans',
               fontSize: 18.sp,
@@ -395,31 +455,56 @@ class _SmdHomeScreenState extends State<SmdHomeScreen> {
               ),
               SizedBox(width: 12.w),
               // Export Button
-              GestureDetector(
-                onTap: () => _exportToCSV(provider),
-                child: Container(
-                  padding: EdgeInsets.symmetric(
-                    horizontal: 16.w,
-                    vertical: 8.h,
-                  ),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF009B56),
-                    borderRadius: BorderRadius.circular(8.r),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(Icons.download, size: 16.sp, color: Colors.white),
-                      SizedBox(width: 8.w),
-                      Text(
-                        'Export',
-                        style: TextStyle(
-                          fontSize: 14.sp,
-                          color: Colors.white,
-                          fontWeight: FontWeight.w600,
-                        ),
+              Tooltip(
+                message: provider.fromDate != null && provider.toDate != null
+                    ? AppLocalizations.of(context)!.export
+                    : AppLocalizations.of(context)!.selectDateRangeToEnableExport,
+                child: Opacity(
+                  opacity:
+                      provider.fromDate != null && provider.toDate != null
+                          ? 1.0
+                          : 0.5,
+                  child: GestureDetector(
+                    onTap: () {
+                      if (provider.fromDate == null ||
+                          provider.toDate == null) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(
+                                AppLocalizations.of(context)!.pleaseSelectDateRangeFirst),
+                            backgroundColor: const Color(0xFF6B7280),
+                          ),
+                        );
+                        return;
+                      }
+                      _exportToCSV(provider);
+                    },
+                    child: Container(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: 16.w,
+                        vertical: 8.h,
                       ),
-                    ],
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF009B56),
+                        borderRadius: BorderRadius.circular(8.r),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.download,
+                              size: 16.sp, color: Colors.white),
+                          SizedBox(width: 8.w),
+                          Text(
+                            AppLocalizations.of(context)!.export,
+                            style: TextStyle(
+                              fontSize: 14.sp,
+                              color: Colors.white,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
                 ),
               ),
@@ -453,7 +538,7 @@ class _SmdHomeScreenState extends State<SmdHomeScreen> {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text(
-                          'Total Reported Complaint',
+                          AppLocalizations.of(context)!.totalReportedComplaint,
                           style: TextStyle(
                             fontFamily: 'Noto Sans',
                             fontSize: 14.sp,
@@ -463,10 +548,20 @@ class _SmdHomeScreenState extends State<SmdHomeScreen> {
                           ),
                         ),
                         SizedBox(width: 8.w),
-                        Icon(
-                          Icons.info_outline,
-                          size: 16.sp,
-                          color: const Color(0xFF6B7280),
+                        Tooltip(
+                          message: AppLocalizations.of(context)!.tooltipTotalReportedComplaintDescription,
+                          child: GestureDetector(
+                            onTap: () => _showInfoDialog(
+                              context,
+                              AppLocalizations.of(context)!.totalReportedComplaint,
+                              AppLocalizations.of(context)!.tooltipTotalReportedComplaintDescription,
+                            ),
+                            child: Icon(
+                              Icons.info_outline,
+                              size: 16.sp,
+                              color: const Color(0xFF6B7280),
+                            ),
+                          ),
                         ),
                       ],
                     ),
@@ -492,7 +587,7 @@ class _SmdHomeScreenState extends State<SmdHomeScreen> {
             children: [
               Expanded(
                 child: _buildOverviewCard(
-                  'Open Complaint',
+                  AppLocalizations.of(context)!.openComplaint,
                   provider.isComplaintsLoading
                       ? '...'
                       : provider.analytics['openComplaints'].toString(),
@@ -503,7 +598,7 @@ class _SmdHomeScreenState extends State<SmdHomeScreen> {
               SizedBox(width: 12.w),
               Expanded(
                 child: _buildOverviewCard(
-                  'Resolved complaints',
+                  AppLocalizations.of(context)!.resolvedComplaints,
                   provider.isComplaintsLoading
                       ? '...'
                       : (provider.analytics['resolvedComplaints'] +
@@ -521,6 +616,63 @@ class _SmdHomeScreenState extends State<SmdHomeScreen> {
     );
   }
 
+  Widget _buildGpMasterDataSection() {
+    final l10n = AppLocalizations.of(context)!;
+    return Padding(
+      padding: EdgeInsets.symmetric(horizontal: 16.w),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+         
+          GestureDetector(
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const GpMasterDataDetailsScreen(),
+                ),
+              );
+            },
+            child: Container(
+              width: double.infinity,
+              height: 56,
+              padding: EdgeInsets.symmetric(horizontal: 16.w),
+              decoration: BoxDecoration(
+                color: const Color(0xFF009B56),
+                borderRadius: BorderRadius.circular(12.r),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.05),
+                    blurRadius: 4,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.visibility_outlined, size: 22.sp, color: Colors.white),
+                  SizedBox(width: 12.w),
+                  Expanded(
+                    child: Text(
+                      l10n.viewGpMasterData,
+                      style: TextStyle(
+                        fontFamily: 'Noto Sans',
+                        fontSize: 13.sp,
+                        fontWeight: FontWeight.w500,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+                  Icon(Icons.chevron_right, size: 20.sp, color: Colors.white),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildInspectionSection(SmdProvider provider) {
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: 16.w),
@@ -532,15 +684,17 @@ class _SmdHomeScreenState extends State<SmdHomeScreen> {
             children: [
               Expanded(
                 child: _buildInspectionActionCard(
-                  'Check Vender / Supervisor attendance',
+                  AppLocalizations.of(context)!.checkContractorSupervisorAttendance,
                   Icons.calendar_today,
+                  'attendance',
                 ),
               ),
               SizedBox(width: 12.w),
               Expanded(
                 child: _buildInspectionActionCard(
-                  'Contractor details',
+                  AppLocalizations.of(context)!.contractorDetails,
                   Icons.business,
+                  'contractor',
                 ),
               ),
             ],
@@ -595,7 +749,7 @@ class _SmdHomeScreenState extends State<SmdHomeScreen> {
             // Text
             Expanded(
               child: Text(
-                'View Rankings of GP',
+                AppLocalizations.of(context)!.viewRankingsOfGp,
                 style: TextStyle(
                   fontFamily: 'Noto Sans',
                   fontSize: 16.sp,
@@ -614,13 +768,12 @@ class _SmdHomeScreenState extends State<SmdHomeScreen> {
 
   // Removed unused _buildInspectionSummaryCard method
 
-  Widget _buildInspectionActionCard(String text, IconData icon) {
+  Widget _buildInspectionActionCard(String text, IconData icon, String actionType) {
     return GestureDetector(
       onTap: () {
-        print('🎯 Tapped on: $text');
-        if (text == 'Contractor details') {
+        if (actionType == 'contractor') {
           _openLocationSelection('contractor');
-        } else if (text == 'Check Vender / Supervisor attendance') {
+        } else if (actionType == 'attendance') {
           _openLocationSelection('attendance');
         }
       },
@@ -685,15 +838,74 @@ class _SmdHomeScreenState extends State<SmdHomeScreen> {
     );
   }
 
+  void _showInfoDialog(BuildContext context, String title, String message) {
+    final l10n = AppLocalizations.of(context)!;
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12.r),
+        ),
+        title: Row(
+          children: [
+            Icon(
+              Icons.info_outline,
+              color: const Color(0xFF6B7280),
+              size: 20.sp,
+            ),
+            SizedBox(width: 8.w),
+            Expanded(
+              child: Text(
+                title,
+                style: TextStyle(
+                  fontSize: 16.sp,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ],
+        ),
+        content: Text(
+          message,
+          style: TextStyle(
+            fontSize: 14.sp,
+            color: const Color(0xFF6B7280),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: Text(
+              l10n.ok,
+              style: TextStyle(
+                fontSize: 14.sp,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildOverviewCard(
     String title,
     String value,
     dynamic icon, // Can be IconData or String (asset path)
     Color color,
   ) {
+    final l10n = AppLocalizations.of(context)!;
     final bool isResolvedCard = title.toLowerCase().contains('resolved') || 
-                                 title.toLowerCase().contains('disposed');
-    
+        title.toLowerCase().contains('disposed');
+    final bool isOpenCard = title.toLowerCase().contains('open');
+
+    String tooltipMessage = '';
+    if (isResolvedCard) {
+      tooltipMessage = l10n.tooltipResolvedComplaintsDescription;
+    } else if (isOpenCard) {
+      tooltipMessage = l10n.tooltipOpenComplaintDescription;
+    }
+
     return Container(
       height: 100.h, // Fixed height for consistent sizing
       decoration: BoxDecoration(
@@ -730,15 +942,18 @@ class _SmdHomeScreenState extends State<SmdHomeScreen> {
                         ),
                       ),
                     ),
-                    if (isResolvedCard) ...[
+                    if (tooltipMessage.isNotEmpty) ...[
                       SizedBox(width: 4.w),
                       Tooltip(
-                        message: 'Resolved count includes: Resolved + Verified + Closed complaints',
-                        preferBelow: false,
-                        child: Icon(
-                          Icons.info_outline,
-                          size: 14.sp,
-                          color: const Color(0xFF6B7280),
+                        message: tooltipMessage,
+                        child: GestureDetector(
+                          onTap: () =>
+                              _showInfoDialog(context, title, tooltipMessage),
+                          child: Icon(
+                            Icons.info_outline,
+                            size: 14.sp,
+                            color: const Color(0xFF6B7280),
+                          ),
                         ),
                       ),
                     ],
@@ -782,7 +997,7 @@ class _SmdHomeScreenState extends State<SmdHomeScreen> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                'Featured Scheme',
+                AppLocalizations.of(context)!.featuredScheme,
                 style: TextStyle(
                   fontFamily: 'Noto Sans',
                   fontSize: 18.sp,
@@ -795,9 +1010,9 @@ class _SmdHomeScreenState extends State<SmdHomeScreen> {
                 onPressed: () {
                   Navigator.pushNamed(context, '/schemes');
                 },
-                child: const Text(
-                  'View all',
-                  style: TextStyle(
+                child: Text(
+                  AppLocalizations.of(context)!.viewAll,
+                  style: const TextStyle(
                     color: Color(0xFF009B56),
                     fontWeight: FontWeight.w600,
                   ),
@@ -821,7 +1036,7 @@ class _SmdHomeScreenState extends State<SmdHomeScreen> {
               : provider.schemes.isEmpty
               ? Center(
                   child: Text(
-                    'No schemes available',
+                    AppLocalizations.of(context)!.noSchemesAvailable,
                     style: TextStyle(color: const Color(0xFF9CA3AF)),
                   ),
                 )
@@ -923,6 +1138,7 @@ class _SmdHomeScreenState extends State<SmdHomeScreen> {
   }
 
   Widget _buildEventsSection(SmdProvider provider) {
+    final l10n = AppLocalizations.of(context)!;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -932,7 +1148,7 @@ class _SmdHomeScreenState extends State<SmdHomeScreen> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                '${provider.events.length} Event${provider.events.length != 1 ? 's' : ''}',
+                '${provider.events.length} ${provider.events.length != 1 ? l10n.eventsPlural : l10n.events}',
                 style: TextStyle(
                   fontFamily: 'Noto Sans',
                   fontSize: 18.sp,
@@ -946,9 +1162,9 @@ class _SmdHomeScreenState extends State<SmdHomeScreen> {
                 onPressed: () {
                   Navigator.pushNamed(context, '/events');
                 },
-                child: const Text(
-                  'View all',
-                  style: TextStyle(
+                child: Text(
+                  l10n.viewAll,
+                  style: const TextStyle(
                     color: Color(0xFF009B56),
                     fontWeight: FontWeight.w600,
                   ),
@@ -973,12 +1189,12 @@ class _SmdHomeScreenState extends State<SmdHomeScreen> {
                 ),
               )
             : provider.events.isEmpty
-            ? const Center(
+            ? Center(
                 child: Padding(
-                  padding: EdgeInsets.all(20),
+                  padding: EdgeInsets.all(20.r),
                   child: Text(
-                    'No events available',
-                    style: TextStyle(color: Color(0xFF9CA3AF)),
+                    l10n.noEventsAvailable,
+                    style: const TextStyle(color: Color(0xFF9CA3AF)),
                   ),
                 ),
               )
@@ -1052,48 +1268,6 @@ class _SmdHomeScreenState extends State<SmdHomeScreen> {
                             'assets/images/eventbanner.png',
                             fit: BoxFit.cover,
                           ),
-                  ),
-
-                  // Bookmark Button
-                  Positioned(
-                    top: 12.h,
-                    right: 12.w,
-                    child: Consumer<BookmarksProvider>(
-                      builder: (context, bookmarksProvider, child) {
-                        final isBookmarked = bookmarksProvider.isEventBookmarked(event.id);
-                        return GestureDetector(
-                          onTap: () {
-                            bookmarksProvider.toggleEventBookmark(event.id, !isBookmarked);
-                          },
-                          child: Container(
-                            width: 40.w,
-                            height: 40.h,
-                            decoration: BoxDecoration(
-                              color: isBookmarked
-                                  ? const Color(0xFF009B56)
-                                  : Colors.white.withOpacity(0.9),
-                              borderRadius: BorderRadius.circular(8.r),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withOpacity(0.2),
-                                  blurRadius: 4,
-                                  offset: const Offset(0, 2),
-                                ),
-                              ],
-                            ),
-                            child: Icon(
-                              isBookmarked
-                                  ? Icons.bookmark
-                                  : Icons.bookmark_border,
-                              color: isBookmarked
-                                  ? Colors.white
-                                  : const Color(0xFF4CAF50),
-                              size: 20.sp,
-                            ),
-                          ),
-                        );
-                      },
-                    ),
                   ),
                 ],
               ),
@@ -1393,7 +1567,7 @@ class _SmdHomeScreenState extends State<SmdHomeScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error loading contractor details: $e'),
+            content: Text(userFriendlyApiMessage(e)),
             backgroundColor: Colors.red,
           ),
         );
@@ -1422,7 +1596,7 @@ class _SmdHomeScreenState extends State<SmdHomeScreen> {
           mainAxisSize: MainAxisSize.min,
           children: [
             Text(
-              'Connect with Swachh Rajasthan',
+              AppLocalizations.of(context)!.connectWithSwachhRajasthan,
               style: TextStyle(
                 fontSize: 16.sp,
                 fontWeight: FontWeight.w600,
@@ -1499,7 +1673,7 @@ class _SmdHomeScreenState extends State<SmdHomeScreen> {
       ..hideCurrentSnackBar()
       ..showSnackBar(
         SnackBar(
-          content: Text('Could not open $platform link.'),
+          content: Text(AppLocalizations.of(context)!.couldNotOpenLink(platform)),
           backgroundColor: Colors.red,
         ),
       );
@@ -1512,121 +1686,143 @@ class _GPContractorDetailsBottomSheet extends StatelessWidget {
 
   const _GPContractorDetailsBottomSheet({this.contractorDetails, this.gpName});
 
+  String _formatDate(String dateString) {
+    try {
+      final date = DateTime.parse(dateString);
+      return DateFormat('dd MMMM yyyy').format(date);
+    } catch (_) {
+      return dateString;
+    }
+  }
+
+  String _calculateDuration(String? startDate, String? endDate) {
+    if (startDate == null || endDate == null) return 'N/A';
+    try {
+      final start = DateTime.parse(startDate);
+      final end = DateTime.parse(endDate);
+      final duration = end.difference(start);
+      final months = (duration.inDays / 30).round();
+      return '$months months';
+    } catch (_) {
+      return 'N/A';
+    }
+  }
+
+  Widget _buildDetailRow(String label, String value) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Expanded(
+          flex: 2,
+          child: Text(
+            '$label:',
+            style: const TextStyle(
+              fontFamily: 'Noto Sans',
+              fontSize: 14,
+              fontWeight: FontWeight.w500,
+              color: Colors.grey,
+            ),
+          ),
+        ),
+        SizedBox(width: 8.w),
+        Expanded(
+          flex: 3,
+          child: Text(
+            value,
+            style: const TextStyle(
+              fontFamily: 'Noto Sans',
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+              color: Color(0xFF111827),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Container(
-      decoration: BoxDecoration(
-        color: const Color(0xFFF3F4F6),
+      decoration: const BoxDecoration(
+        color: Colors.white,
         borderRadius: BorderRadius.only(
-          topLeft: Radius.circular(20.r),
-          topRight: Radius.circular(20.r),
+          topLeft: Radius.circular(20),
+          topRight: Radius.circular(20),
         ),
       ),
       padding: EdgeInsets.all(20.r),
       child: SingleChildScrollView(
         child: Column(
           mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Modal Handle
-            Container(
-              width: 40.w,
-              height: 4.h,
-              margin: EdgeInsets.only(bottom: 20.h),
-              decoration: BoxDecoration(
-                color: const Color(0xFFD1D5DB),
-                borderRadius: BorderRadius.circular(2.r),
-              ),
-            ),
-            // Header
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  'Contractor Details',
-                  style: TextStyle(
+                  l10n.contractorDetails,
+                  style: const TextStyle(
                     fontFamily: 'Noto Sans',
-                    fontSize: 20.sp,
+                    fontSize: 20,
                     fontWeight: FontWeight.bold,
-                    color: const Color(0xFF111827),
+                    color: Color(0xFF111827),
                   ),
                 ),
                 IconButton(
                   onPressed: () => Navigator.pop(context),
-                  icon: Icon(Icons.close, color: const Color(0xFF111827)),
+                  icon: const Icon(Icons.close, color: Color(0xFF111827)),
                 ),
               ],
             ),
 
-            SizedBox(height: 20.h),
+            SizedBox(height: 24.h),
 
-            // View Mode - Display details
-            Container(
-              width: double.infinity,
-              padding: EdgeInsets.all(20.r),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(12.r),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.05),
-                    blurRadius: 10,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
+            if (contractorDetails != null) ...[
+              if (gpName != null && gpName!.isNotEmpty) ...[
+                _buildDetailRow(l10n.gramPanchayat, gpName!),
+                SizedBox(height: 16.h),
+              ],
+              _buildDetailRow(l10n.agencyName, contractorDetails!.agency.name),
+              SizedBox(height: 16.h),
+              _buildDetailRow(l10n.name, contractorDetails!.personName),
+              SizedBox(height: 16.h),
+              _buildDetailRow(l10n.personPhone, contractorDetails!.personPhone),
+              SizedBox(height: 16.h),
+              _buildDetailRow(
+                l10n.workOrderDate,
+                _formatDate(contractorDetails!.contractStartDate),
               ),
-              child: contractorDetails != null
-                  ? Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        if (gpName != null) ...[
-                          _buildDetailRow('Gram Panchayat', gpName!),
-                          SizedBox(height: 20.h),
-                        ],
-                        _buildDetailRow(
-                          'Agency Name',
-                          contractorDetails!.agency.name,
-                        ),
-                        SizedBox(height: 20.h),
-                        _buildDetailRow(
-                          'Contact Person',
-                          contractorDetails!.personName,
-                        ),
-                        SizedBox(height: 20.h),
-                        _buildDetailRow(
-                          'Contact Phone',
-                          contractorDetails!.personPhone,
-                        ),
-                        SizedBox(height: 20.h),
-                        _buildDetailRow(
-                          'Agency Phone',
-                          contractorDetails!.agency.phone,
-                        ),
-                        SizedBox(height: 20.h),
-                        _buildDetailRow(
-                          'Agency Email',
-                          contractorDetails!.agency.email,
-                        ),
-                        SizedBox(height: 20.h),
-                        _buildDetailRow(
-                          'Contract Start Date',
-                          contractorDetails!.contractStartDate,
-                        ),
-                        SizedBox(height: 20.h),
-                        _buildDetailRow(
-                          'Contract End Date',
-                          contractorDetails!.contractEndDate ?? 'N/A',
-                        ),
-                      ],
-                    )
-                  : Text(
-                      'No contractor details available',
-                      style: TextStyle(fontSize: 16.sp, color: Colors.grey),
-                    ),
-            ),
+              SizedBox(height: 16.h),
+              _buildDetailRow(
+                l10n.durationOfWork,
+                _calculateDuration(
+                  contractorDetails!.contractStartDate,
+                  contractorDetails!.contractEndDate,
+                ),
+              ),
+              SizedBox(height: 16.h),
+              _buildDetailRow(
+                l10n.annualContractAmount,
+                '₹ ${contractorDetails!.workOrderAmount.toStringAsFixed(2)}',
+              ),
+              SizedBox(height: 16.h),
+              _buildDetailRow(
+                l10n.frequencyOfWork,
+                contractorDetails!.cleaningFrequency.toUpperCase() == 'FORTNIGHTLY'
+                    ? '—'
+                    : contractorDetails!.cleaningFrequency,
+              ),
+            ] else ...[
+              Text(
+                l10n.noContractorDetailsAvailable,
+                style: TextStyle(fontSize: 14.sp, color: Colors.grey),
+              ),
+            ],
 
             SizedBox(height: 30.h),
 
-            // Close Button
             SizedBox(
               width: double.infinity,
               height: 50.h,
@@ -1641,10 +1837,10 @@ class _GPContractorDetailsBottomSheet extends StatelessWidget {
                   elevation: 0,
                 ),
                 child: Text(
-                  'Close',
-                  style: TextStyle(
+                  l10n.close,
+                  style: const TextStyle(
                     fontFamily: 'Noto Sans',
-                    fontSize: 16.sp,
+                    fontSize: 16,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
@@ -1653,33 +1849,6 @@ class _GPContractorDetailsBottomSheet extends StatelessWidget {
           ],
         ),
       ),
-    );
-  }
-
-  Widget _buildDetailRow(String label, String value) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: TextStyle(
-            fontFamily: 'Noto Sans',
-            fontSize: 14.sp,
-            fontWeight: FontWeight.w400,
-            color: const Color(0xFF6B7280),
-          ),
-        ),
-        SizedBox(height: 4.h),
-        Text(
-          value,
-          style: TextStyle(
-            fontFamily: 'Noto Sans',
-            fontSize: 16.sp,
-            fontWeight: FontWeight.w600,
-            color: const Color(0xFF111827),
-          ),
-        ),
-      ],
     );
   }
 }

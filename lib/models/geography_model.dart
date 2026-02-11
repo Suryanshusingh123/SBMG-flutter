@@ -179,6 +179,8 @@ class Contractor {
   final String districtName;
   final String contractStartDate;
   final String contractEndDate;
+  final double workOrderAmount;
+  final String cleaningFrequency;
 
   const Contractor({
     required this.id,
@@ -191,10 +193,17 @@ class Contractor {
     required this.districtName,
     required this.contractStartDate,
     required this.contractEndDate,
+    required this.workOrderAmount,
+    required this.cleaningFrequency,
   });
 
   factory Contractor.fromJson(Map<String, dynamic> json) {
     try {
+      // API sends contract_amount and contract_frequency (same as ContractorDetails)
+      final amount = json['contract_amount'] ?? json['work_order_amount'] ?? 0.0;
+      final frequency = json['contract_frequency']?.toString() ??
+          json['cleaning_frequency']?.toString() ??
+          'Daily';
       return Contractor(
         id: json['id'] as int,
         agency: Agency.fromJson(json['agency'] as Map<String, dynamic>),
@@ -206,6 +215,8 @@ class Contractor {
         districtName: json['district_name']?.toString() ?? '',
         contractStartDate: json['contract_start_date']?.toString() ?? '',
         contractEndDate: json['contract_end_date']?.toString() ?? '',
+        workOrderAmount: (amount is num ? amount.toDouble() : 0.0),
+        cleaningFrequency: frequency,
       );
     } catch (e) {
       print('❌ Error parsing Contractor JSON: $e');
@@ -226,6 +237,8 @@ class Contractor {
       'district_name': districtName,
       'contract_start_date': contractStartDate,
       'contract_end_date': contractEndDate,
+      'work_order_amount': workOrderAmount,
+      'cleaning_frequency': cleaningFrequency,
     };
   }
 }

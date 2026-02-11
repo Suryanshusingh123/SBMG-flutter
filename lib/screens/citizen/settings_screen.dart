@@ -6,15 +6,20 @@ import '../../widgets/common/custom_bottom_navigation.dart';
 import '../../l10n/app_localizations.dart';
 import '../../providers/locale_provider.dart';
 import '../../providers/citizen_auth_provider.dart';
+import '../../providers/bookmarks_provider.dart';
 import '../../services/auth_services.dart';
 import '../../screens/auth/admin_login_screen.dart';
 import '../../theme/citizen_colors.dart';
 import 'citizen_reset_password_flow_screen.dart';
+import 'citizen_login_screen.dart';
 import 'profile_screen.dart';
 import 'bookmarks_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
-  const SettingsScreen({super.key});
+  /// When true, this screen is shown inside [CitizenShellScreen]; bottom nav is provided by the shell.
+  final bool isEmbeddedInShell;
+
+  const SettingsScreen({super.key, this.isEmbeddedInShell = false});
 
   @override
   State<SettingsScreen> createState() => _SettingsScreenState();
@@ -59,36 +64,58 @@ class _SettingsScreenState extends State<SettingsScreen> {
               child: SingleChildScrollView(
                 child: Column(
                   children: [
-                    // Change Password
-                    _buildSettingItem(
-                      icon: Icons.lock_outline,
-                      title: l10n.changePassword,
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) =>
-                                const ResetPasswordFlowScreen(),
-                          ),
-                        );
+                    // Change Password - Only show when user is logged in
+                    Consumer<AuthProvider>(
+                      builder: (context, authProvider, child) {
+                        if (authProvider.isLoggedIn) {
+                          return Column(
+                            children: [
+                              _buildSettingItem(
+                                icon: Icons.lock_outline,
+                                title: l10n.changePassword,
+                                onTap: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) =>
+                                          const ResetPasswordFlowScreen(),
+                                    ),
+                                  );
+                                },
+                              ),
+                              _buildDivider(),
+                            ],
+                          );
+                        }
+                        return const SizedBox.shrink();
                       },
                     ),
-                    _buildDivider(),
 
-                    // Profile
-                    _buildSettingItem(
-                      icon: Icons.person_outline,
-                      title: l10n.profile,
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => const ProfileScreen(),
-                          ),
-                        );
+                    // Profile - Only show when user is logged in
+                    Consumer<AuthProvider>(
+                      builder: (context, authProvider, child) {
+                        if (authProvider.isLoggedIn) {
+                          return Column(
+                            children: [
+                              _buildSettingItem(
+                                icon: Icons.person_outline,
+                                title: l10n.profile,
+                                onTap: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => const ProfileScreen(),
+                                    ),
+                                  );
+                                },
+                              ),
+                              _buildDivider(),
+                            ],
+                          );
+                        }
+                        return const SizedBox.shrink();
                       },
                     ),
-                    _buildDivider(),
 
                     // Notifications with toggle
                     _buildSettingItemWithToggle(
@@ -140,11 +167,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     ),
                     _buildDivider(),
 
-                    // My Collection
+                    // My Collection (schemes only)
                     _buildSettingItemWithSubtitle(
                       icon: Icons.bookmark_outline,
                       title: l10n.myCollection,
-                      subtitle: l10n.bookmarks,
+                      subtitle: l10n.bookmarkedSchemes,
                       onTap: () {
                         Navigator.push(
                           context,
@@ -208,6 +235,48 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       },
                     ),
 
+                    // Login - Only show when user is NOT logged in
+                    Consumer<AuthProvider>(
+                      builder: (context, authProvider, child) {
+                        if (!authProvider.isLoggedIn) {
+                          return Column(
+                            children: [
+                              SizedBox(height: 16.h),
+                              Container(
+                                margin: EdgeInsets.symmetric(horizontal: 16.w),
+                                decoration: BoxDecoration(
+                                  color: CitizenColors.surface(context),
+                                  borderRadius: BorderRadius.circular(12.r),
+                                  border: Border.all(
+                                    color: AppColors.primaryColor.withOpacity(0.3),
+                                    width: 1,
+                                  ),
+                                ),
+                                child: _buildSettingItem(
+                                  icon: Icons.login,
+                                  title: l10n.loginAsCitizen,
+                                  showDivider: false,
+                                  iconColor: AppColors.primaryColor,
+                                  onTap: () {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) => const LoginScreen(
+                                          redirectTo: '/settings',
+                                        ),
+                                      ),
+                                    );
+                                  },
+                                ),
+                              ),
+                              SizedBox(height: 16.h),
+                            ],
+                          );
+                        }
+                        return const SizedBox.shrink();
+                      },
+                    ),
+
                     // Login as Admin
                     Container(
                       margin: EdgeInsets.symmetric(horizontal: 16.w),
@@ -243,49 +312,46 @@ class _SettingsScreenState extends State<SettingsScreen> {
         ),
       ),
 
-      // Bottom Navigation Bar
-      bottomNavigationBar: CustomBottomNavigationBar(
-        currentIndex: _selectedIndex,
-        onTap: (index) {
-          setState(() {
-            _selectedIndex = index;
-          });
-
-          // Navigate to different screens based on selection
-          switch (index) {
-            case 0:
-              Navigator.pushReplacementNamed(context, '/citizen-dashboard');
-              break;
-            case 1:
-              Navigator.pushNamed(context, '/my-complaints');
-              break;
-            case 2:
-              Navigator.pushReplacementNamed(context, '/schemes');
-              break;
-            case 3:
-              // Already on Settings
-              break;
-          }
-        },
-        items: [
-          BottomNavItem(
-            iconPath: 'assets/icons/bottombar/home.png',
-            label: AppLocalizations.of(context)!.home,
-          ),
-          BottomNavItem(
-            iconPath: 'assets/icons/bottombar/complaints.png',
-            label: AppLocalizations.of(context)!.myComplaint,
-          ),
-          BottomNavItem(
-            iconPath: 'assets/icons/bottombar/schemes.png',
-            label: AppLocalizations.of(context)!.schemes,
-          ),
-          BottomNavItem(
-            iconPath: 'assets/icons/bottombar/settings.png',
-            label: AppLocalizations.of(context)!.settings,
-          ),
-        ],
-      ),
+      // Bottom nav is provided by CitizenShellScreen when isEmbeddedInShell
+      bottomNavigationBar: widget.isEmbeddedInShell
+          ? null
+          : CustomBottomNavigationBar(
+              currentIndex: _selectedIndex,
+              onTap: (index) {
+                setState(() => _selectedIndex = index);
+                switch (index) {
+                  case 0:
+                    Navigator.pushReplacementNamed(context, '/citizen-dashboard');
+                    break;
+                  case 1:
+                    Navigator.pushNamed(context, '/my-complaints');
+                    break;
+                  case 2:
+                    Navigator.pushNamed(context, '/schemes');
+                    break;
+                  case 3:
+                    break;
+                }
+              },
+              items: [
+                BottomNavItem(
+                  iconPath: 'assets/icons/bottombar/home.png',
+                  label: AppLocalizations.of(context)!.home,
+                ),
+                BottomNavItem(
+                  iconPath: 'assets/icons/bottombar/complaints.png',
+                  label: AppLocalizations.of(context)!.myComplaint,
+                ),
+                BottomNavItem(
+                  iconPath: 'assets/icons/bottombar/schemes.png',
+                  label: AppLocalizations.of(context)!.schemes,
+                ),
+                BottomNavItem(
+                  iconPath: 'assets/icons/bottombar/settings.png',
+                  label: AppLocalizations.of(context)!.settings,
+                ),
+              ],
+            ),
     );
   }
 
@@ -609,6 +675,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   void _showFeedbackBottomSheet(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
+    final parentContext = context; // Capture parent context for snackbar
     int selectedRating = -1;
     final feedbackController = TextEditingController();
 
@@ -774,13 +841,20 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         // Check if user is authenticated
                         final authProvider = context.read<AuthProvider>();
                         if (!authProvider.isLoggedIn) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text('Please login to submit feedback'),
-                              backgroundColor: Colors.red,
-                              duration: const Duration(seconds: 3),
-                            ),
-                          );
+                          // Close the bottom sheet first
+                          Navigator.pop(context);
+                          // Show snackbar after bottom sheet is closed using parent context
+                          Future.microtask(() {
+                            if (parentContext.mounted) {
+                              ScaffoldMessenger.of(parentContext).showSnackBar(
+                                SnackBar(
+                                  content: Text('Please login to submit feedback'),
+                                  backgroundColor: Colors.red,
+                                  duration: const Duration(seconds: 3),
+                                ),
+                              );
+                            }
+                          });
                           return;
                         }
 
@@ -994,6 +1068,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         if (context.mounted) {
                           final authProvider = context.read<AuthProvider>();
                           await authProvider.logout();
+                          
+                          // Clear bookmarks when user logs out
+                          final bookmarksProvider = context.read<BookmarksProvider>();
+                          bookmarksProvider.clearBookmarks();
                         }
 
                         if (context.mounted) {

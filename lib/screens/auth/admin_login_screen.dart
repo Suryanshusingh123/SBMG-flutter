@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:provider/provider.dart';
 import '../../services/auth_services.dart';
+import '../../providers/bookmarks_provider.dart';
 import 'reset_password_request_screen.dart';
 
 class AdminLoginScreen extends StatefulWidget {
@@ -41,6 +43,17 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
       );
 
       if (response['success'] == true) {
+        // Reload bookmarks for the newly logged-in user
+        try {
+          if (mounted) {
+            final bookmarksProvider = context.read<BookmarksProvider>();
+            await bookmarksProvider.reloadForCurrentUser();
+            print('✅ Bookmarks reloaded after successful admin login');
+          }
+        } catch (e) {
+          print('⚠️ Error reloading bookmarks after admin login: $e');
+        }
+        
         // Get current user information to determine role
         final userResponse = await AuthService().getCurrentUser();
 

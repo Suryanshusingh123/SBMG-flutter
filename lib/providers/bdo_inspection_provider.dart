@@ -22,22 +22,66 @@ class BdoInspectionProvider extends ChangeNotifier {
   Future<void> loadInspections({int page = 1, int pageSize = 20}) async {
     try {
       _isLoading = true;
+      // Clear old inspections immediately to prevent showing stale data
+      _inspections = [];
+      _totalInspections = 0;
       notifyListeners();
 
       print('🔄 Starting to load inspections...');
 
-      // Get location IDs from auth service
+      // BDO: district and block are FIXED from login. Only optional GP comes from saved location.
       final blockId = await _authService.getBlockId();
+      if (blockId == null) {
+        _isLoading = false;
+        notifyListeners();
+        print('❌ Error: Block ID not found');
+        return;
+      }
+      var savedLocation = await _authService.getPageLocation('bdo', 'inspections');
+      if (savedLocation == null) {
+        savedLocation = await _authService.getInspectionLocation('bdo');
+      }
+      final gpId = savedLocation?['gpId'] as int?;
+
+      print('📡 BDO Inspection Provider Parameters:');
+      print('   - Block ID: $blockId');
+      if (gpId != null) print('   - GP ID: $gpId');
+      print('   - Saved Location Full: $savedLocation');
+      print('   - GP ID from saved: ${savedLocation?['gpId']}');
+      print('   - GP Name from saved: ${savedLocation?['gpName']}');
 
       // Block-level users must only send block_id (omit district_id)
       final inspectionResponse = await _apiService.getInspections(
         blockId: blockId,
+        gpId: gpId,
         page: page,
         pageSize: pageSize,
       );
 
-      _inspections = inspectionResponse.items;
-      _totalInspections = inspectionResponse.total;
+      // Apply client-side filtering if GP ID is specified
+      // This ensures we only show inspections for the selected GP, even if API returns wrong data
+      List<Inspection> filteredInspections = inspectionResponse.items;
+      if (gpId != null) {
+        final beforeCount = filteredInspections.length;
+        filteredInspections = filteredInspections.where((inspection) => inspection.villageId == gpId).toList();
+        final afterCount = filteredInspections.length;
+        if (beforeCount != afterCount) {
+          print('⚠️ API returned ${beforeCount} inspections, but only ${afterCount} match GP ID $gpId');
+          print('   Filtered out ${beforeCount - afterCount} inspections that don\'t match the selected GP');
+        }
+      }
+      
+      _inspections = filteredInspections;
+      _totalInspections = filteredInspections.length; // Use filtered count
+      
+      print('📊 Loaded inspections (after filtering):');
+      for (var inspection in _inspections) {
+        print('   - ID: ${inspection.id}, Village: ${inspection.villageName}, GP ID: ${inspection.villageId}');
+      }
+      
+      if (_inspections.isEmpty && gpId != null) {
+        print('ℹ️ No inspections found for GP ID: $gpId');
+      }
 
       _isLoading = false;
       notifyListeners();

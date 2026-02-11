@@ -192,7 +192,15 @@ class ComplaintsService {
       }).toList();
     }
 
-    // Update total complaints count to reflect filtered data
+    // Deduplicate by id (keep last occurrence = current status).
+    // Fixes duplicate counts in mobile app when API returns the same complaint
+    // multiple times after verify/dispose (e.g. from status history joins).
+    final Map<dynamic, dynamic> byId = {};
+    for (var c in filteredComplaints) {
+      final id = c is Map ? c['id'] : null;
+      if (id != null) byId[id] = c;
+    }
+    filteredComplaints = byId.values.toList();
     totalComplaints = filteredComplaints.length;
 
     print('📊 Analytics Calculation:');
@@ -278,7 +286,16 @@ class ComplaintsService {
     );
 
     if (response['success'] == true) {
-      final complaints = response['complaints'] as List<dynamic>;
+      final rawComplaints = response['complaints'] as List<dynamic>;
+      // Deduplicate by id. When Supervisor resolves with image, the API can
+      // return the same complaint twice (e.g. JOIN on media), which would
+      // double today's count and other usages of this list.
+      final Map<dynamic, dynamic> byId = {};
+      for (var c in rawComplaints) {
+        final id = c is Map ? c['id'] : null;
+        if (id != null) byId[id] = c;
+      }
+      final complaints = byId.values.toList();
       final analytics = calculateAnalytics(
         complaints,
         fromDate: fromDate,
@@ -355,9 +372,15 @@ class ComplaintsService {
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
-        final complaints = (data as List)
+        var list = (data as List)
             .map((json) => ApiComplaintModel.fromJson(json))
             .toList();
+        // Deduplicate by id to prevent inflated counts after verify/dispose
+        final Map<int, ApiComplaintModel> byId = {};
+        for (final c in list) {
+          byId[c.id] = c;
+        }
+        final complaints = byId.values.toList();
 
         print('✅ SUCCESS: Complaints data retrieved and parsed');
         print('📊 Total complaints: ${complaints.length}');
@@ -447,9 +470,15 @@ class ComplaintsService {
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
-        final complaints = (data as List)
+        var list = (data as List)
             .map((json) => ApiComplaintModel.fromJson(json))
             .toList();
+        // Deduplicate by id to prevent inflated counts after verify/dispose
+        final Map<int, ApiComplaintModel> byId = {};
+        for (final c in list) {
+          byId[c.id] = c;
+        }
+        final complaints = byId.values.toList();
         print('✅ SUCCESS: BDO complaints retrieved and parsed');
         print('📊 Total complaints: ${complaints.length}');
         return {'success': true, 'complaints': complaints};

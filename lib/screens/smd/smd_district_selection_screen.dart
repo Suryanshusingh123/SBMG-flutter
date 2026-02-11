@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../l10n/app_localizations.dart';
 import '../../services/api_services.dart';
 import '../../services/auth_services.dart';
 import '../../models/geography_model.dart';
@@ -38,7 +39,7 @@ class _SmdDistrictSelectionScreenState
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error loading districts: $e'),
+            content: Text('${AppLocalizations.of(context)!.failedToLoadDistricts}: $e'),
             backgroundColor: Colors.red,
           ),
         );
@@ -74,9 +75,9 @@ class _SmdDistrictSelectionScreenState
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
-        title: const Text(
-          'Select District',
-          style: TextStyle(
+        title: Text(
+          AppLocalizations.of(context)!.selectDistrict,
+          style: const TextStyle(
             fontFamily: 'Noto Sans',
             fontSize: 20,
             fontWeight: FontWeight.w600,

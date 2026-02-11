@@ -1,4 +1,5 @@
 import '../utils/location_display_helper.dart';
+import '../utils/date_time_utils.dart';
 
 class ApiComplaintModel {
   final int id;
@@ -45,6 +46,17 @@ class ApiComplaintModel {
     this.location,
   });
 
+  /// Parses complaint_type from API which can be either a String or an object with 'name'.
+  static String _complaintTypeNameFromJson(dynamic value) {
+    if (value == null) return '';
+    if (value is String) return value.trim().isEmpty ? '' : value;
+    if (value is Map && value['name'] != null) {
+      final name = value['name'].toString().trim();
+      return name;
+    }
+    return '';
+  }
+
   factory ApiComplaintModel.fromJson(Map<String, dynamic> json) {
     print('🔍 PARSING COMPLAINT ${json['id']}:');
     print('   - Raw media_urls: ${json['media_urls']}');
@@ -57,6 +69,9 @@ class ApiComplaintModel {
     print('   - Parsed mediaUrls: $mediaUrls');
     print('   - Parsed mediaUrls length: ${mediaUrls.length}');
 
+    final complaintTypeName = _complaintTypeNameFromJson(json['complaint_type']);
+    final fallbackType = json['complaint_type']?.toString().trim() ?? '';
+
     return ApiComplaintModel(
       id: json['id'] ?? 0,
       description: json['description'] ?? '',
@@ -64,7 +79,7 @@ class ApiComplaintModel {
       complaintTypeId: json['complaint_type_id'] ?? 0,
       createdAt: json['created_at'] ?? '',
       statusId: json['status_id'] ?? 0,
-      complaintType: json['complaint_type'] ?? '',
+      complaintType: complaintTypeName.isNotEmpty ? complaintTypeName : fallbackType,
       status: json['status'] ?? '',
       villageName: json['village_name'] ?? '',
       blockName: json['block_name'] ?? '',
@@ -120,14 +135,7 @@ class ApiComplaintModel {
   // Helper methods
   String get fullLocation => '$villageName, $blockName, $districtName';
 
-  String get formattedDate {
-    try {
-      final date = DateTime.parse(createdAt);
-      return '${date.day}/${date.month}/${date.year}';
-    } catch (e) {
-      return 'Today';
-    }
-  }
+  String get formattedDate => DateTimeUtils.formatComplaintListIST(createdAt);
 
   String get firstMediaUrl {
     if (mediaUrls.isNotEmpty) {

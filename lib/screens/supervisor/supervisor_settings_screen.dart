@@ -3,13 +3,17 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:provider/provider.dart';
 import '../../config/connstants.dart';
 import '../../providers/locale_provider.dart';
+import '../../providers/bookmarks_provider.dart';
 import '../../services/auth_services.dart';
 import '../../l10n/app_localizations.dart';
 import 'reset_password_flow_screen.dart';
 import '../citizen/language_screen.dart';
 
 class SupervisorSettingsScreen extends StatefulWidget {
-  const SupervisorSettingsScreen({super.key});
+  /// When true, this screen is shown inside [SupervisorShellScreen]; bottom nav is provided by the shell.
+  final bool isEmbeddedInShell;
+
+  const SupervisorSettingsScreen({super.key, this.isEmbeddedInShell = false});
 
   @override
   State<SupervisorSettingsScreen> createState() =>
@@ -156,8 +160,10 @@ class _SupervisorSettingsScreenState extends State<SupervisorSettingsScreen> {
         ),
       ),
 
-      // Bottom Navigation Bar
-      bottomNavigationBar: _buildBottomNavigationBar(),
+      // Bottom nav is provided by SupervisorShellScreen when isEmbeddedInShell
+      bottomNavigationBar: widget.isEmbeddedInShell
+          ? null
+          : _buildBottomNavigationBar(),
     );
   }
 
@@ -706,6 +712,12 @@ class _SupervisorSettingsScreenState extends State<SupervisorSettingsScreen> {
     // Clear supervisor session
     final authService = AuthService();
     await authService.logout();
+    
+    // Clear bookmarks when user logs out
+    if (context.mounted) {
+      final bookmarksProvider = context.read<BookmarksProvider>();
+      bookmarksProvider.clearBookmarks();
+    }
 
     // Navigate to citizen home screen and clear navigation stack
     if (context.mounted) {
@@ -792,6 +804,12 @@ class _SupervisorSettingsScreenState extends State<SupervisorSettingsScreen> {
                       onPressed: () async {
                         final authService = AuthService();
                         await authService.logout();
+                        
+                        // Clear bookmarks when user logs out
+                        if (context.mounted) {
+                          final bookmarksProvider = context.read<BookmarksProvider>();
+                          bookmarksProvider.clearBookmarks();
+                        }
 
                         if (context.mounted) {
                           Navigator.pop(context); // Close dialog

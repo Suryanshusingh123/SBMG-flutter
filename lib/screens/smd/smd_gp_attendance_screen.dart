@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../l10n/app_localizations.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:intl/intl.dart';
 import '../../services/api_services.dart';
@@ -86,7 +87,7 @@ class _SmdGpAttendanceScreenState extends State<SmdGpAttendanceScreen> {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text(response['message'] ?? 'Failed to load attendance'),
+              content: Text(response['message'] ?? AppLocalizations.of(context)!.failedToLoadAttendance),
               backgroundColor: Colors.red,
             ),
           );
@@ -97,7 +98,7 @@ class _SmdGpAttendanceScreenState extends State<SmdGpAttendanceScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error loading attendance: $e'),
+            content: Text(AppLocalizations.of(context)!.errorLoadingAttendance(e.toString())),
             backgroundColor: Colors.red,
           ),
         );
@@ -159,7 +160,7 @@ class _SmdGpAttendanceScreenState extends State<SmdGpAttendanceScreen> {
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
-          'Attendance log - ${widget.gpName}',
+          AppLocalizations.of(context)!.attendanceLogFor(widget.gpName),
           style: const TextStyle(
             color: Colors.black,
             fontSize: 18,
@@ -186,7 +187,7 @@ class _SmdGpAttendanceScreenState extends State<SmdGpAttendanceScreen> {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
-                        'Attendance log ($present/$total)',
+                        AppLocalizations.of(context)!.attendanceLogPresentTotal(present, total),
                         style: TextStyle(
                           fontSize: 16.sp,
                           fontWeight: FontWeight.w500,
@@ -209,15 +210,15 @@ class _SmdGpAttendanceScreenState extends State<SmdGpAttendanceScreen> {
                   child: Row(
                     children: [
                       Expanded(
-                        child: _summaryCard('Total days', total.toString()),
+                        child: _summaryCard(AppLocalizations.of(context)!.totalDays, total.toString()),
                       ),
                       SizedBox(width: 12.w),
                       Expanded(
-                        child: _summaryCard('Present', present.toString()),
+                        child: _summaryCard(AppLocalizations.of(context)!.present, present.toString()),
                       ),
                       SizedBox(width: 12.w),
                       Expanded(
-                        child: _summaryCard('Absent', absent.toString()),
+                        child: _summaryCard(AppLocalizations.of(context)!.absent, absent.toString()),
                       ),
                     ],
                   ),
@@ -227,7 +228,7 @@ class _SmdGpAttendanceScreenState extends State<SmdGpAttendanceScreen> {
                   child: _filteredAttendanceList.isEmpty
                       ? Center(
                           child: Text(
-                            'No attendance records found',
+                            AppLocalizations.of(context)!.noAttendanceRecordsFound,
                             style: TextStyle(
                               fontSize: 16.sp,
                               color: Colors.grey.shade600,
@@ -284,7 +285,7 @@ class _SmdGpAttendanceScreenState extends State<SmdGpAttendanceScreen> {
     final day = date != null ? DateFormat('d').format(date) : '?';
     final month = date != null ? DateFormat('MMM').format(date) : '?';
     final isPresent = attendance['end_time'] != null;
-    final statusText = isPresent ? 'Present' : 'Absent';
+    final statusText = isPresent ? AppLocalizations.of(context)!.present : AppLocalizations.of(context)!.absent;
     final statusColor = isPresent ? const Color(0xFF009B56) : Colors.red;
     final villageName = attendance['village_name'] as String? ?? widget.gpName;
 

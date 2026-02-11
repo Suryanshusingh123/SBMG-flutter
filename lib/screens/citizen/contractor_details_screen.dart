@@ -3,18 +3,19 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:intl/intl.dart';
 import '../../models/geography_model.dart';
 import '../../services/api_services.dart';
+import '../../utils/api_error_utils.dart';
 import '../../widgets/common/bottom_sheet_picker.dart';
 import '../../l10n/app_localizations.dart';
 import '../../theme/citizen_colors.dart';
 
-class VendorDetailsScreen extends StatefulWidget {
-  const VendorDetailsScreen({super.key});
+class ContractorDetailsScreen extends StatefulWidget {
+  const ContractorDetailsScreen({super.key});
 
   @override
-  State<VendorDetailsScreen> createState() => _VendorDetailsScreenState();
+  State<ContractorDetailsScreen> createState() => _ContractorDetailsScreenState();
 }
 
-class _VendorDetailsScreenState extends State<VendorDetailsScreen> {
+class _ContractorDetailsScreenState extends State<ContractorDetailsScreen> {
   // Selected values
   District? selectedDistrict;
   Block? selectedBlock;
@@ -142,7 +143,7 @@ class _VendorDetailsScreenState extends State<VendorDetailsScreen> {
       });
 
       if (mounted) {
-        _showVendorDetailsBottomSheet(context);
+        _showContractorDetailsBottomSheet(context);
       }
     } catch (e) {
       setState(() {
@@ -150,24 +151,11 @@ class _VendorDetailsScreenState extends State<VendorDetailsScreen> {
         contractor = null;
       });
 
-      // Extract user-friendly message from error
-      String errorMessage = 'Failed to load contractor details';
-      final errorString = e.toString();
-
-      // Parse the error message from API response
-      if (errorString.contains('"message":"')) {
-        final messageStart = errorString.indexOf('"message":"') + 11;
-        final messageEnd = errorString.indexOf('"', messageStart);
-        if (messageEnd != -1) {
-          errorMessage = errorString.substring(messageStart, messageEnd);
-        }
-      }
-
       if (!mounted) return;
       final scaffoldMessenger = ScaffoldMessenger.of(context);
       scaffoldMessenger.showSnackBar(
         SnackBar(
-          content: Text(errorMessage),
+          content: Text(userFriendlyApiMessage(e)),
           backgroundColor: Colors.orange,
           duration: const Duration(seconds: 2),
         ),
@@ -192,7 +180,7 @@ class _VendorDetailsScreenState extends State<VendorDetailsScreen> {
           icon: Icon(Icons.arrow_back, color: primaryTextColor),
         ),
         title: Text(
-          l10n.knowYourAreasVendor,
+          l10n.knowYourAreasContractor,
           style: TextStyle(
             fontFamily: 'Noto Sans',
             fontSize: 18,
@@ -525,21 +513,18 @@ class _VendorDetailsScreenState extends State<VendorDetailsScreen> {
     );
   }
 
-  void _showVendorDetailsBottomSheet(BuildContext context) {
+  void _showContractorDetailsBottomSheet(BuildContext context) {
     if (contractor == null) return;
     final l10n = AppLocalizations.of(context)!;
-    final surfaceColor = CitizenColors.surface(context);
-    final primaryTextColor = CitizenColors.textPrimary(context);
-    final secondaryTextColor = CitizenColors.textSecondary(context);
 
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (context) => Container(
-        decoration: BoxDecoration(
-          color: surfaceColor,
-          borderRadius: const BorderRadius.only(
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.only(
             topLeft: Radius.circular(20),
             topRight: Radius.circular(20),
           ),
@@ -550,78 +535,89 @@ class _VendorDetailsScreenState extends State<VendorDetailsScreen> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Header
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    l10n.vendorDetails,
-                    style: TextStyle(
+                    l10n.contractorDetails,
+                    style: const TextStyle(
                       fontFamily: 'Noto Sans',
                       fontSize: 20,
                       fontWeight: FontWeight.bold,
-                      color: primaryTextColor,
+                      color: Color(0xFF111827),
                     ),
                   ),
                   IconButton(
                     onPressed: () => Navigator.pop(context),
-                    icon: Icon(Icons.close, color: primaryTextColor),
+                    icon: const Icon(Icons.close, color: Color(0xFF111827)),
                   ),
                 ],
               ),
 
               SizedBox(height: 24.h),
 
-              // Name
+              _buildDetailRow(
+                l10n.agencyName,
+                contractor!.agency.name,
+                Colors.grey,
+                const Color(0xFF111827),
+              ),
+              SizedBox(height: 16.h),
+
               _buildDetailRow(
                 l10n.name,
                 contractor!.personName,
-                primaryTextColor,
-                secondaryTextColor,
+                Colors.grey,
+                const Color(0xFF111827),
               ),
               SizedBox(height: 16.h),
 
-              // Work order date
+              _buildDetailRow(
+                l10n.personPhone,
+                contractor!.personPhone,
+                Colors.grey,
+                const Color(0xFF111827),
+              ),
+              SizedBox(height: 16.h),
+
               _buildDetailRow(
                 l10n.workOrderDate,
                 _formatDate(contractor!.contractStartDate),
-                primaryTextColor,
-                secondaryTextColor,
+                Colors.grey,
+                const Color(0xFF111827),
               ),
               SizedBox(height: 16.h),
 
-              // Annual contract amount (hardcoded for now as it's not in API)
-              _buildDetailRow(
-                l10n.annualContractAmount,
-                '₹ 12 Crore',
-                primaryTextColor,
-                secondaryTextColor,
-              ),
-              SizedBox(height: 16.h),
-
-              // Duration of work
               _buildDetailRow(
                 l10n.durationOfWork,
                 _calculateDuration(
                   contractor!.contractStartDate,
                   contractor!.contractEndDate,
                 ),
-                primaryTextColor,
-                secondaryTextColor,
+                Colors.grey,
+                const Color(0xFF111827),
               ),
               SizedBox(height: 16.h),
 
-              // Frequency of work (hardcoded for now)
+              _buildDetailRow(
+                l10n.annualContractAmount,
+                '₹ ${contractor!.workOrderAmount.toStringAsFixed(2)}',
+                Colors.grey,
+                const Color(0xFF111827),
+              ),
+              SizedBox(height: 16.h),
+
               _buildDetailRow(
                 l10n.frequencyOfWork,
-                '3 times a day',
-                primaryTextColor,
-                secondaryTextColor,
+                contractor!.cleaningFrequency.toUpperCase() == 'FORTNIGHTLY'
+                    ? '—'
+                    : contractor!.cleaningFrequency,
+                Colors.grey,
+                const Color(0xFF111827),
               ),
 
               SizedBox(height: 30.h),
 
-              // Close Button
               SizedBox(
                 width: double.infinity,
                 height: 50,
@@ -629,7 +625,7 @@ class _VendorDetailsScreenState extends State<VendorDetailsScreen> {
                   onPressed: () => Navigator.pop(context),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF009B56),
-                    foregroundColor: CitizenColors.light,
+                    foregroundColor: Colors.white,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(8.r),
                     ),
@@ -637,11 +633,10 @@ class _VendorDetailsScreenState extends State<VendorDetailsScreen> {
                   ),
                   child: Text(
                     l10n.close,
-                    style: TextStyle(
+                    style: const TextStyle(
                       fontFamily: 'Noto Sans',
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
-                      color: CitizenColors.light,
                     ),
                   ),
                 ),
@@ -755,7 +750,8 @@ class _VendorDetailsScreenState extends State<VendorDetailsScreen> {
     );
   }
 
-  String _calculateDuration(String startDate, String endDate) {
+  String _calculateDuration(String? startDate, String? endDate) {
+    if (startDate == null || endDate == null) return 'N/A';
     try {
       final start = DateTime.parse(startDate);
       final end = DateTime.parse(endDate);

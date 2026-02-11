@@ -4,6 +4,7 @@ import '../../models/geography_model.dart';
 import '../../services/api_services.dart';
 import '../../services/auth_services.dart';
 import '../../widgets/common/bottom_sheet_picker.dart';
+import '../../l10n/app_localizations.dart';
 
 class CeoSelectGpScreen extends StatefulWidget {
   final bool returnOnTap;
@@ -24,7 +25,8 @@ class _CeoSelectGpScreenState extends State<CeoSelectGpScreen> {
 
   bool _isLoadingBlocks = false;
   bool _isLoadingGps = false;
-  String? _error;
+  String? _blocksLoadError;
+  String? _gpsLoadError;
 
   @override
   void initState() {
@@ -35,9 +37,7 @@ class _CeoSelectGpScreenState extends State<CeoSelectGpScreen> {
   Future<void> _initialize() async {
     final districtId = await _authService.getDistrictId();
     if (districtId == null) {
-      setState(() {
-        _error = 'District information not available.';
-      });
+      setState(() {});
       return;
     }
 
@@ -59,7 +59,7 @@ class _CeoSelectGpScreenState extends State<CeoSelectGpScreen> {
   Future<void> _loadBlocks(int districtId) async {
     setState(() {
       _isLoadingBlocks = true;
-      _error = null;
+      _blocksLoadError = null;
     });
 
     try {
@@ -76,7 +76,7 @@ class _CeoSelectGpScreenState extends State<CeoSelectGpScreen> {
     } catch (e) {
       setState(() {
         _isLoadingBlocks = false;
-        _error = 'Failed to load blocks: $e';
+        _blocksLoadError = e.toString();
       });
       debugPrint('❌ [CeoSelectGpScreen] Error loading blocks: $e');
     }
@@ -85,7 +85,7 @@ class _CeoSelectGpScreenState extends State<CeoSelectGpScreen> {
   Future<void> _loadGpsForBlock(int districtId, int blockId) async {
     setState(() {
       _isLoadingGps = true;
-      _error = null;
+      _gpsLoadError = null;
     });
 
     try {
@@ -103,7 +103,7 @@ class _CeoSelectGpScreenState extends State<CeoSelectGpScreen> {
     } catch (e) {
       setState(() {
         _isLoadingGps = false;
-        _error = 'Failed to load Gram Panchayats: $e';
+        _gpsLoadError = e.toString();
       });
       debugPrint('❌ [CeoSelectGpScreen] Error loading GPs: $e');
     }
@@ -127,16 +127,17 @@ class _CeoSelectGpScreenState extends State<CeoSelectGpScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Select Gram Panchayat'),
+        title: Text(l10n.selectGramPanchayat),
       ),
       body: _districtId == null
           ? Center(
               child: Padding(
                 padding: EdgeInsets.all(24.0),
                 child: Text(
-                  _error ?? 'District information not available.',
+                  l10n.districtInfoNotAvailable,
                   style: const TextStyle(fontSize: 16, color: Color(0xFF6B7280)),
                   textAlign: TextAlign.center,
                 ),
@@ -149,7 +150,9 @@ class _CeoSelectGpScreenState extends State<CeoSelectGpScreen> {
                       child: Padding(
                         padding: EdgeInsets.all(24.0),
                         child: Text(
-                          _error ?? 'No blocks available.',
+                          _blocksLoadError != null
+                              ? l10n.failedToLoadBlocksError(_blocksLoadError!)
+                              : l10n.noBlocksAvailable,
                           style: const TextStyle(
                               fontSize: 16, color: Color(0xFF6B7280)),
                           textAlign: TextAlign.center,
@@ -176,7 +179,7 @@ class _CeoSelectGpScreenState extends State<CeoSelectGpScreen> {
                               children: [
                                 Expanded(
                                   child: Text(
-                                    'Select Block',
+                                    l10n.selectBlock,
                                     style: TextStyle(
                                       fontSize: 16.sp,
                                       color: const Color(0xFF9CA3AF),
@@ -231,10 +234,11 @@ class _CeoSelectGpScreenState extends State<CeoSelectGpScreen> {
                                   child: Padding(
                                     padding: EdgeInsets.all(24.0),
                                     child: Text(
-                                      _error ??
-                                          (_selectedBlock == null
-                                              ? 'Please select a block first.'
-                                              : 'No Gram Panchayats found for this block.'),
+                                      _gpsLoadError != null
+                                          ? l10n.failedToLoadGramPanchayatsError(_gpsLoadError!)
+                                          : (_selectedBlock == null
+                                              ? l10n.pleaseSelectBlockFirst
+                                              : l10n.noGramPanchayatsFoundForThisBlock),
                                       style: const TextStyle(
                                           fontSize: 16, color: Color(0xFF6B7280)),
                                       textAlign: TextAlign.center,
@@ -286,10 +290,10 @@ class _CeoSelectGpScreenState extends State<CeoSelectGpScreen> {
 
   void _showBlockBottomSheet() {
     if (_districtId == null || _blocks.isEmpty) return;
-
+    final l10n = AppLocalizations.of(context)!;
     BottomSheetPicker.show<Block>(
       context: context,
-      title: 'Select Block',
+      title: l10n.selectBlock,
       items: _blocks,
       itemBuilder: (block) => block.name,
       selectedItem: _selectedBlock,
@@ -298,7 +302,7 @@ class _CeoSelectGpScreenState extends State<CeoSelectGpScreen> {
       },
       isLoading: _isLoadingBlocks,
       showSearch: true,
-      searchHint: 'Search Block...',
+      searchHint: l10n.searchBlock,
     );
   }
 }

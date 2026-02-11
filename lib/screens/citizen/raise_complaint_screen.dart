@@ -131,16 +131,25 @@ class _RaiseComplaintScreenState extends State<RaiseComplaintScreen> {
     });
   }
 
+  void _goBackOrToDashboard() {
+    if (Navigator.canPop(context)) {
+      Navigator.pop(context);
+    } else {
+      Navigator.pushReplacementNamed(context, '/citizen-dashboard');
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final surfaceColor = CitizenColors.surface(context);
     final primaryTextColor = CitizenColors.textPrimary(context);
     final secondaryTextColor = CitizenColors.textSecondary(context);
-    return WillPopScope(
-      onWillPop: () async {
-        Navigator.pushReplacementNamed(context, '/citizen-dashboard');
-        return false;
+    return PopScope(
+      canPop: false,
+      onPopInvoked: (didPop) {
+        if (didPop) return;
+        _goBackOrToDashboard();
       },
       child: Scaffold(
         backgroundColor: CitizenColors.background(context),
@@ -149,9 +158,7 @@ class _RaiseComplaintScreenState extends State<RaiseComplaintScreen> {
           elevation: 0,
           leading: IconButton(
             icon: Icon(Icons.arrow_back, color: primaryTextColor),
-            onPressed: () {
-              Navigator.pushReplacementNamed(context, '/citizen-dashboard');
-            },
+            onPressed: _goBackOrToDashboard,
           ),
           title: Text(
             l10n.raiseComplaint,

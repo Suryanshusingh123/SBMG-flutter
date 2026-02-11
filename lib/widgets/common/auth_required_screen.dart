@@ -77,19 +77,12 @@ class AuthRequiredScreen extends StatelessWidget {
                 width: double.infinity,
                 height: 50,
                 child: ElevatedButton(
-                  onPressed: () async {
-                    // final result = await Navigator.push(
-                    //   context,
-                    //   MaterialPageRoute(
-                    //     builder: (context) =>
-                    //         CitizenLoginScreen(returnRoute: returnRoute),
-                    //   ),
-                    // );
-
-                    // If login successful, pop this screen to refresh parent
-                    // if (result == true && context.mounted) {
-                    //   Navigator.pop(context, true);
-                    // }
+                  onPressed: () {
+                    Navigator.pushNamed(
+                      context,
+                      '/citizen-login',
+                      arguments: {'redirectTo': returnRoute ?? '/create-complaint'},
+                    );
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF009B56),

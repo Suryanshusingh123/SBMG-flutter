@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../../models/geography_model.dart';
 import '../../services/api_services.dart';
+import '../../utils/api_error_utils.dart';
 import '../../services/auth_services.dart';
 import '../../models/contractor_model.dart';
 import 'package:intl/intl.dart';
@@ -80,7 +81,7 @@ class _SelectGpScreenState extends State<SelectGpScreen> {
         Navigator.of(context).pop();
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Failed to load contractor details: $e'),
+            content: Text(userFriendlyApiMessage(e)),
             backgroundColor: Colors.red,
           ),
         );
@@ -90,8 +91,9 @@ class _SelectGpScreenState extends State<SelectGpScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
-      appBar: AppBar(title: const Text('Select GP'), centerTitle: false),
+      appBar: AppBar(title: Text(l10n.selectGp), centerTitle: false),
       body: FutureBuilder<List<GramPanchayat>>(
         future: _gpFuture,
         builder: (context, snapshot) {
@@ -99,11 +101,11 @@ class _SelectGpScreenState extends State<SelectGpScreen> {
             return const Center(child: CircularProgressIndicator());
           }
           if (snapshot.hasError) {
-            return Center(child: Text('Error loading GPs: ${snapshot.error}'));
+            return Center(child: Text(l10n.errorLoadingGps(snapshot.error.toString())));
           }
           final gps = snapshot.data ?? [];
           if (gps.isEmpty) {
-            return const Center(child: Text('No Gram Panchayat found.'));
+            return Center(child: Text(l10n.noGramPanchayatsFound));
           }
           return ListView.builder(
             itemCount: gps.length,
@@ -169,30 +171,31 @@ class BdoContractorDetailsBottomSheet extends StatelessWidget {
     required this.contractorDetails,
     super.key,
   });
+
+  String _formatDate(String dateStr) {
+    try {
+      return DateFormat('dd MMMM yyyy').format(DateTime.parse(dateStr));
+    } catch (_) {
+      return dateStr;
+    }
+  }
+
+  String _calculateDuration(String? start, String? end) {
+    if (start == null || end == null) return 'N/A';
+    try {
+      final s = DateTime.parse(start);
+      final e = DateTime.parse(end);
+      final m = (e.difference(s).inDays / 30).round();
+      return '$m months';
+    } catch (_) {
+      return 'N/A';
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final details = contractorDetails;
-    String formatDate(String dateStr) {
-      try {
-        return DateFormat('dd MMM yyyy').format(DateTime.parse(dateStr));
-      } catch (_) {
-        return dateStr;
-      }
-    }
-
-    String duration(String? start, String? end) {
-      if (start == null || end == null) return 'N/A';
-      try {
-        final s = DateTime.parse(start);
-        final e = DateTime.parse(end);
-        final m = (e.difference(s).inDays / 30).round();
-        return '$m months';
-      } catch (_) {
-        return 'N/A';
-      }
-    }
-
     return Container(
       decoration: const BoxDecoration(
         color: Colors.white,
@@ -211,7 +214,7 @@ class BdoContractorDetailsBottomSheet extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  l10n?.vendorDetails ?? 'Contractor Details',
+                  l10n?.contractorDetails ?? 'Contractor details',
                   style: const TextStyle(
                     fontFamily: 'Noto Sans',
                     fontSize: 20,
@@ -226,26 +229,32 @@ class BdoContractorDetailsBottomSheet extends StatelessWidget {
               ],
             ),
             SizedBox(height: 24.h),
-            _buildDetailRow(l10n?.name ?? 'Name', details.personName),
+            _buildDetailRow(l10n?.agencyName ?? 'Agency Name', details.agency.name),
+            SizedBox(height: 16.h),
+            _buildDetailRow(l10n?.name ?? 'Contact person name', details.personName),
+            SizedBox(height: 16.h),
+            _buildDetailRow(l10n?.personPhone ?? 'Contact number', details.personPhone),
             SizedBox(height: 16.h),
             _buildDetailRow(
-              l10n?.workOrderDate ?? 'Work Order Date',
-              formatDate(details.contractStartDate),
+              l10n?.workOrderDate ?? 'Work order date',
+              _formatDate(details.contractStartDate),
             ),
             SizedBox(height: 16.h),
             _buildDetailRow(
-              l10n?.annualContractAmount ?? 'Annual Contract Amount',
-              '₹ 12 Crore',
+              l10n?.durationOfWork ?? 'Contract duration',
+              _calculateDuration(details.contractStartDate, details.contractEndDate),
             ),
             SizedBox(height: 16.h),
             _buildDetailRow(
-              l10n?.durationOfWork ?? 'Duration of Work',
-              duration(details.contractStartDate, details.contractEndDate),
+              l10n?.annualContractAmount ?? 'Work order amount',
+              '₹ ${details.workOrderAmount.toStringAsFixed(2)}',
             ),
             SizedBox(height: 16.h),
             _buildDetailRow(
-              l10n?.frequencyOfWork ?? 'Frequency of Work',
-              details.workFrequency,
+              l10n?.frequencyOfWork ?? 'Cleaning frequency',
+              details.cleaningFrequency.toUpperCase() == 'FORTNIGHTLY'
+                  ? '—'
+                  : details.cleaningFrequency,
             ),
             SizedBox(height: 30.h),
             SizedBox(

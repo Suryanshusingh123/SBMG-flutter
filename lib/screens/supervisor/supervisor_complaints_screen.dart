@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../../config/connstants.dart';
 import '../../models/api_complaint_model.dart';
 import '../../providers/supervisor_complaints_provider.dart';
 import '../../services/auth_services.dart';
 import '../../services/api_services.dart';
+import '../../utils/date_time_utils.dart';
 import '../../utils/location_display_helper.dart';
 import '../../widgets/common/custom_bottom_navigation.dart';
 import '../../widgets/common/date_filter_bottom_sheet.dart';
@@ -13,7 +15,10 @@ import '../../l10n/app_localizations.dart';
 import 'complaint_details_screen.dart';
 
 class SupervisorComplaintsScreen extends StatefulWidget {
-  const SupervisorComplaintsScreen({super.key});
+  /// When true, this screen is shown inside [SupervisorShellScreen]; bottom nav is provided by the shell.
+  final bool isEmbeddedInShell;
+
+  const SupervisorComplaintsScreen({super.key, this.isEmbeddedInShell = false});
 
   @override
   State<SupervisorComplaintsScreen> createState() =>
@@ -22,7 +27,8 @@ class SupervisorComplaintsScreen extends StatefulWidget {
 
 class _SupervisorComplaintsScreenState
     extends State<SupervisorComplaintsScreen> {
-  String _selectedStatus = 'Open'; // Default to Open tab
+  /// Status key for filtering: 'open' | 'resolved' | 'verified' | 'closed'
+  String _selectedStatusKey = 'open';
   String _sortOrder = 'newest'; // 'newest' or 'oldest'
   int _selectedIndex = 1; // Complaints tab is selected
   bool _hasLoadedComplaints = false;
@@ -61,70 +67,15 @@ class _SupervisorComplaintsScreenState
     } catch (e) {
       print('❌ Error loading GP name: $e');
       setState(() {
-        _gpName = 'Gram Panchayat';
+        _gpName = AppLocalizations.of(context)!.gramPanchayat;
       });
     }
   }
 
-  String _getCurrentMonth() {
-    final months = [
-      'January',
-      'February',
-      'March',
-      'April',
-      'May',
-      'June',
-      'July',
-      'August',
-      'September',
-      'October',
-      'November',
-      'December',
-    ];
-    return months[DateTime.now().month - 1];
-  }
-
   String _getDisplayMonth() {
-    // If a date filter is applied, show the month of the selected date
-    if (_filterDate != null) {
-      final months = [
-        'January',
-        'February',
-        'March',
-        'April',
-        'May',
-        'June',
-        'July',
-        'August',
-        'September',
-        'October',
-        'November',
-        'December',
-      ];
-      return months[_filterDate!.month - 1];
-    }
-
-    // If a date range is applied, show the month of the start date
-    if (_filterStartDate != null) {
-      final months = [
-        'January',
-        'February',
-        'March',
-        'April',
-        'May',
-        'June',
-        'July',
-        'August',
-        'September',
-        'October',
-        'November',
-        'December',
-      ];
-      return months[_filterStartDate!.month - 1];
-    }
-
-    // Otherwise, show current month
-    return _getCurrentMonth();
+    final locale = Localizations.localeOf(context).toString();
+    final date = _filterDate ?? _filterStartDate ?? DateTime.now();
+    return DateFormat('MMMM', locale).format(date);
   }
 
   void _refreshComplaints() {
@@ -149,48 +100,46 @@ class _SupervisorComplaintsScreenState
           ],
         ),
       ),
-      bottomNavigationBar: CustomBottomNavigationBar(
-        currentIndex: _selectedIndex,
-        onTap: (index) {
-          setState(() {
-            _selectedIndex = index;
-          });
-
-          // Navigate to different screens based on selection
-          switch (index) {
-            case 0:
-              Navigator.pushReplacementNamed(context, '/supervisor-dashboard');
-              break;
-            case 1:
-              // Already on complaints
-              break;
-            case 2:
-              Navigator.pushReplacementNamed(context, '/supervisor-attendance');
-              break;
-            case 3:
-              Navigator.pushReplacementNamed(context, '/supervisor-settings');
-              break;
-          }
-        },
-        items: [
-          BottomNavItem(
-            iconPath: 'assets/icons/bottombar/home.png',
-            label: AppLocalizations.of(context)!.home,
-          ),
-          BottomNavItem(
-            iconPath: 'assets/icons/bottombar/complaints.png',
-            label: AppLocalizations.of(context)!.complaints,
-          ),
-          BottomNavItem(
-            iconPath: 'assets/icons/bottombar/attendance.png',
-            label: AppLocalizations.of(context)!.attendance,
-          ),
-          BottomNavItem(
-            iconPath: 'assets/icons/bottombar/settings.png',
-            label: AppLocalizations.of(context)!.settings,
-          ),
-        ],
-      ),
+      // Bottom nav is provided by SupervisorShellScreen when isEmbeddedInShell
+      bottomNavigationBar: widget.isEmbeddedInShell
+          ? null
+          : CustomBottomNavigationBar(
+              currentIndex: _selectedIndex,
+              onTap: (index) {
+                setState(() => _selectedIndex = index);
+                switch (index) {
+                  case 0:
+                    Navigator.pushReplacementNamed(context, '/supervisor-dashboard');
+                    break;
+                  case 1:
+                    break;
+                  case 2:
+                    Navigator.pushReplacementNamed(context, '/supervisor-attendance');
+                    break;
+                  case 3:
+                    Navigator.pushReplacementNamed(context, '/supervisor-settings');
+                    break;
+                }
+              },
+              items: [
+                BottomNavItem(
+                  iconPath: 'assets/icons/bottombar/home.png',
+                  label: AppLocalizations.of(context)!.home,
+                ),
+                BottomNavItem(
+                  iconPath: 'assets/icons/bottombar/complaints.png',
+                  label: AppLocalizations.of(context)!.complaints,
+                ),
+                BottomNavItem(
+                  iconPath: 'assets/icons/bottombar/attendance.png',
+                  label: AppLocalizations.of(context)!.attendance,
+                ),
+                BottomNavItem(
+                  iconPath: 'assets/icons/bottombar/settings.png',
+                  label: AppLocalizations.of(context)!.settings,
+                ),
+              ],
+            ),
     );
   }
 
@@ -242,7 +191,7 @@ class _SupervisorComplaintsScreenState
           ),
           SizedBox(height: 4.h),
           Text(
-            '${_gpName ?? 'Gram Panchayat'} • ${_getDisplayMonth()}',
+            '${_gpName ?? AppLocalizations.of(context)!.gramPanchayat} • ${_getDisplayMonth()}',
             style: TextStyle(fontSize: 12.sp, color: const Color(0xFF6B7280)),
           ),
         ],
@@ -250,8 +199,55 @@ class _SupervisorComplaintsScreenState
     );
   }
 
+  int _getFilteredCount(List<ApiComplaintModel> complaints) {
+    List<ApiComplaintModel> filtered = List.from(complaints);
+
+    if (_filterDate != null) {
+      filtered = filtered.where((complaint) {
+        try {
+          final complaintIST = DateTimeUtils.parseToIST(complaint.createdAt);
+          return complaintIST.year == _filterDate!.year &&
+              complaintIST.month == _filterDate!.month &&
+              complaintIST.day == _filterDate!.day;
+        } catch (e) {
+          return false;
+        }
+      }).toList();
+    }
+
+    if (_filterStartDate != null && _filterEndDate != null) {
+      filtered = filtered.where((complaint) {
+        try {
+          final complaintIST = DateTimeUtils.parseToIST(complaint.createdAt);
+          final complaintDay = DateTime(
+            complaintIST.year,
+            complaintIST.month,
+            complaintIST.day,
+          );
+          final startDay = DateTime(
+            _filterStartDate!.year,
+            _filterStartDate!.month,
+            _filterStartDate!.day,
+          );
+          final endDay = DateTime(
+            _filterEndDate!.year,
+            _filterEndDate!.month,
+            _filterEndDate!.day,
+          );
+          return !complaintDay.isBefore(startDay) &&
+              !complaintDay.isAfter(endDay);
+        } catch (e) {
+          return false;
+        }
+      }).toList();
+    }
+
+    return filtered.length;
+  }
+
   Widget _buildStatusTabs(BuildContext context) {
     final provider = context.watch<SupervisorComplaintsProvider>();
+    final l10n = AppLocalizations.of(context)!;
 
     return SizedBox(
       height: 56.h,
@@ -259,37 +255,13 @@ class _SupervisorComplaintsScreenState
         scrollDirection: Axis.horizontal,
         padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
         children: [
-          _buildTab(
-            context,
-            AppLocalizations.of(context)!.open,
-            provider.openComplaints.length,
-            _selectedStatus == 'Open',
-            0,
-          ),
+          _buildTab(context, 'open', l10n.open, _getFilteredCount(provider.openComplaints), 0),
           SizedBox(width: 12.w),
-          _buildTab(
-            context,
-            AppLocalizations.of(context)!.resolved,
-            provider.resolvedComplaints.length,
-            _selectedStatus == 'Resolved',
-            1,
-          ),
+          _buildTab(context, 'resolved', l10n.resolved, _getFilteredCount(provider.resolvedComplaints), 1),
           SizedBox(width: 12.w),
-          _buildTab(
-            context,
-            AppLocalizations.of(context)!.verified,
-            provider.verifiedComplaints.length,
-            _selectedStatus == 'Verified',
-            2,
-          ),
+          _buildTab(context, 'verified', l10n.verified, _getFilteredCount(provider.verifiedComplaints), 2),
           SizedBox(width: 12.w),
-          _buildTab(
-            context,
-            AppLocalizations.of(context)!.complaintClosed,
-            provider.closedComplaints.length,
-            _selectedStatus == AppLocalizations.of(context)!.complaintClosed,
-            3,
-          ),
+          _buildTab(context, 'closed', l10n.complaintClosed, _getFilteredCount(provider.closedComplaints), 3),
         ],
       ),
     );
@@ -297,15 +269,16 @@ class _SupervisorComplaintsScreenState
 
   Widget _buildTab(
     BuildContext context,
-    String status,
+    String statusKey,
+    String statusLabel,
     int count,
-    bool isSelected,
     int index,
   ) {
+    final isSelected = _selectedStatusKey == statusKey;
     return GestureDetector(
       onTap: () {
         setState(() {
-          _selectedStatus = status;
+          _selectedStatusKey = statusKey;
         });
       },
       child: Container(
@@ -335,7 +308,7 @@ class _SupervisorComplaintsScreenState
               SizedBox(width: 6.w),
             ],
             Text(
-              status,
+              statusLabel,
               style: TextStyle(
                 fontSize: 15.sp,
                 fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
@@ -393,19 +366,17 @@ class _SupervisorComplaintsScreenState
 
     List<ApiComplaintModel> filteredComplaints = [];
 
-    switch (_selectedStatus) {
-      case 'Open':
+    switch (_selectedStatusKey) {
+      case 'open':
         filteredComplaints = provider.openComplaints;
         break;
-      case 'Resolved':
+      case 'resolved':
         filteredComplaints = provider.resolvedComplaints;
         break;
-      case 'Verified':
+      case 'verified':
         filteredComplaints = provider.verifiedComplaints;
         break;
-      case 'Disposed complaints':
-      case 'Closed': // Fallback for backwards compatibility
-      case 'निपटाई गई शिकायतें': // Hindi fallback
+      case 'closed':
         filteredComplaints = provider.closedComplaints;
         break;
     }
@@ -419,15 +390,14 @@ class _SupervisorComplaintsScreenState
     }
     filteredComplaints = uniqueComplaints.values.toList();
 
-    // Apply date filters
+    // Apply date filters (compare in IST so calendar date matches user selection)
     if (_filterDate != null) {
       filteredComplaints = filteredComplaints.where((complaint) {
         try {
-          final complaintDate = DateTime.parse(complaint.createdAt).toUtc();
-          final filterDate = _filterDate!.toUtc();
-          return complaintDate.year == filterDate.year &&
-              complaintDate.month == filterDate.month &&
-              complaintDate.day == filterDate.day;
+          final complaintIST = DateTimeUtils.parseToIST(complaint.createdAt);
+          return complaintIST.year == _filterDate!.year &&
+              complaintIST.month == _filterDate!.month &&
+              complaintIST.day == _filterDate!.day;
         } catch (e) {
           return false;
         }
@@ -437,24 +407,24 @@ class _SupervisorComplaintsScreenState
     if (_filterStartDate != null && _filterEndDate != null) {
       filteredComplaints = filteredComplaints.where((complaint) {
         try {
-          final complaintDate = DateTime.parse(complaint.createdAt).toUtc();
-          final startDate = DateTime.utc(
+          final complaintIST = DateTimeUtils.parseToIST(complaint.createdAt);
+          final complaintDay = DateTime(
+            complaintIST.year,
+            complaintIST.month,
+            complaintIST.day,
+          );
+          final startDay = DateTime(
             _filterStartDate!.year,
             _filterStartDate!.month,
             _filterStartDate!.day,
           );
-          final endDate = DateTime.utc(
+          final endDay = DateTime(
             _filterEndDate!.year,
             _filterEndDate!.month,
             _filterEndDate!.day,
-            23,
-            59,
-            59,
           );
-          return (complaintDate.isAfter(startDate.subtract(const Duration(seconds: 1))) ||
-                  complaintDate.isAtSameMomentAs(startDate)) &&
-              (complaintDate.isBefore(endDate) ||
-                  complaintDate.isAtSameMomentAs(endDate));
+          return !complaintDay.isBefore(startDay) &&
+              !complaintDay.isAfter(endDay);
         } catch (e) {
           return false;
         }
@@ -485,6 +455,14 @@ class _SupervisorComplaintsScreenState
     }
 
     if (filteredComplaints.isEmpty) {
+      final l10n = AppLocalizations.of(context)!;
+      final statusLabel = _selectedStatusKey == 'open'
+          ? l10n.open
+          : _selectedStatusKey == 'resolved'
+              ? l10n.resolved
+              : _selectedStatusKey == 'verified'
+                  ? l10n.verified
+                  : l10n.complaintClosed;
       return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -492,7 +470,7 @@ class _SupervisorComplaintsScreenState
             Icon(Icons.inbox_outlined, size: 64.w, color: Colors.grey),
             SizedBox(height: 16.h),
             Text(
-              'No ${_selectedStatus.toLowerCase()} complaints',
+              l10n.noComplaintsForStatus(statusLabel),
               style: TextStyle(fontSize: 16.sp, color: Colors.grey),
             ),
           ],
@@ -516,6 +494,7 @@ class _SupervisorComplaintsScreenState
   }
 
   Widget _buildComplaintCard(ApiComplaintModel complaint) {
+    final provider = context.watch<SupervisorComplaintsProvider>();
     final firstMediaUrl = complaint.hasMedia ? complaint.firstMediaUrl : null;
     final mediaUrl = firstMediaUrl != null
         ? ApiConstants.getMediaUrl(firstMediaUrl)
@@ -537,14 +516,15 @@ class _SupervisorComplaintsScreenState
     );
 
     return GestureDetector(
-      onTap: () {
-        Navigator.push(
+      onTap: () async {
+        final needRefresh = await Navigator.push<bool>(
           context,
           MaterialPageRoute(
             builder: (context) =>
                 SupervisorComplaintDetailsScreen(complaintId: complaint.id),
           ),
         );
+        if (needRefresh == true && mounted) _refreshComplaints();
       },
       child: Container(
         margin: EdgeInsets.only(bottom: 16.h),
@@ -683,7 +663,7 @@ class _SupervisorComplaintsScreenState
                       SizedBox(width: 8.w),
                       Expanded(
                         child: Text(
-                          complaint.complaintType,
+                          provider.getComplaintTypeDisplayName(complaint),
                           style: TextStyle(
                             fontSize: 16.sp,
                             fontWeight: FontWeight.bold,
@@ -745,31 +725,8 @@ class _SupervisorComplaintsScreenState
     );
   }
 
-  String _formatDate(String dateString) {
-    try {
-      // Parse the UTC date
-      final date = DateTime.parse(dateString);
-      // Convert to IST (UTC+5:30)
-      final istDate = date.add(const Duration(hours: 5, minutes: 30));
-      final months = [
-        'Jan',
-        'Feb',
-        'Mar',
-        'Apr',
-        'May',
-        'Jun',
-        'Jul',
-        'Aug',
-        'Sep',
-        'Oct',
-        'Nov',
-        'Dec',
-      ];
-      return '${months[istDate.month - 1]} ${istDate.day}, ${istDate.year}';
-    } catch (e) {
-      return 'Recent';
-    }
-  }
+  String _formatDate(String dateString) =>
+      DateTimeUtils.formatComplaintListIST(dateString);
 
   void _showSortOptions() {
     showModalBottomSheet(
@@ -799,14 +756,14 @@ class _SupervisorComplaintsScreenState
             SizedBox(height: 20.h),
 
             // Sort options
-            _buildSortOption('Newest First', _sortOrder == 'newest', () {
+            _buildSortOption(AppLocalizations.of(context)!.newestFirst, _sortOrder == 'newest', () {
               setState(() {
                 _sortOrder = 'newest';
               });
               Navigator.pop(context);
             }),
             SizedBox(height: 12.h),
-            _buildSortOption('Oldest First', _sortOrder == 'oldest', () {
+            _buildSortOption(AppLocalizations.of(context)!.oldestFirst, _sortOrder == 'oldest', () {
               setState(() {
                 _sortOrder = 'oldest';
               });
@@ -861,14 +818,11 @@ class _SupervisorComplaintsScreenState
   void _showDateFilter() {
     showDateFilterBottomSheet(
       context: context,
+      initialDate: _filterDate ?? _filterStartDate,
+      startDate: _filterStartDate,
+      endDate: _filterEndDate,
       onApply: (filterType, selectedDate, startDate, endDate) {
-        // Handle date filter application
-        print('📅 Date filter applied:');
-        print('   Filter type: $filterType');
-        print('   Selected date: $selectedDate');
-        print('   Start date: $startDate');
-        print('   End date: $endDate');
-
+        if (!mounted) return;
         setState(() {
           _filterDate = selectedDate;
           _filterStartDate = startDate;

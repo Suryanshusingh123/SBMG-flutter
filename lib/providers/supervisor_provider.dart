@@ -54,7 +54,6 @@ class SupervisorProvider with ChangeNotifier {
       _isSchemesLoading = false;
       notifyListeners();
     } catch (e) {
-      print('Error loading schemes: $e');
       _isSchemesLoading = false;
       notifyListeners();
     }
@@ -71,7 +70,6 @@ class SupervisorProvider with ChangeNotifier {
       _isEventsLoading = false;
       notifyListeners();
     } catch (e) {
-      print('Error loading events: $e');
       _isEventsLoading = false;
       notifyListeners();
     }

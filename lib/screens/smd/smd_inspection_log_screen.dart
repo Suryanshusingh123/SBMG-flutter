@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../config/connstants.dart';
+import '../../l10n/app_localizations.dart';
 import '../../services/api_services.dart';
 import '../../services/auth_services.dart';
 import '../../models/geography_model.dart';
@@ -43,7 +44,7 @@ class _SmdInspectionLogScreenState extends State<SmdInspectionLogScreen> {
       if (districtId == null || blockId == null) {
         setState(() {
           _isLoading = false;
-          _error = 'District or Block information not found';
+          _error = AppLocalizations.of(context)!.districtOrBlockNotFound;
         });
         return;
       }
@@ -65,7 +66,7 @@ class _SmdInspectionLogScreenState extends State<SmdInspectionLogScreen> {
       print('❌ Error loading Gram Panchayats: $e');
       setState(() {
         _isLoading = false;
-        _error = 'Failed to load Gram Panchayats: $e';
+        _error = '${AppLocalizations.of(context)!.failedToLoadGramPanchayats}: $e';
       });
     }
   }
@@ -81,9 +82,9 @@ class _SmdInspectionLogScreenState extends State<SmdInspectionLogScreen> {
           icon: const Icon(Icons.arrow_back, color: Color(0xFF111827)),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text(
-          'Inspection log',
-          style: TextStyle(
+        title: Text(
+          AppLocalizations.of(context)!.inspectionLog,
+          style: const TextStyle(
             fontFamily: 'Noto Sans',
             fontSize: 18,
             fontWeight: FontWeight.w600,
@@ -117,9 +118,9 @@ class _SmdInspectionLogScreenState extends State<SmdInspectionLogScreen> {
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppColors.primaryColor,
                     ),
-                    child: const Text(
-                      'Retry',
-                      style: TextStyle(
+                    child: Text(
+                      AppLocalizations.of(context)!.retry,
+                      style: const TextStyle(
                         fontFamily: 'Noto Sans',
                         color: Colors.white,
                       ),
@@ -129,10 +130,10 @@ class _SmdInspectionLogScreenState extends State<SmdInspectionLogScreen> {
               ),
             )
           : _gramPanchayats.isEmpty
-          ? const Center(
+          ? Center(
               child: Text(
-                'No Gram Panchayats found',
-                style: TextStyle(
+                AppLocalizations.of(context)!.noGramPanchayatsFound,
+                style: const TextStyle(
                   fontFamily: 'Noto Sans',
                   fontSize: 14,
                   color: Color(0xFF6B7280),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../l10n/app_localizations.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../../config/connstants.dart';
 import '../../services/api_services.dart';
@@ -43,7 +44,7 @@ class _SmdInspectionLogScreenState extends State<SmdInspectionLogScreen> {
         setState(() {
           _isLoading = false;
           _error =
-              'District information not found. Please select a district first.';
+              AppLocalizations.of(context)!.districtInfoNotFound;
         });
         return;
       }
@@ -75,7 +76,7 @@ class _SmdInspectionLogScreenState extends State<SmdInspectionLogScreen> {
       print('❌ Error loading Gram Panchayats: $e');
       setState(() {
         _isLoading = false;
-        _error = 'Failed to load Gram Panchayats: $e';
+        _error = '${AppLocalizations.of(context)!.failedToLoadGramPanchayats}: $e';
       });
     }
   }
@@ -92,7 +93,7 @@ class _SmdInspectionLogScreenState extends State<SmdInspectionLogScreen> {
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
-          'Inspection log',
+          AppLocalizations.of(context)!.inspectionLog,
           style: TextStyle(
             fontFamily: 'Noto Sans',
             fontSize: 18.sp,
@@ -131,9 +132,9 @@ class _SmdInspectionLogScreenState extends State<SmdInspectionLogScreen> {
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppColors.primaryColor,
                     ),
-                    child: const Text(
-                      'Retry',
-                      style: TextStyle(
+                    child: Text(
+                      AppLocalizations.of(context)!.retry,
+                      style: const TextStyle(
                         fontFamily: 'Noto Sans',
                         color: Colors.white,
                       ),
@@ -145,7 +146,7 @@ class _SmdInspectionLogScreenState extends State<SmdInspectionLogScreen> {
           : _gramPanchayats.isEmpty
           ? Center(
               child: Text(
-                'No Gram Panchayats found',
+                AppLocalizations.of(context)!.noGramPanchayatsFound,
                 style: TextStyle(
                   fontFamily: 'Noto Sans',
                   fontSize: 14.sp,
@@ -191,7 +192,7 @@ class _SmdInspectionLogScreenState extends State<SmdInspectionLogScreen> {
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
                           content: Text(
-                            'Viewing inspection details for ${gp.name}',
+                            AppLocalizations.of(context)!.viewingInspectionDetailsFor(gp.name),
                           ),
                         ),
                       );

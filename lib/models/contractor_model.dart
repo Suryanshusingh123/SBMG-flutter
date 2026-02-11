@@ -45,6 +45,8 @@ class ContractorDetails {
   final String districtName;
   final String contractStartDate;
   final String? contractEndDate;
+  final double workOrderAmount;
+  final String cleaningFrequency;
 
   ContractorDetails({
     required this.id,
@@ -57,6 +59,8 @@ class ContractorDetails {
     required this.districtName,
     required this.contractStartDate,
     this.contractEndDate,
+    required this.workOrderAmount,
+    required this.cleaningFrequency,
   });
 
   factory ContractorDetails.fromJson(Map<String, dynamic> json) {
@@ -71,6 +75,8 @@ class ContractorDetails {
       districtName: json['district_name'] ?? '',
       contractStartDate: json['contract_start_date'] ?? '',
       contractEndDate: json['contract_end_date'],
+      workOrderAmount: (json['contract_amount'] ?? 0.0).toDouble(),
+      cleaningFrequency: json['contract_frequency'] ?? 'Daily',
     );
   }
 
@@ -86,6 +92,8 @@ class ContractorDetails {
       'district_name': districtName,
       'contract_start_date': contractStartDate,
       'contract_end_date': contractEndDate,
+      'contract_amount': workOrderAmount,
+      'contract_frequency': cleaningFrequency,
     };
   }
 
@@ -114,6 +122,6 @@ class ContractorDetails {
     }
   }
 
-  // Helper method to get work frequency (placeholder)
-  String get workFrequency => '3 times a day';
+  // Get work frequency
+  String get workFrequency => cleaningFrequency.toUpperCase();
 }

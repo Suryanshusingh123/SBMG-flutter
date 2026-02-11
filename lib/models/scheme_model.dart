@@ -25,7 +25,6 @@ class Scheme {
 
   // Factory constructor to create Scheme from JSON
   factory Scheme.fromJson(Map<String, dynamic> json) {
-    print('📋 Parsing Scheme: ${json['id']} - ${json['name']}');
     return Scheme(
       id: json['id'] as int,
       name: (json['name'] ?? 'Untitled Scheme') as String,

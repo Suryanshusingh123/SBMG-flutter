@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../l10n/app_localizations.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:intl/intl.dart';
 import '../../services/api_services.dart';
@@ -54,7 +55,7 @@ class _SmdGpRankingScreenState extends State<SmdGpRankingScreen> {
         setState(() {
           _isBlockLoading = false;
           _isLoading = false;
-          _error = 'Please select a district first.';
+          _error = AppLocalizations.of(context)!.pleaseSelectDistrictFirst;
         });
         return;
       }
@@ -68,7 +69,7 @@ class _SmdGpRankingScreenState extends State<SmdGpRankingScreen> {
           _selectedBlock = blocks.firstWhere(
             (block) => block.id == widget.initialBlockId,
             orElse: () =>
-                Block(id: widget.initialBlockId!, name: widget.initialBlockName ?? 'Block', districtId: districtId),
+                Block(id: widget.initialBlockId!, name: widget.initialBlockName ?? AppLocalizations.of(context)!.block, districtId: districtId),
           );
         } else {
           _selectedBlock = blocks.isNotEmpty ? blocks.first : null;
@@ -85,7 +86,7 @@ class _SmdGpRankingScreenState extends State<SmdGpRankingScreen> {
       setState(() {
         _isBlockLoading = false;
         _isLoading = false;
-        _error = 'Failed to load blocks: $e';
+        _error = '${AppLocalizations.of(context)!.failedToLoadBlocks}: $e';
       });
     }
   }
@@ -327,7 +328,7 @@ class _SmdGpRankingScreenState extends State<SmdGpRankingScreen> {
                       : _ranks.isEmpty
                       ? Center(
                           child: Text(
-                            'No data available for the selected block.',
+                            AppLocalizations.of(context)!.noDataAvailableForBlock,
                             style: TextStyle(
                               fontSize: 14.sp,
                               color: Colors.grey.shade600,

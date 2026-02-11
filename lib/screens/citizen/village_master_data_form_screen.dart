@@ -6,9 +6,19 @@ import '../../l10n/app_localizations.dart';
 import '../../theme/citizen_colors.dart';
 
 class VillageMasterDataFormScreen extends StatefulWidget {
-  final int villageId;
+  /// Gram Panchayat ID used for GET /api/v1/annual-surveys/latest-for-gp/{gp_id}.
+  final int gpId;
 
-  const VillageMasterDataFormScreen({super.key, required this.villageId});
+  /// When set (e.g. from VDO View), a pencil icon is shown in the app bar to edit.
+  /// Called with current survey id and full survey data when user taps edit.
+  /// Should return true if the user saved changes so this screen can refresh.
+  final Future<bool>? Function(int surveyId, Map<String, dynamic> data)? onEditTapped;
+
+  const VillageMasterDataFormScreen({
+    super.key,
+    required this.gpId,
+    this.onEditTapped,
+  });
 
   @override
   State<VillageMasterDataFormScreen> createState() =>
@@ -19,12 +29,16 @@ class _VillageMasterDataFormScreenState
     extends State<VillageMasterDataFormScreen> {
   final _formKey = GlobalKey<FormState>();
 
-  // Form controllers
+  // Form controllers (only fields from GET /api/v1/annual-surveys/latest-for-gp/{gp_id})
+  final _surveyDateController = TextEditingController();
+  final _gpNameController = TextEditingController();
+  final _blockNameController = TextEditingController();
+  final _districtNameController = TextEditingController();
+  final _numWardPanchsController = TextEditingController();
+  final _agencyIdController = TextEditingController();
   final _vdoNameController = TextEditingController();
-  final _contactNumberController = TextEditingController();
   final _sarpanchNameController = TextEditingController();
   final _sarpanchContactController = TextEditingController();
-  final _contractorNameController = TextEditingController();
   final _workOrderNoController = TextEditingController();
   final _workOrderDateController = TextEditingController();
   final _workOrderAmountController = TextEditingController();
@@ -32,10 +46,12 @@ class _VillageMasterDataFormScreenState
   final _fundHeadController = TextEditingController();
   final _householdsController = TextEditingController();
   final _shopsController = TextEditingController();
+  final _collectionFrequencyController = TextEditingController();
 
   // Road Sweeping controllers
   final _roadWidthController = TextEditingController();
   final _roadLengthController = TextEditingController();
+  final _roadCleaningFrequencyController = TextEditingController();
 
   // Drain Cleaning controllers
   final _drainLengthController = TextEditingController();
@@ -62,9 +78,11 @@ class _VillageMasterDataFormScreenState
   final _wspController = TextEditingController();
   final _dewatsController = TextEditingController();
 
+  final _createdAtController = TextEditingController();
+  final _updatedAtController = TextEditingController();
+
   // Expansion states
   bool _sarpanchExpanded = false;
-  bool _contractorExpanded = false;
   bool _workOrderExpanded = false;
   bool _fundExpanded = false;
   bool _collectionExpanded = false;
@@ -73,9 +91,11 @@ class _VillageMasterDataFormScreenState
   bool _cscDetailsExpanded = false;
   bool _swmAssetsExpanded = false;
   bool _sbmgTargetsExpanded = false;
+  bool _villageDataExpanded = false;
 
-  // Survey data
+  // Survey data and village_data from API
   Map<String, dynamic>? surveyData;
+  List<Map<String, dynamic>> _villageData = [];
   bool isLoading = true;
 
   @override
@@ -84,20 +104,13 @@ class _VillageMasterDataFormScreenState
     _loadSurveyData();
   }
 
+  /// Fetches survey via GET /api/v1/annual-surveys/latest-for-gp/{gp_id}.
+  /// Response is the full survey (same shape as before); no second call needed.
   Future<void> _loadSurveyData() async {
     try {
       setState(() => isLoading = true);
-      final data = await ApiService().getLatestAnnualSurveyForGp(
-        widget.villageId,
-      );
+      final data = await ApiService().getLatestAnnualSurveyForGp(widget.gpId);
       if (!mounted) return;
-      if (data.isEmpty) {
-        setState(() {
-          surveyData = null;
-          isLoading = false;
-        });
-        return;
-      }
       setState(() {
         surveyData = data;
         isLoading = false;
@@ -121,10 +134,8 @@ class _VillageMasterDataFormScreenState
   }
 
   void _populateFieldsFromData(Map<String, dynamic> data) {
-    // Expand all sections
     setState(() {
       _sarpanchExpanded = true;
-      _contractorExpanded = true;
       _workOrderExpanded = true;
       _fundExpanded = true;
       _collectionExpanded = true;
@@ -133,29 +144,49 @@ class _VillageMasterDataFormScreenState
       _cscDetailsExpanded = true;
       _swmAssetsExpanded = true;
       _sbmgTargetsExpanded = true;
+      _villageDataExpanded = true;
     });
 
-    if (data.containsKey('vdo') && data['vdo'] != null) {
-      final vdo = data['vdo'];
+    // Basic info (id, fy_id, gp_id, survey_date, gp_name, block_name, district_name, vdo_id, agency_id)
+    _surveyDateController.text = data['survey_date'] != null
+        ? _formatDate(data['survey_date'].toString())
+        : '';
+    _gpNameController.text = data['gp_name']?.toString() ?? '';
+    _blockNameController.text = data['block_name']?.toString() ?? '';
+    _districtNameController.text = data['district_name']?.toString() ?? '';
+    _numWardPanchsController.text =
+        data['num_ward_panchs']?.toString() ?? '';
+    _agencyIdController.text = data['agency_id']?.toString() ?? '';
+    if (data['created_at'] != null) {
+      _createdAtController.text =
+          _formatDateTime(data['created_at'].toString());
+    }
+    if (data['updated_at'] != null) {
+      _updatedAtController.text =
+          _formatDateTime(data['updated_at'].toString());
+    }
+
+    _vdoNameController.text =
+        (data['vdo_name']?.toString() ?? '').trim();
+    if (_vdoNameController.text.isEmpty &&
+        data.containsKey('vdo') &&
+        data['vdo'] != null) {
+      final vdo = data['vdo'] as Map<String, dynamic>;
       _vdoNameController.text =
           '${vdo['first_name'] ?? ''} ${vdo['last_name'] ?? ''}'.trim();
-      // VDO contact number not available in API, keeping field empty
-      // _contactNumberController.text = vdo['username'] ?? '';
     }
 
-    if (data.containsKey('sarpanch_name') && data['sarpanch_name'] != null) {
-      _sarpanchNameController.text = data['sarpanch_name'].toString();
-    }
-    if (data.containsKey('sarpanch_contact') &&
-        data['sarpanch_contact'] != null) {
-      _sarpanchContactController.text = data['sarpanch_contact'].toString();
-    }
+    _sarpanchNameController.text =
+        data['sarpanch_name']?.toString() ?? '';
+    _sarpanchContactController.text =
+        data['sarpanch_contact']?.toString() ?? '';
 
     if (data.containsKey('work_order') && data['work_order'] != null) {
-      final wo = data['work_order'];
+      final wo = data['work_order'] as Map<String, dynamic>;
       _workOrderNoController.text = wo['work_order_no']?.toString() ?? '';
       if (wo['work_order_date'] != null) {
-        _workOrderDateController.text = _formatDate(wo['work_order_date']);
+        _workOrderDateController.text =
+            _formatDate(wo['work_order_date'].toString());
       }
       _workOrderAmountController.text =
           wo['work_order_amount']?.toString() ?? '';
@@ -163,44 +194,46 @@ class _VillageMasterDataFormScreenState
 
     if (data.containsKey('fund_sanctioned') &&
         data['fund_sanctioned'] != null) {
-      final fund = data['fund_sanctioned'];
+      final fund = data['fund_sanctioned'] as Map<String, dynamic>;
       _fundAmountController.text = fund['amount']?.toString() ?? '';
       _fundHeadController.text = fund['head']?.toString() ?? '';
     }
 
     if (data.containsKey('door_to_door_collection') &&
         data['door_to_door_collection'] != null) {
-      final dtd = data['door_to_door_collection'];
+      final dtd =
+          data['door_to_door_collection'] as Map<String, dynamic>;
       _householdsController.text = dtd['num_households']?.toString() ?? '';
       _shopsController.text = dtd['num_shops']?.toString() ?? '';
+      _collectionFrequencyController.text =
+          dtd['collection_frequency']?.toString() ?? '';
     }
 
-    // Road Sweeping
     if (data.containsKey('road_sweeping') && data['road_sweeping'] != null) {
-      final rs = data['road_sweeping'];
+      final rs = data['road_sweeping'] as Map<String, dynamic>;
       _roadWidthController.text = rs['width']?.toString() ?? '';
       _roadLengthController.text = rs['length']?.toString() ?? '';
+      _roadCleaningFrequencyController.text =
+          rs['cleaning_frequency']?.toString() ?? '';
     }
 
-    // Drain Cleaning
-    if (data.containsKey('drain_cleaning') && data['drain_cleaning'] != null) {
-      final dc = data['drain_cleaning'];
+    if (data.containsKey('drain_cleaning') &&
+        data['drain_cleaning'] != null) {
+      final dc = data['drain_cleaning'] as Map<String, dynamic>;
       _drainLengthController.text = dc['length']?.toString() ?? '';
       _drainCleaningFrequencyController.text =
           dc['cleaning_frequency']?.toString() ?? '';
     }
 
-    // CSC Details
     if (data.containsKey('csc_details') && data['csc_details'] != null) {
-      final csc = data['csc_details'];
+      final csc = data['csc_details'] as Map<String, dynamic>;
       _cscNumbersController.text = csc['numbers']?.toString() ?? '';
       _cscCleaningFrequencyController.text =
           csc['cleaning_frequency']?.toString() ?? '';
     }
 
-    // SWM Assets
     if (data.containsKey('swm_assets') && data['swm_assets'] != null) {
-      final swm = data['swm_assets'];
+      final swm = data['swm_assets'] as Map<String, dynamic>;
       _rrcController.text = swm['rrc']?.toString() ?? '';
       _pwmuController.text = swm['pwmu']?.toString() ?? '';
       _compostPitController.text = swm['compost_pit']?.toString() ?? '';
@@ -208,9 +241,8 @@ class _VillageMasterDataFormScreenState
           swm['collection_vehicle']?.toString() ?? '';
     }
 
-    // SBMG Targets
     if (data.containsKey('sbmg_targets') && data['sbmg_targets'] != null) {
-      final sbmg = data['sbmg_targets'];
+      final sbmg = data['sbmg_targets'] as Map<String, dynamic>;
       _sbmgIhhlController.text = sbmg['ihhl']?.toString() ?? '';
       _sbmgCscController.text = sbmg['csc']?.toString() ?? '';
       _sbmgRrcController.text = sbmg['rrc']?.toString() ?? '';
@@ -220,6 +252,23 @@ class _VillageMasterDataFormScreenState
       _leachPitController.text = sbmg['leach_pit']?.toString() ?? '';
       _wspController.text = sbmg['wsp']?.toString() ?? '';
       _dewatsController.text = sbmg['dewats']?.toString() ?? '';
+    }
+
+    if (data.containsKey('village_data') && data['village_data'] is List) {
+      _villageData = (data['village_data'] as List)
+          .map((e) => Map<String, dynamic>.from(e as Map))
+          .toList();
+    } else {
+      _villageData = [];
+    }
+  }
+
+  String _formatDateTime(String dateString) {
+    try {
+      final dt = DateTime.parse(dateString);
+      return DateFormat('dd/MM/yyyy HH:mm').format(dt);
+    } catch (e) {
+      return dateString;
     }
   }
 
@@ -234,11 +283,15 @@ class _VillageMasterDataFormScreenState
 
   @override
   void dispose() {
+    _surveyDateController.dispose();
+    _gpNameController.dispose();
+    _blockNameController.dispose();
+    _districtNameController.dispose();
+    _numWardPanchsController.dispose();
+    _agencyIdController.dispose();
     _vdoNameController.dispose();
-    _contactNumberController.dispose();
     _sarpanchNameController.dispose();
     _sarpanchContactController.dispose();
-    _contractorNameController.dispose();
     _workOrderNoController.dispose();
     _workOrderDateController.dispose();
     _workOrderAmountController.dispose();
@@ -246,8 +299,10 @@ class _VillageMasterDataFormScreenState
     _fundHeadController.dispose();
     _householdsController.dispose();
     _shopsController.dispose();
+    _collectionFrequencyController.dispose();
     _roadWidthController.dispose();
     _roadLengthController.dispose();
+    _roadCleaningFrequencyController.dispose();
     _drainLengthController.dispose();
     _drainCleaningFrequencyController.dispose();
     _cscNumbersController.dispose();
@@ -265,6 +320,8 @@ class _VillageMasterDataFormScreenState
     _leachPitController.dispose();
     _wspController.dispose();
     _dewatsController.dispose();
+    _createdAtController.dispose();
+    _updatedAtController.dispose();
     super.dispose();
   }
 
@@ -292,6 +349,25 @@ class _VillageMasterDataFormScreenState
           ),
         ),
         centerTitle: true,
+        actions: [
+          if (widget.onEditTapped != null && hasSurveyData && surveyData != null) ...[
+            IconButton(
+              icon: Icon(Icons.edit_outlined, color: primaryTextColor),
+              onPressed: () async {
+                final id = surveyData!['id'];
+                final surveyId = id is int
+                    ? id
+                    : int.tryParse(id?.toString() ?? '');
+                if (surveyId != null) {
+                  final updated = await widget.onEditTapped!(surveyId, surveyData!);
+                  if (updated == true && mounted) {
+                    _loadSurveyData();
+                  }
+                }
+              },
+            ),
+          ],
+        ],
       ),
       body: isLoading
           ? const Center(
@@ -308,7 +384,7 @@ class _VillageMasterDataFormScreenState
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          // VDO Name
+                          // VDO (from API vdo object)
                           _buildFormField(
                             label: 'VDO Name',
                             controller: _vdoNameController,
@@ -318,18 +394,7 @@ class _VillageMasterDataFormScreenState
 
                           SizedBox(height: 20.h),
 
-                          // Contact Number
-                          _buildFormField(
-                            label: 'Contact Number',
-                            controller: _contactNumberController,
-                            placeholder: 'Contact Number',
-                            keyboardType: TextInputType.phone,
-                            readOnly: true,
-                          ),
-
-                          SizedBox(height: 20.h),
-
-                          // Sarpanch details (Expandable)
+                          // Sarpanch details (API: sarpanch_name, sarpanch_contact)
                           _buildExpandableSection(
                             title: 'Sarpanch details',
                             isExpanded: _sarpanchExpanded,
@@ -356,26 +421,7 @@ class _VillageMasterDataFormScreenState
 
                           SizedBox(height: 20.h),
 
-                          // Contractor details (Expandable)
-                          _buildExpandableSection(
-                            title: 'Contractor details',
-                            isExpanded: _contractorExpanded,
-                            onToggle: () => setState(
-                              () => _contractorExpanded = !_contractorExpanded,
-                            ),
-                            children: [
-                              _buildFormField(
-                                label: 'Name',
-                                controller: _contractorNameController,
-                                placeholder: 'Name',
-                                readOnly: true,
-                              ),
-                            ],
-                          ),
-
-                          SizedBox(height: 20.h),
-
-                          // Work order details (Expandable)
+                          // Work order details (API: work_order)
                           _buildExpandableSection(
                             title: 'Work order details',
                             isExpanded: _workOrderExpanded,
@@ -436,7 +482,7 @@ class _VillageMasterDataFormScreenState
 
                           SizedBox(height: 20.h),
 
-                          // Door to door collection details (Expandable)
+                          // Door to door collection (API: door_to_door_collection)
                           _buildExpandableSection(
                             title: 'Door to door collection details',
                             isExpanded: _collectionExpanded,
@@ -459,12 +505,19 @@ class _VillageMasterDataFormScreenState
                                 keyboardType: TextInputType.number,
                                 readOnly: true,
                               ),
+                              SizedBox(height: 16.h),
+                              _buildFormField(
+                                label: 'Collection frequency',
+                                controller: _collectionFrequencyController,
+                                placeholder: 'Collection frequency',
+                                readOnly: true,
+                              ),
                             ],
                           ),
 
                           SizedBox(height: 20.h),
 
-                          // Road sweeping details (Expandable)
+                          // Road sweeping (API: road_sweeping)
                           _buildExpandableSection(
                             title: 'Road sweeping details',
                             isExpanded: _roadSweepingExpanded,
@@ -474,18 +527,25 @@ class _VillageMasterDataFormScreenState
                             ),
                             children: [
                               _buildFormField(
-                                label: 'Width',
+                                label: 'Width (m)',
                                 controller: _roadWidthController,
-                                placeholder: 'Width',
+                                placeholder: 'Width in metres',
                                 keyboardType: TextInputType.number,
                                 readOnly: true,
                               ),
                               SizedBox(height: 16.h),
                               _buildFormField(
-                                label: 'Length',
+                                label: 'Length (m)',
                                 controller: _roadLengthController,
-                                placeholder: 'Length',
+                                placeholder: 'Length in metres',
                                 keyboardType: TextInputType.number,
+                                readOnly: true,
+                              ),
+                              SizedBox(height: 16.h),
+                              _buildFormField(
+                                label: 'Cleaning frequency',
+                                controller: _roadCleaningFrequencyController,
+                                placeholder: 'Cleaning frequency',
                                 readOnly: true,
                               ),
                             ],
@@ -503,9 +563,9 @@ class _VillageMasterDataFormScreenState
                             ),
                             children: [
                               _buildFormField(
-                                label: 'Length',
+                                label: 'Length (m)',
                                 controller: _drainLengthController,
-                                placeholder: 'Length',
+                                placeholder: 'Length in metres',
                                 keyboardType: TextInputType.number,
                                 readOnly: true,
                               ),
@@ -676,6 +736,34 @@ class _VillageMasterDataFormScreenState
                             ],
                           ),
 
+                          SizedBox(height: 20.h),
+
+                          // Village data (API: village_data[])
+                          _buildExpandableSection(
+                            title: 'Village data',
+                            isExpanded: _villageDataExpanded,
+                            onToggle: () => setState(
+                              () =>
+                                  _villageDataExpanded = !_villageDataExpanded,
+                            ),
+                            children: _villageData.isEmpty
+                                ? [
+                                    Padding(
+                                      padding: EdgeInsets.all(16.r),
+                                      child: Text(
+                                        'No village data',
+                                        style: TextStyle(
+                                          fontSize: 14.sp,
+                                          color: Colors.grey.shade600,
+                                        ),
+                                      ),
+                                    ),
+                                  ]
+                                : _villageData
+                                    .map((v) => _buildVillageDataCard(v))
+                                    .toList(),
+                          ),
+
                           SizedBox(height: 40.h),
                         ],
                       ),
@@ -786,6 +874,92 @@ class _VillageMasterDataFormScreenState
     );
   }
 
+  Widget _buildVillageDataCard(Map<String, dynamic> v) {
+    final sbmg = v['sbmg_assets'] as Map<String, dynamic>? ?? {};
+    final gwm = v['gwm_assets'] as Map<String, dynamic>? ?? {};
+    return Container(
+      margin: EdgeInsets.only(bottom: 16.h),
+      padding: EdgeInsets.all(12.r),
+      decoration: BoxDecoration(
+        color: Colors.grey.shade50,
+        borderRadius: BorderRadius.circular(8.r),
+        border: Border.all(color: Colors.grey.shade300),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            v['village_name']?.toString() ?? 'Village',
+            style: TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.w600,
+              color: CitizenColors.textPrimary(context),
+            ),
+          ),
+          SizedBox(height: 8.h),
+          _buildReadOnlyRow('Village ID', v['village_id']?.toString() ?? ''),
+          _buildReadOnlyRow('Population', v['population']?.toString() ?? ''),
+          _buildReadOnlyRow(
+            'No. of households',
+            v['num_households']?.toString() ?? '',
+          ),
+          SizedBox(height: 8.h),
+          Text(
+            'SBMG Assets',
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+              color: Colors.grey.shade700,
+            ),
+          ),
+          _buildReadOnlyRow('IHHL', sbmg['ihhl']?.toString() ?? ''),
+          _buildReadOnlyRow('CSC', sbmg['csc']?.toString() ?? ''),
+          SizedBox(height: 6.h),
+          Text(
+            'GWM Assets',
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+              color: Colors.grey.shade700,
+            ),
+          ),
+          _buildReadOnlyRow('Soak pit', gwm['soak_pit']?.toString() ?? ''),
+          _buildReadOnlyRow('Magic pit', gwm['magic_pit']?.toString() ?? ''),
+          _buildReadOnlyRow('Leach pit', gwm['leach_pit']?.toString() ?? ''),
+          _buildReadOnlyRow('WSP', gwm['wsp']?.toString() ?? ''),
+          _buildReadOnlyRow('DEWATS', gwm['dewats']?.toString() ?? ''),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildReadOnlyRow(String label, String value) {
+    return Padding(
+      padding: EdgeInsets.only(top: 4.h),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 120.w,
+            child: Text(
+              label,
+              style: TextStyle(
+                fontSize: 13,
+                color: Colors.grey.shade600,
+              ),
+            ),
+          ),
+          Expanded(
+            child: Text(
+              value.isEmpty ? '–' : value,
+              style: const TextStyle(fontSize: 13),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildExpandableSection({
     required String title,
     required bool isExpanded,
@@ -840,42 +1014,5 @@ class _VillageMasterDataFormScreenState
         ],
       ),
     );
-  }
-
-  Future<void> _selectDate(
-    BuildContext context,
-    TextEditingController controller,
-  ) async {
-    final DateTime? picked = await showDatePicker(
-      context: context,
-      initialDate: DateTime.now(),
-      firstDate: DateTime(2000),
-      lastDate: DateTime(2100),
-    );
-
-    if (picked != null) {
-      controller.text = '${picked.day}/${picked.month}/${picked.year}';
-    }
-  }
-
-  void _submitForm() {
-    if (_formKey.currentState!.validate()) {
-      // Handle form submission
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            AppLocalizations.of(context)!.formSubmittedSuccessfully,
-          ),
-          backgroundColor: const Color(0xFF009B56),
-        ),
-      );
-
-      // Get current date for completion
-      final now = DateTime.now();
-      final completionDate = '${now.day}/${now.month}/${now.year}';
-
-      // Navigate back with completion date
-      Navigator.pop(context, completionDate);
-    }
   }
 }

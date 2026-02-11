@@ -1,14 +1,25 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:provider/provider.dart';
 import '../../config/connstants.dart';
-import '../../services/auth_services.dart';
 import '../../l10n/app_localizations.dart';
+import '../../providers/citizen_auth_provider.dart';
+import '../../providers/bookmarks_provider.dart';
+import '../../services/auth_services.dart';
 import '../../theme/citizen_colors.dart';
 
 class CitizenOtpVerificationScreen extends StatefulWidget {
   final String mobileNumber;
 
-  const CitizenOtpVerificationScreen({super.key, required this.mobileNumber});
+  /// Route to navigate to after successful verification (e.g. '/my-complaints').
+  /// If null, defaults to '/create-complaint'.
+  final String? redirectTo;
+
+  const CitizenOtpVerificationScreen({
+    super.key,
+    required this.mobileNumber,
+    this.redirectTo,
+  });
 
   @override
   State<CitizenOtpVerificationScreen> createState() =>
@@ -105,30 +116,66 @@ class _CitizenOtpVerificationScreenState
       _errorMessage = null;
     });
 
-    try {
-      await _authService.verifyOtp(widget.mobileNumber, otp);
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(AppLocalizations.of(context)!.loginSuccessful),
-            backgroundColor: AppColors.primaryColor,
-            duration: const Duration(seconds: 2),
-          ),
-        );
-        // Clear navigation stack and go to raise complaint screen
+    final authProvider = context.read<AuthProvider>();
+    final success = await authProvider.verifyOtp(widget.mobileNumber, otp);
+
+    if (!mounted) return;
+    setState(() => _isLoading = false);
+
+    if (success) {
+      // Reload bookmarks for the newly logged-in user
+      try {
+        final bookmarksProvider = context.read<BookmarksProvider>();
+        await bookmarksProvider.reloadForCurrentUser();
+        print('✅ Bookmarks reloaded after successful login');
+      } catch (e) {
+        print('⚠️ Error reloading bookmarks after login: $e');
+      }
+      
+      if (!mounted) return;
+      
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(AppLocalizations.of(context)!.loginSuccessful),
+          backgroundColor: AppColors.primaryColor,
+          duration: const Duration(seconds: 2),
+        ),
+      );
+      // Clear stack and go to intended screen. For /my-complaints use citizen shell with tab index 1.
+      // For /schemes use citizen shell with tab index 2.
+      // For /settings use citizen shell with tab index 3.
+      final redirectTo = widget.redirectTo ?? '/create-complaint';
+      if (redirectTo == '/my-complaints') {
         Navigator.pushNamedAndRemoveUntil(
           context,
-          '/create-complaint',
-          (route) => false, // Remove all previous routes
+          '/citizen-dashboard',
+          (route) => false,
+          arguments: {'initialIndex': 1},
+        );
+      } else if (redirectTo == '/schemes') {
+        Navigator.pushNamedAndRemoveUntil(
+          context,
+          '/citizen-dashboard',
+          (route) => false,
+          arguments: {'initialIndex': 2},
+        );
+      } else if (redirectTo == '/settings') {
+        Navigator.pushNamedAndRemoveUntil(
+          context,
+          '/citizen-dashboard',
+          (route) => false,
+          arguments: {'initialIndex': 3},
+        );
+      } else {
+        Navigator.pushNamedAndRemoveUntil(
+          context,
+          redirectTo,
+          (route) => false,
         );
       }
-    } catch (e) {
+    } else {
       setState(() {
-        _errorMessage = 'Invalid OTP. Please try again.';
-      });
-    } finally {
-      setState(() {
-        _isLoading = false;
+        _errorMessage = authProvider.errorMessage ?? 'Invalid OTP. Please try again.';
       });
     }
   }

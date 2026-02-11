@@ -26,7 +26,7 @@ class _LanguageScreenState extends State<LanguageScreen> {
 
   void _saveLanguage() {
     final localeProvider = Provider.of<LocaleProvider>(context, listen: false);
-    final l10n = AppLocalizations.of(context)!;
+    final newLocale = Locale(_selectedLanguage);
 
     if (_selectedLanguage == 'en') {
       localeProvider.setLocale(const Locale('en'));
@@ -34,9 +34,13 @@ class _LanguageScreenState extends State<LanguageScreen> {
       localeProvider.setLocale(const Locale('hi'));
     }
 
+    // Use the message in the newly selected language (context still has old locale)
+    final messageInNewLanguage =
+        lookupAppLocalizations(newLocale).languageSavedSuccessfully;
+
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(l10n.languageSavedSuccessfully),
+        content: Text(messageInNewLanguage),
         backgroundColor: const Color(0xFF009B56),
       ),
     );

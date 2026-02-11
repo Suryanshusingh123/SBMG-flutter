@@ -2,51 +2,53 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:provider/provider.dart';
+import 'package:sbmg/screens/supervisor/supervisor_home_screen.dart';
 import 'screens/splash_screen.dart';
 import 'screens/onboarding_screen.dart';
 import 'l10n/app_localizations.dart';
 import 'screens/auth/admin_login_screen.dart';
 import 'screens/auth/reset_password_request_screen.dart';
 import 'screens/auth/reset_password_verify_screen.dart';
-import 'screens/citizen/citizen_home_screen.dart';
+import 'screens/citizen/citizen_shell_screen.dart';
 import 'screens/citizen/citizen_login_screen.dart';
 import 'screens/citizen/raise_complaint_screen.dart';
 import 'screens/citizen/my_complaints_screen.dart';
 import 'screens/citizen/schemes_screen.dart';
 import 'screens/citizen/events_screen.dart';
 import 'screens/citizen/settings_screen.dart';
-import 'screens/supervisor/supervisor_home_screen.dart';
+import 'screens/supervisor/supervisor_shell_screen.dart';
 import 'screens/supervisor/supervisor_complaints_screen.dart';
 import 'screens/landing_screen.dart';
 import 'screens/supervisor/supervisor_attendance_screen.dart';
 import 'screens/supervisor/supervisor_settings_screen.dart';
 import 'screens/bdo/bdo_complaints_screen.dart';
-import 'screens/bdo/bdo_home_screen.dart';
+import 'screens/bdo/bdo_shell_screen.dart';
 import 'screens/bdo/bdo_settings_screen.dart';
 import 'screens/bdo/inspection_log_screen.dart';
 import 'screens/bdo/bdo_inspection_screen.dart';
 import 'screens/bdo/bdo_new_inspection_screen.dart';
-import 'screens/ceo/ceo_home_screen.dart';
+import 'screens/ceo/ceo_shell_screen.dart';
 import 'screens/ceo/ceo_complaints_screen.dart';
 import 'screens/ceo/ceo_inspection_screen.dart';
 import 'screens/ceo/ceo_new_inspection_screen.dart';
 import 'screens/ceo/ceo_settings_screen.dart';
 import 'screens/ceo/ceo_gp_ranking_screen.dart';
-import 'screens/vdo/vdo_home_screen.dart';
+import 'screens/vdo/vdo_shell_screen.dart';
 import 'screens/vdo/vdo_complaints_screen.dart';
 import 'screens/vdo/vdo_inspection_screen.dart';
 import 'screens/vdo/new_inspection_screen.dart';
 import 'screens/vdo/vdo_settings_screen.dart';
-import 'screens/smd/smd_home_screen.dart';
+import 'screens/smd/smd_shell_screen.dart';
 import 'screens/smd/smd_complaints_screen.dart';
 import 'screens/smd/smd_inspection_screen.dart';
 import 'screens/smd/smd_new_inspection_screen.dart';
 import 'screens/smd/smd_district_selection_screen.dart';
 import 'screens/smd/smd_settings_screen.dart';
+import 'screens/common/inspection_details_screen.dart';
 import 'providers/citizen_auth_provider.dart';
 import 'providers/citizen_schemes_provider.dart';
 import 'providers/citizen_events_provider.dart';
-import 'providers/citizen_bookmarks_provider.dart';
+import 'providers/bookmarks_provider.dart';
 import 'providers/citizen_complaints_provider.dart';
 import 'providers/citizen_geography_provider.dart';
 import 'providers/citizen_notifications_provider.dart';
@@ -86,7 +88,7 @@ void main() {
         ChangeNotifierProvider(
           create: (_) {
             final provider = BookmarksProvider();
-            // Initialize and load bookmarks from storage
+            // Initialize and load bookmarks from API
             provider.initialize();
             return provider;
           },
@@ -173,7 +175,13 @@ class MyApp extends StatelessWidget {
             routes: {
               '/onboarding': (context) => const OnboardingScreen(),
               '/landing': (context) => const LandingScreen(),
-              '/citizen-login': (context) => const LoginScreen(),
+              '/citizen-login': (context) {
+                final args = ModalRoute.of(context)?.settings.arguments
+                    as Map<String, dynamic>?;
+                return LoginScreen(
+                  redirectTo: args?['redirectTo'] as String?,
+                );
+              },
               '/admin-login': (context) => const AdminLoginScreen(),
               '/reset-password-request': (context) =>
                   const ResetPasswordRequestScreen(),
@@ -181,16 +189,27 @@ class MyApp extends StatelessWidget {
                   const ResetPasswordVerifyScreen(phoneNumber: ''),
               '/set-new-password': (context) =>
                   Scaffold(body: Center(child: Text('Set New Password'))),
-              '/citizen-dashboard': (context) => CitizenHomeScreen(),
-              '/supervisor-dashboard': (context) =>
-                  const SupervisorHomeScreen(),
+              '/citizen-dashboard': (context) {
+                final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
+                final idx = args?['initialIndex'] as int?;
+                return CitizenShellScreen(initialIndex: idx ?? 0);
+              },
+              '/supervisor-dashboard': (context) {
+                final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
+                final idx = args?['initialIndex'] as int?;
+                return SupervisorShellScreen(initialIndex: idx ?? 0);
+              },
               '/supervisor-complaints': (context) =>
                   const SupervisorComplaintsScreen(),
               '/supervisor-attendance': (context) =>
                   const SupervisorAttendanceScreen(),
               '/supervisor-settings': (context) =>
                   const SupervisorSettingsScreen(),
-              '/vdo-dashboard': (context) => const VdoHomeScreen(),
+              '/vdo-dashboard': (context) {
+                final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
+                final idx = args?['initialIndex'] as int?;
+                return VdoShellScreen(initialIndex: idx ?? 0);
+              },
               '/vdo-inspection': (context) =>
                   const VdoInspectionScreen(),
               '/vdo-new-inspection': (context) =>
@@ -198,11 +217,19 @@ class MyApp extends StatelessWidget {
               '/vdo-complaints': (context) =>
                   const VdoComplaintsScreen(),
               '/vdo-settings': (context) => const VdoSettingsScreen(),
-              '/bdo-dashboard': (context) => const BdoHomeScreen(),
+              '/bdo-dashboard': (context) {
+                final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
+                final idx = args?['initialIndex'] as int?;
+                return BdoShellScreen(initialIndex: idx ?? 0);
+              },
               '/bdo-complaints': (context) => const BdoComplaintsScreen(),
               '/bdo-monitoring': (context) => const BdoInspectionScreen(),
               '/bdo-settings': (context) => const BdoSettingsScreen(),
-              '/ceo-dashboard': (context) => const CeoHomeScreen(),
+              '/ceo-dashboard': (context) {
+                final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
+                final idx = args?['initialIndex'] as int?;
+                return CeoShellScreen(initialIndex: idx ?? 0);
+              },
               '/ceo-complaints': (context) => const CeoComplaintsScreen(),
               '/ceo-monitoring': (context) => const CeoInspectionScreen(),
               '/ceo-settings': (context) => const CeoSettingsScreen(),
@@ -217,7 +244,11 @@ class MyApp extends StatelessWidget {
               },
               '/smd-district-selection': (context) =>
                   const SmdDistrictSelectionScreen(),
-              '/smd-dashboard': (context) => const SmdHomeScreen(),
+              '/smd-dashboard': (context) {
+                final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
+                final idx = args?['initialIndex'] as int?;
+                return SmdShellScreen(initialIndex: idx ?? 0);
+              },
               '/smd-complaints': (context) => const SmdComplaintsScreen(),
               '/smd-monitoring': (context) => const SmdInspectionScreen(),
               '/smd-settings': (context) => const SmdSettingsScreen(),
@@ -248,6 +279,13 @@ class MyApp extends StatelessWidget {
                 return BdoNewInspectionScreen(gpId: gpId, gpName: gpName);
               },
               '/inspection-log': (context) => const InspectionLogScreen(),
+              '/inspection-details': (context) {
+                final args =
+                    ModalRoute.of(context)!.settings.arguments
+                        as Map<String, dynamic>?;
+                final inspectionId = args?['inspectionId'] as int? ?? 0;
+                return InspectionDetailsScreen(inspectionId: inspectionId);
+              },
               '/gp-inspection-details': (context) {
                 final args =
                     ModalRoute.of(context)!.settings.arguments

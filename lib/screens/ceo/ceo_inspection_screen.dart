@@ -13,7 +13,10 @@ import '../../services/auth_services.dart';
 import '../common/unified_select_location_screen.dart';
 
 class CeoInspectionScreen extends StatefulWidget {
-  const CeoInspectionScreen({super.key});
+  /// When true, this screen is shown inside [CeoShellScreen]; bottom nav is provided by the shell.
+  final bool isEmbeddedInShell;
+
+  const CeoInspectionScreen({super.key, this.isEmbeddedInShell = false});
 
   @override
   State<CeoInspectionScreen> createState() => _CeoInspectionScreenState();
@@ -40,10 +43,14 @@ class _CeoInspectionScreenState extends State<CeoInspectionScreen> {
   Future<void> _checkAndLoadLocation() async {
     if (_hasCheckedLocation) return;
 
-    // Check if inspection location exists
-    final location = await _authService.getInspectionLocation('ceo');
+    // Check if INSPECTION page location exists
+    // Fallback to old inspection location for backward compatibility
+    var location = await _authService.getPageLocation('ceo', 'inspections');
+    if (location == null) {
+      location = await _authService.getInspectionLocation('ceo');
+    }
     
-    if (location == null || location['gpId'] == null) {
+    if (location == null || location['blockId'] == null || location['gpId'] == null) {
       // Show location selection screen once
       if (!mounted) return;
       final result = await Navigator.push(
@@ -53,7 +60,10 @@ class _CeoInspectionScreenState extends State<CeoInspectionScreen> {
         ),
       );
 
-      if (result is Map<String, dynamic> && result['gpId'] != null) {
+      if (result is Map<String, dynamic> && result['blockId'] != null && result['gpId'] != null) {
+        // Save the location for INSPECTIONS page
+        await _authService.savePageLocation('ceo', 'inspections', result);
+        
         setState(() {
           _inspectionLocation = result;
         });
@@ -124,46 +134,46 @@ class _CeoInspectionScreenState extends State<CeoInspectionScreen> {
           ],
         ),
       ),
-      bottomNavigationBar: CustomBottomNavigationBar(
-        currentIndex: _selectedIndex,
-        onTap: (index) {
-          setState(() {
-            _selectedIndex = index;
-          });
-          switch (index) {
-            case 0:
-              Navigator.pushReplacementNamed(context, '/ceo-dashboard');
-              break;
-            case 1:
-              Navigator.pushReplacementNamed(context, '/ceo-complaints');
-              break;
-            case 2:
-              // already on inspections
-              break;
-            case 3:
-              Navigator.pushReplacementNamed(context, '/ceo-settings');
-              break;
-          }
-        },
-        items: [
-          BottomNavItem(
-            iconPath: 'assets/icons/bottombar/home.png',
-            label: AppLocalizations.of(context)!.home,
-          ),
-          BottomNavItem(
-            iconPath: 'assets/icons/bottombar/complaints.png',
-            label: AppLocalizations.of(context)!.complaints,
-          ),
-          BottomNavItem(
-            iconPath: 'assets/icons/bottombar/inspection.png',
-            label: AppLocalizations.of(context)!.inspection,
-          ),
-          BottomNavItem(
-            iconPath: 'assets/icons/bottombar/settings.png',
-            label: AppLocalizations.of(context)!.settings,
-          ),
-        ],
-      ),
+      // Bottom nav is provided by CeoShellScreen when isEmbeddedInShell
+      bottomNavigationBar: widget.isEmbeddedInShell
+          ? null
+          : CustomBottomNavigationBar(
+              currentIndex: _selectedIndex,
+              onTap: (index) {
+                setState(() => _selectedIndex = index);
+                switch (index) {
+                  case 0:
+                    Navigator.pushReplacementNamed(context, '/ceo-dashboard');
+                    break;
+                  case 1:
+                    Navigator.pushReplacementNamed(context, '/ceo-complaints');
+                    break;
+                  case 2:
+                    break;
+                  case 3:
+                    Navigator.pushReplacementNamed(context, '/ceo-settings');
+                    break;
+                }
+              },
+              items: [
+                BottomNavItem(
+                  iconPath: 'assets/icons/bottombar/home.png',
+                  label: AppLocalizations.of(context)!.home,
+                ),
+                BottomNavItem(
+                  iconPath: 'assets/icons/bottombar/complaints.png',
+                  label: AppLocalizations.of(context)!.complaints,
+                ),
+                BottomNavItem(
+                  iconPath: 'assets/icons/bottombar/inspection.png',
+                  label: AppLocalizations.of(context)!.inspection,
+                ),
+                BottomNavItem(
+                  iconPath: 'assets/icons/bottombar/settings.png',
+                  label: AppLocalizations.of(context)!.settings,
+                ),
+              ],
+            ),
     );
   }
 
@@ -198,10 +208,35 @@ class _CeoInspectionScreenState extends State<CeoInspectionScreen> {
                             builder: (_) => const UnifiedSelectLocationScreen(userRole: 'ceo'),
                           ),
                         );
-                        if (result is Map<String, dynamic> && result['gpId'] != null) {
+                        if (result is Map<String, dynamic> && result['blockId'] != null && result['gpId'] != null) {
+                          print('📍 Location changed - New location: $result');
+                          print('   - District ID: ${result['districtId']}');
+                          print('   - Block ID: ${result['blockId']}');
+                          print('   - GP ID: ${result['gpId']}');
+                          
+                          // Save the location for INSPECTIONS page
+                          await _authService.savePageLocation('ceo', 'inspections', result);
+                          
+                          // Verify it was saved correctly
+                          final saved = await _authService.getPageLocation('ceo', 'inspections');
+                          print('💾 Verified saved location: $saved');
+                          if (saved == null) {
+                            print('❌ ERROR: Location was not saved correctly!');
+                            return;
+                          }
+                          
+                          // Update state
                           setState(() {
                             _inspectionLocation = result;
                           });
+                          
+                          // Reload inspections with new location
+                          if (mounted) {
+                            // Clear provider state first to show loading
+                            context.read<CeoInspectionProvider>().loadInspections();
+                          }
+                        } else {
+                          print('⚠️ Location change cancelled or invalid result: $result');
                         }
                       },
                       child: Padding(
@@ -228,7 +263,7 @@ class _CeoInspectionScreenState extends State<CeoInspectionScreen> {
           SizedBox(height: 4.h),
           Text(
             _inspectionLocation != null
-                ? '${_inspectionLocation!['districtName']} • ${_inspectionLocation!['blockName']} • ${_inspectionLocation!['gpName']} • ${_displayMonth()}'
+                ? '${_inspectionLocation!['districtName'] ?? ''}${_inspectionLocation!['blockName'] != null ? ' • ${_inspectionLocation!['blockName']}' : ''}${_inspectionLocation!['gpName'] != null ? ' • ${_inspectionLocation!['gpName']}' : ''} • ${_displayMonth()}'
                 : '${ceoProvider.districtName} • ${_displayMonth()}',
             style: TextStyle(fontSize: 11.sp, color: const Color(0xFF6B7280)),
           ),
@@ -401,77 +436,86 @@ class _CeoInspectionScreenState extends State<CeoInspectionScreen> {
   }
 
   Widget _buildInspectionCard(Inspection inspection) {
-    return Container(
-      margin: EdgeInsets.only(bottom: 12.h),
-      padding: EdgeInsets.all(16.r),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12.r),
-        border: Border.all(color: Colors.grey.shade200),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 4,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 40.w,
-            height: 40.h,
-            decoration: BoxDecoration(
-              color: AppColors.primaryColor,
-              borderRadius: BorderRadius.circular(8.r),
+    return GestureDetector(
+      onTap: () {
+        Navigator.pushNamed(
+          context,
+          '/inspection-details',
+          arguments: {'inspectionId': inspection.id},
+        );
+      },
+      child: Container(
+        margin: EdgeInsets.only(bottom: 12.h),
+        padding: EdgeInsets.all(16.r),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12.r),
+          border: Border.all(color: Colors.grey.shade200),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 4,
+              offset: const Offset(0, 2),
             ),
-            child: Stack(
-              alignment: Alignment.center,
-              children: [
-                Icon(Icons.description, color: Colors.white, size: 18.sp),
-                Positioned(
-                  left: 6.w,
-                  top: 6.h,
-                  child: Icon(
-                    Icons.description,
-                    color: Colors.white.withOpacity(0.7),
-                    size: 14.sp,
+          ],
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 40.w,
+              height: 40.h,
+              decoration: BoxDecoration(
+                color: AppColors.primaryColor,
+                borderRadius: BorderRadius.circular(8.r),
+              ),
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  Icon(Icons.description, color: Colors.white, size: 18.sp),
+                  Positioned(
+                    left: 6.w,
+                    top: 6.h,
+                    child: Icon(
+                      Icons.description,
+                      color: Colors.white.withOpacity(0.7),
+                      size: 14.sp,
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
-          SizedBox(width: 12.w),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  _formatDate(inspection.date),
-                  style: TextStyle(
-                    fontSize: 13.sp,
-                    fontWeight: FontWeight.w600,
-                    color: const Color(0xFF111827),
+            SizedBox(width: 12.w),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    _formatDate(inspection.date),
+                    style: TextStyle(
+                      fontSize: 13.sp,
+                      fontWeight: FontWeight.w600,
+                      color: const Color(0xFF111827),
+                    ),
                   ),
-                ),
-                SizedBox(height: 4.h),
-                Text(
-                  inspection.villageName,
-                  style: TextStyle(
-                    fontSize: 11.sp,
-                    fontWeight: FontWeight.w400,
-                    color: const Color(0xFF6B7280),
+                  SizedBox(height: 4.h),
+                  Text(
+                    inspection.villageName,
+                    style: TextStyle(
+                      fontSize: 11.sp,
+                      fontWeight: FontWeight.w400,
+                      color: const Color(0xFF6B7280),
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
-          Icon(
-            Icons.arrow_forward_ios,
-            color: Colors.grey.shade400,
-            size: 14.sp,
-          ),
-        ],
+            Icon(
+              Icons.arrow_forward_ios,
+              color: Colors.grey.shade400,
+              size: 14.sp,
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -762,81 +806,90 @@ class _CeoGpInspectionScreenState extends State<_CeoGpInspectionScreen> {
                     itemCount: _filtered(provider.inspections).length,
                     itemBuilder: (context, index) {
                       final inspection = _filtered(provider.inspections)[index];
-                      return Container(
-                        margin: EdgeInsets.only(bottom: 12.h),
-                        padding: EdgeInsets.all(16.r),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(12.r),
-                          border: Border.all(color: Colors.grey.shade200),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withOpacity(0.05),
-                              blurRadius: 4,
-                              offset: const Offset(0, 2),
-                            ),
-                          ],
-                        ),
-                        child: Row(
-                          children: [
-                            Container(
-                              width: 40.w,
-                              height: 40.h,
-                              decoration: BoxDecoration(
-                                color: AppColors.primaryColor,
-                                borderRadius: BorderRadius.circular(8.r),
+                      return GestureDetector(
+                        onTap: () {
+                          Navigator.pushNamed(
+                            context,
+                            '/inspection-details',
+                            arguments: {'inspectionId': inspection.id},
+                          );
+                        },
+                        child: Container(
+                          margin: EdgeInsets.only(bottom: 12.h),
+                          padding: EdgeInsets.all(16.r),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(12.r),
+                            border: Border.all(color: Colors.grey.shade200),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.05),
+                                blurRadius: 4,
+                                offset: const Offset(0, 2),
                               ),
-                              child: Stack(
-                                alignment: Alignment.center,
-                                children: [
-                                  Icon(
-                                    Icons.description,
-                                    color: Colors.white,
-                                    size: 18.sp,
-                                  ),
-                                  Positioned(
-                                    left: 6.w,
-                                    top: 6.h,
-                                    child: Icon(
+                            ],
+                          ),
+                          child: Row(
+                            children: [
+                              Container(
+                                width: 40.w,
+                                height: 40.h,
+                                decoration: BoxDecoration(
+                                  color: AppColors.primaryColor,
+                                  borderRadius: BorderRadius.circular(8.r),
+                                ),
+                                child: Stack(
+                                  alignment: Alignment.center,
+                                  children: [
+                                    Icon(
                                       Icons.description,
-                                      color: Colors.white.withOpacity(0.7),
-                                      size: 14.sp,
+                                      color: Colors.white,
+                                      size: 18.sp,
                                     ),
-                                  ),
-                                ],
+                                    Positioned(
+                                      left: 6.w,
+                                      top: 6.h,
+                                      child: Icon(
+                                        Icons.description,
+                                        color: Colors.white.withOpacity(0.7),
+                                        size: 14.sp,
+                                      ),
+                                    ),
+                                  ],
+                                ),
                               ),
-                            ),
-                            SizedBox(width: 12.w),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    _formatDate(inspection.date),
-                                    style: TextStyle(
-                                      fontSize: 13.sp,
-                                      fontWeight: FontWeight.w600,
-                                      color: const Color(0xFF111827),
+                              SizedBox(width: 12.w),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      _formatDate(inspection.date),
+                                      style: TextStyle(
+                                        fontSize: 13.sp,
+                                        fontWeight: FontWeight.w600,
+                                        color: const Color(0xFF111827),
+                                      ),
                                     ),
-                                  ),
-                                  SizedBox(height: 4.h),
-                                  Text(
-                                    inspection.villageName,
-                                    style: TextStyle(
-                                      fontSize: 11.sp,
-                                      fontWeight: FontWeight.w400,
-                                      color: const Color(0xFF6B7280),
+                                    SizedBox(height: 4.h),
+                                    Text(
+                                      inspection.villageName,
+                                      style: TextStyle(
+                                        fontSize: 11.sp,
+                                        fontWeight: FontWeight.w400,
+                                        color: const Color(0xFF6B7280),
+                                      ),
                                     ),
-                                  ),
-                                ],
+                                  ],
+                                ),
                               ),
-                            ),
-                            Icon(
-                              Icons.arrow_forward_ios,
-                              color: Colors.grey.shade400,
-                              size: 14.sp,
-                            ),
-                          ],
+                              Icon(
+                                Icons.arrow_forward_ios,
+                                color: Colors.grey.shade400,
+                                size: 14.sp,
+                              ),
+                            ],
+                          ),
                         ),
                       );
                     },

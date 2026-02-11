@@ -59,8 +59,20 @@ android {
             isShrinkResources = false
         }
     }
+
+    packaging {
+        jniLibs {
+            useLegacyPackaging = false
+        }
+    }
 }
 
 flutter {
     source = "../.."
+}
+
+dependencies {
+    // Google Play services Code Scanner API (Android-only QR scanner UI).
+    // This avoids bundling MLKit native libs like libbarhopper_v3.so in the AAB.
+    implementation("com.google.android.gms:play-services-code-scanner:16.1.0")
 }

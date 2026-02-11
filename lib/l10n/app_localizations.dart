@@ -290,29 +290,23 @@ abstract class AppLocalizations {
   /// **'Bookmarks'**
   String get bookmarks;
 
+  /// No description provided for @bookmarkedSchemes.
+  ///
+  /// In en, this message translates to:
+  /// **'Bookmarked schemes'**
+  String get bookmarkedSchemes;
+
   /// No description provided for @noBookmarkedSchemes.
   ///
   /// In en, this message translates to:
   /// **'No bookmarked schemes'**
   String get noBookmarkedSchemes;
 
-  /// No description provided for @noBookmarkedEvents.
-  ///
-  /// In en, this message translates to:
-  /// **'No bookmarked events'**
-  String get noBookmarkedEvents;
-
   /// No description provided for @bookmarkSchemesToSeeHere.
   ///
   /// In en, this message translates to:
   /// **'Bookmark schemes to see them here'**
   String get bookmarkSchemesToSeeHere;
-
-  /// No description provided for @bookmarkEventsToSeeHere.
-  ///
-  /// In en, this message translates to:
-  /// **'Bookmark events to see them here'**
-  String get bookmarkEventsToSeeHere;
 
   /// No description provided for @open.
   ///
@@ -926,17 +920,17 @@ abstract class AppLocalizations {
   /// **'Close'**
   String get close;
 
-  /// No description provided for @knowYourAreasVendor.
+  /// No description provided for @knowYourAreasContractor.
   ///
   /// In en, this message translates to:
-  /// **'Know your areas vendor'**
-  String get knowYourAreasVendor;
+  /// **'Know your areas contractor'**
+  String get knowYourAreasContractor;
 
-  /// No description provided for @vendorDetails.
+  /// No description provided for @contractorDetails.
   ///
   /// In en, this message translates to:
-  /// **'Vendor details'**
-  String get vendorDetails;
+  /// **'Contractor details'**
+  String get contractorDetails;
 
   /// No description provided for @agencyInformation.
   ///
@@ -967,12 +961,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Agency Address'**
   String get agencyAddress;
-
-  /// No description provided for @contractorDetails.
-  ///
-  /// In en, this message translates to:
-  /// **'Contractor Details'**
-  String get contractorDetails;
 
   /// No description provided for @personName.
   ///
@@ -1550,6 +1538,30 @@ abstract class AppLocalizations {
   /// **'Today\'s Complaints'**
   String get todayComplaints;
 
+  /// No description provided for @tooltipTotalReportedComplaintDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Total number of complaints reported in the selected date range. Includes open, resolved, verified, and closed complaints.'**
+  String get tooltipTotalReportedComplaintDescription;
+
+  /// No description provided for @tooltipOpenComplaintDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Complaints that are not yet resolved. These are pending action from the concerned officer.'**
+  String get tooltipOpenComplaintDescription;
+
+  /// No description provided for @tooltipResolvedComplaintsDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Resolved count includes: Resolved + Verified + Closed complaints.'**
+  String get tooltipResolvedComplaintsDescription;
+
+  /// No description provided for @tooltipTodayComplaintsDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Number of complaints reported today.'**
+  String get tooltipTodayComplaintsDescription;
+
   /// No description provided for @overview.
   ///
   /// In en, this message translates to:
@@ -1579,6 +1591,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Resolution'**
   String get resolution;
+
+  /// No description provided for @noResolutionDetailsAvailable.
+  ///
+  /// In en, this message translates to:
+  /// **'No resolution details available'**
+  String get noResolutionDetailsAvailable;
 
   /// No description provided for @writeYourCommentHere.
   ///
@@ -1892,11 +1910,11 @@ abstract class AppLocalizations {
   /// **'Total'**
   String get total;
 
-  /// No description provided for @checkVendorSupervisorAttendance.
+  /// No description provided for @checkContractorSupervisorAttendance.
   ///
   /// In en, this message translates to:
-  /// **'Check Vender / Supervisor attendance'**
-  String get checkVendorSupervisorAttendance;
+  /// **'Check Contractor / Supervisor attendance'**
+  String get checkContractorSupervisorAttendance;
 
   /// No description provided for @updateContractorDetails.
   ///
@@ -1909,6 +1927,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Start the GP Master Data'**
   String get startVillageMasterData;
+
+  /// No description provided for @viewGpMasterData.
+  ///
+  /// In en, this message translates to:
+  /// **'View GP Master Data'**
+  String get viewGpMasterData;
+
+  /// No description provided for @editGpMasterData.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit GP Master Data'**
+  String get editGpMasterData;
+
+  /// No description provided for @addGpMasterData.
+  ///
+  /// In en, this message translates to:
+  /// **'Add GP Master Data'**
+  String get addGpMasterData;
 
   /// No description provided for @export.
   ///
@@ -1927,6 +1963,1290 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'No complaints available'**
   String get noComplaintsAvailable;
+
+  /// No description provided for @awaitingForCitizenToCloseComplaint.
+  ///
+  /// In en, this message translates to:
+  /// **'Awaiting for citizen to close complaint'**
+  String get awaitingForCitizenToCloseComplaint;
+
+  /// No description provided for @awaitingForSupervisorToTakeAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Awaiting for supervisor to take action'**
+  String get awaitingForSupervisorToTakeAction;
+
+  /// No description provided for @awaitingForVdoToVerify.
+  ///
+  /// In en, this message translates to:
+  /// **'Awaiting for VDO to verify'**
+  String get awaitingForVdoToVerify;
+
+  /// No description provided for @pleaseSelectDateRangeFirst.
+  ///
+  /// In en, this message translates to:
+  /// **'Please select a date range first'**
+  String get pleaseSelectDateRangeFirst;
+
+  /// No description provided for @selectDateRangeToEnableExport.
+  ///
+  /// In en, this message translates to:
+  /// **'Select a date range to enable export'**
+  String get selectDateRangeToEnableExport;
+
+  /// No description provided for @totalReportedComplaints.
+  ///
+  /// In en, this message translates to:
+  /// **'Total Reported Complaints'**
+  String get totalReportedComplaints;
+
+  /// No description provided for @openComplaints.
+  ///
+  /// In en, this message translates to:
+  /// **'Open Complaints'**
+  String get openComplaints;
+
+  /// No description provided for @resolvedComplaints.
+  ///
+  /// In en, this message translates to:
+  /// **'Resolved complaints'**
+  String get resolvedComplaints;
+
+  /// No description provided for @csvExportedToDownloads.
+  ///
+  /// In en, this message translates to:
+  /// **'CSV file exported successfully to Downloads folder: {fileName}'**
+  String csvExportedToDownloads(String fileName);
+
+  /// No description provided for @errorExportingCsv.
+  ///
+  /// In en, this message translates to:
+  /// **'Error exporting CSV: {error}'**
+  String errorExportingCsv(String error);
+
+  /// No description provided for @couldNotOpenLink.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not open {platform} link.'**
+  String couldNotOpenLink(String platform);
+
+  /// No description provided for @connectWithSwachhRajasthan.
+  ///
+  /// In en, this message translates to:
+  /// **'Connect with Swachh Rajasthan'**
+  String get connectWithSwachhRajasthan;
+
+  /// No description provided for @noContractorDetailsAvailable.
+  ///
+  /// In en, this message translates to:
+  /// **'No contractor details available'**
+  String get noContractorDetailsAvailable;
+
+  /// No description provided for @viewRankingsOfGp.
+  ///
+  /// In en, this message translates to:
+  /// **'View Rankings of GP'**
+  String get viewRankingsOfGp;
+
+  /// No description provided for @exitApp.
+  ///
+  /// In en, this message translates to:
+  /// **'Exit App'**
+  String get exitApp;
+
+  /// No description provided for @areYouSureExitApp.
+  ///
+  /// In en, this message translates to:
+  /// **'Are you sure you want to exit the app?'**
+  String get areYouSureExitApp;
+
+  /// No description provided for @exit.
+  ///
+  /// In en, this message translates to:
+  /// **'Exit'**
+  String get exit;
+
+  /// No description provided for @somethingWentWrong.
+  ///
+  /// In en, this message translates to:
+  /// **'Something went wrong'**
+  String get somethingWentWrong;
+
+  /// No description provided for @noComplaintsFound.
+  ///
+  /// In en, this message translates to:
+  /// **'No complaints found'**
+  String get noComplaintsFound;
+
+  /// No description provided for @complaintCount.
+  ///
+  /// In en, this message translates to:
+  /// **'Complaint ({count})'**
+  String complaintCount(int count);
+
+  /// No description provided for @openCount.
+  ///
+  /// In en, this message translates to:
+  /// **'Open ({count})'**
+  String openCount(int count);
+
+  /// No description provided for @resolvedCount.
+  ///
+  /// In en, this message translates to:
+  /// **'Resolved ({count})'**
+  String resolvedCount(int count);
+
+  /// No description provided for @verifiedCount.
+  ///
+  /// In en, this message translates to:
+  /// **'Verified ({count})'**
+  String verifiedCount(int count);
+
+  /// No description provided for @disposedComplaintsCount.
+  ///
+  /// In en, this message translates to:
+  /// **'Disposed complaints ({count})'**
+  String disposedComplaintsCount(int count);
+
+  /// No description provided for @startNewInspection.
+  ///
+  /// In en, this message translates to:
+  /// **'Start new inspection'**
+  String get startNewInspection;
+
+  /// No description provided for @noInspectionsFound.
+  ///
+  /// In en, this message translates to:
+  /// **'No inspections found'**
+  String get noInspectionsFound;
+
+  /// No description provided for @inspectionLogCount.
+  ///
+  /// In en, this message translates to:
+  /// **'Inspection log ({count})'**
+  String inspectionLogCount(int count);
+
+  /// No description provided for @viewGpsInspection.
+  ///
+  /// In en, this message translates to:
+  /// **'View GPs inspection'**
+  String get viewGpsInspection;
+
+  /// No description provided for @selectLocation.
+  ///
+  /// In en, this message translates to:
+  /// **'Select Location'**
+  String get selectLocation;
+
+  /// No description provided for @reset.
+  ///
+  /// In en, this message translates to:
+  /// **'Reset'**
+  String get reset;
+
+  /// No description provided for @searchPlaceholder.
+  ///
+  /// In en, this message translates to:
+  /// **'Search....'**
+  String get searchPlaceholder;
+
+  /// No description provided for @searchBlock.
+  ///
+  /// In en, this message translates to:
+  /// **'Search block...'**
+  String get searchBlock;
+
+  /// No description provided for @searchGp.
+  ///
+  /// In en, this message translates to:
+  /// **'Search GP...'**
+  String get searchGp;
+
+  /// No description provided for @pleaseSelectDistrictFirstForGp.
+  ///
+  /// In en, this message translates to:
+  /// **'Please select a district first to view Gram Panchayats.'**
+  String get pleaseSelectDistrictFirstForGp;
+
+  /// No description provided for @failedToLoadGramPanchayats.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to load Gram Panchayats'**
+  String get failedToLoadGramPanchayats;
+
+  /// No description provided for @noBlocksFound.
+  ///
+  /// In en, this message translates to:
+  /// **'No blocks found'**
+  String get noBlocksFound;
+
+  /// No description provided for @noGramPanchayatsFoundForBlock.
+  ///
+  /// In en, this message translates to:
+  /// **'No Gram Panchayats found for {block}'**
+  String noGramPanchayatsFoundForBlock(String block);
+
+  /// No description provided for @chooseAnotherBlock.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose another block'**
+  String get chooseAnotherBlock;
+
+  /// No description provided for @districtOrBlockNotFound.
+  ///
+  /// In en, this message translates to:
+  /// **'District or Block information not found'**
+  String get districtOrBlockNotFound;
+
+  /// No description provided for @inspectionLog.
+  ///
+  /// In en, this message translates to:
+  /// **'Inspection log'**
+  String get inspectionLog;
+
+  /// No description provided for @noGramPanchayatsFound.
+  ///
+  /// In en, this message translates to:
+  /// **'No Gram Panchayats found'**
+  String get noGramPanchayatsFound;
+
+  /// No description provided for @pleaseSelectDistrictFirst.
+  ///
+  /// In en, this message translates to:
+  /// **'Please select a district first.'**
+  String get pleaseSelectDistrictFirst;
+
+  /// No description provided for @noDataAvailableForBlock.
+  ///
+  /// In en, this message translates to:
+  /// **'No data available for the selected block.'**
+  String get noDataAvailableForBlock;
+
+  /// No description provided for @districtInfoNotFound.
+  ///
+  /// In en, this message translates to:
+  /// **'District information not found. Please select a district first.'**
+  String get districtInfoNotFound;
+
+  /// No description provided for @viewingInspectionDetailsFor.
+  ///
+  /// In en, this message translates to:
+  /// **'Viewing inspection details for {gpName}'**
+  String viewingInspectionDetailsFor(String gpName);
+
+  /// No description provided for @failedToLoadAttendance.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to load attendance'**
+  String get failedToLoadAttendance;
+
+  /// No description provided for @errorLoadingAttendance.
+  ///
+  /// In en, this message translates to:
+  /// **'Error loading attendance: {error}'**
+  String errorLoadingAttendance(String error);
+
+  /// No description provided for @attendanceLogFor.
+  ///
+  /// In en, this message translates to:
+  /// **'Attendance log - {gpName}'**
+  String attendanceLogFor(String gpName);
+
+  /// No description provided for @attendanceLogPresentTotal.
+  ///
+  /// In en, this message translates to:
+  /// **'Attendance log ({present}/{total})'**
+  String attendanceLogPresentTotal(int present, int total);
+
+  /// No description provided for @unknown.
+  ///
+  /// In en, this message translates to:
+  /// **'Unknown'**
+  String get unknown;
+
+  /// No description provided for @unknownDate.
+  ///
+  /// In en, this message translates to:
+  /// **'Unknown date'**
+  String get unknownDate;
+
+  /// No description provided for @roadMaintenance.
+  ///
+  /// In en, this message translates to:
+  /// **'Road Maintenance'**
+  String get roadMaintenance;
+
+  /// No description provided for @complaintHasBeenClosed.
+  ///
+  /// In en, this message translates to:
+  /// **'Complaint has been closed'**
+  String get complaintHasBeenClosed;
+
+  /// No description provided for @closeComplaint.
+  ///
+  /// In en, this message translates to:
+  /// **'Close complaint'**
+  String get closeComplaint;
+
+  /// No description provided for @closeComplaintConfirmation.
+  ///
+  /// In en, this message translates to:
+  /// **'Are you sure you want to close this complaint?'**
+  String get closeComplaintConfirmation;
+
+  /// No description provided for @contractorSupervisor.
+  ///
+  /// In en, this message translates to:
+  /// **'Contractor / Supervisor'**
+  String get contractorSupervisor;
+
+  /// No description provided for @maximumFivePhotosUploaded.
+  ///
+  /// In en, this message translates to:
+  /// **'Maximum 5 photos can be uploaded'**
+  String get maximumFivePhotosUploaded;
+
+  /// No description provided for @onlyPhotosAddedMaximumFive.
+  ///
+  /// In en, this message translates to:
+  /// **'Only {count} photo(s) added. Maximum 5 photos allowed.'**
+  String onlyPhotosAddedMaximumFive(int count);
+
+  /// No description provided for @failedToPickImagesError.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to pick images: {error}'**
+  String failedToPickImagesError(String error);
+
+  /// No description provided for @inspectionSubmittedSuccessfully.
+  ///
+  /// In en, this message translates to:
+  /// **'Your Inspection has been submitted successfully'**
+  String get inspectionSubmittedSuccessfully;
+
+  /// No description provided for @pleaseEnterVillageName.
+  ///
+  /// In en, this message translates to:
+  /// **'Please enter village name'**
+  String get pleaseEnterVillageName;
+
+  /// No description provided for @failedToSubmitInspection.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to submit inspection: {error}'**
+  String failedToSubmitInspection(String error);
+
+  /// No description provided for @enterVillageName.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter village name'**
+  String get enterVillageName;
+
+  /// No description provided for @generalDetails.
+  ///
+  /// In en, this message translates to:
+  /// **'General Details'**
+  String get generalDetails;
+
+  /// No description provided for @numberOfWards.
+  ///
+  /// In en, this message translates to:
+  /// **'Number of Wards'**
+  String get numberOfWards;
+
+  /// No description provided for @numberPlaceholder.
+  ///
+  /// In en, this message translates to:
+  /// **'Number'**
+  String get numberPlaceholder;
+
+  /// No description provided for @dailyRegisterMaintainedAtHeadquarters.
+  ///
+  /// In en, this message translates to:
+  /// **'Daily Register maintained at Headquarters'**
+  String get dailyRegisterMaintainedAtHeadquarters;
+
+  /// No description provided for @householdWasteCollectionDisposal.
+  ///
+  /// In en, this message translates to:
+  /// **'Household Waste Collection & Disposal Work'**
+  String get householdWasteCollectionDisposal;
+
+  /// No description provided for @atWhatIntervalWasteCollected.
+  ///
+  /// In en, this message translates to:
+  /// **'At what interval is waste collected from houses?'**
+  String get atWhatIntervalWasteCollected;
+
+  /// No description provided for @arrangementSeparateWetDryWaste.
+  ///
+  /// In en, this message translates to:
+  /// **'Arrangement for separate collection of wet & dry waste in cleaning vehicles'**
+  String get arrangementSeparateWetDryWaste;
+
+  /// No description provided for @wasteDisposedAtRrc.
+  ///
+  /// In en, this message translates to:
+  /// **'Is the waste being disposed of at RRC'**
+  String get wasteDisposedAtRrc;
+
+  /// No description provided for @arrangementWasteAtRrc.
+  ///
+  /// In en, this message translates to:
+  /// **'Arrangement of waste collection and disposal at RRC'**
+  String get arrangementWasteAtRrc;
+
+  /// No description provided for @wasteCollectionVehiclePrepared.
+  ///
+  /// In en, this message translates to:
+  /// **'Is the waste collection vehicle properly prepared/functional'**
+  String get wasteCollectionVehiclePrepared;
+
+  /// No description provided for @roadCleaningWork.
+  ///
+  /// In en, this message translates to:
+  /// **'Road Cleaning Work'**
+  String get roadCleaningWork;
+
+  /// No description provided for @atWhatIntervalRoadsSwept.
+  ///
+  /// In en, this message translates to:
+  /// **'At what interval are roads/markets/main squares swept/cleaned?'**
+  String get atWhatIntervalRoadsSwept;
+
+  /// No description provided for @drainCleaningWork.
+  ///
+  /// In en, this message translates to:
+  /// **'Drain Cleaning Work'**
+  String get drainCleaningWork;
+
+  /// No description provided for @atWhatIntervalDrainsCleaned.
+  ///
+  /// In en, this message translates to:
+  /// **'At what interval are drains cleaned?'**
+  String get atWhatIntervalDrainsCleaned;
+
+  /// No description provided for @disposalSludgeFromDrains.
+  ///
+  /// In en, this message translates to:
+  /// **'Arrangement for disposal of sludge from drains'**
+  String get disposalSludgeFromDrains;
+
+  /// No description provided for @drainWasteOnRoadside.
+  ///
+  /// In en, this message translates to:
+  /// **'Is the drain waste collected on the roadside'**
+  String get drainWasteOnRoadside;
+
+  /// No description provided for @cscCleaningWork.
+  ///
+  /// In en, this message translates to:
+  /// **'Community Sanitation Complex (CSC) Cleaning Work'**
+  String get cscCleaningWork;
+
+  /// No description provided for @intervalCscCleaning.
+  ///
+  /// In en, this message translates to:
+  /// **'Interval of CSC cleaning'**
+  String get intervalCscCleaning;
+
+  /// No description provided for @availabilityElectricityWaterCsc.
+  ///
+  /// In en, this message translates to:
+  /// **'Availability of electricity & water in CSC'**
+  String get availabilityElectricityWaterCsc;
+
+  /// No description provided for @cscUsedByCommunity.
+  ///
+  /// In en, this message translates to:
+  /// **'Is the CSC being used by the community'**
+  String get cscUsedByCommunity;
+
+  /// No description provided for @pinkToiletInSchoolsUsed.
+  ///
+  /// In en, this message translates to:
+  /// **'Is the pink toilet in schools being used'**
+  String get pinkToiletInSchoolsUsed;
+
+  /// No description provided for @otherPoints.
+  ///
+  /// In en, this message translates to:
+  /// **'Other Points'**
+  String get otherPoints;
+
+  /// No description provided for @firmPaidRegularly.
+  ///
+  /// In en, this message translates to:
+  /// **'Is the firm being paid regularly'**
+  String get firmPaidRegularly;
+
+  /// No description provided for @cleaningStaffPaidRegularly.
+  ///
+  /// In en, this message translates to:
+  /// **'Are cleaning staff being paid regularly by the firm'**
+  String get cleaningStaffPaidRegularly;
+
+  /// No description provided for @safetyEquipmentProvided.
+  ///
+  /// In en, this message translates to:
+  /// **'Has the firm provided safety equipment'**
+  String get safetyEquipmentProvided;
+
+  /// No description provided for @entryInFeedbackRegister.
+  ///
+  /// In en, this message translates to:
+  /// **'Is entry being made regularly in the feedback register'**
+  String get entryInFeedbackRegister;
+
+  /// No description provided for @rateChartPrepared.
+  ///
+  /// In en, this message translates to:
+  /// **'Is a rate chart prepared for cleaning work'**
+  String get rateChartPrepared;
+
+  /// No description provided for @rateChartDisplayed.
+  ///
+  /// In en, this message translates to:
+  /// **'Is the rate chart displayed at major locations'**
+  String get rateChartDisplayed;
+
+  /// No description provided for @suggestionsByInspector.
+  ///
+  /// In en, this message translates to:
+  /// **'Suggestions by Inspector'**
+  String get suggestionsByInspector;
+
+  /// No description provided for @daily.
+  ///
+  /// In en, this message translates to:
+  /// **'Daily'**
+  String get daily;
+
+  /// No description provided for @weekly.
+  ///
+  /// In en, this message translates to:
+  /// **'Weekly'**
+  String get weekly;
+
+  /// No description provided for @fortnight.
+  ///
+  /// In en, this message translates to:
+  /// **'Fortnight'**
+  String get fortnight;
+
+  /// No description provided for @none.
+  ///
+  /// In en, this message translates to:
+  /// **'None'**
+  String get none;
+
+  /// No description provided for @gp.
+  ///
+  /// In en, this message translates to:
+  /// **'GP'**
+  String get gp;
+
+  /// No description provided for @bdo.
+  ///
+  /// In en, this message translates to:
+  /// **'BDO'**
+  String get bdo;
+
+  /// No description provided for @selectGp.
+  ///
+  /// In en, this message translates to:
+  /// **'Select GP'**
+  String get selectGp;
+
+  /// No description provided for @errorLoadingGps.
+  ///
+  /// In en, this message translates to:
+  /// **'Error loading GPs: {error}'**
+  String errorLoadingGps(String error);
+
+  /// No description provided for @failedToLoadRankings.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to load rankings: {error}'**
+  String failedToLoadRankings(String error);
+
+  /// No description provided for @add.
+  ///
+  /// In en, this message translates to:
+  /// **'Add'**
+  String get add;
+
+  /// No description provided for @failedToLoadComplaintDetails.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to load complaint details'**
+  String get failedToLoadComplaintDetails;
+
+  /// No description provided for @unknownLocation.
+  ///
+  /// In en, this message translates to:
+  /// **'Unknown Location'**
+  String get unknownLocation;
+
+  /// No description provided for @invalidCoordinates.
+  ///
+  /// In en, this message translates to:
+  /// **'Invalid Coordinates'**
+  String get invalidCoordinates;
+
+  /// No description provided for @testLocation.
+  ///
+  /// In en, this message translates to:
+  /// **'Test Location'**
+  String get testLocation;
+
+  /// No description provided for @locationAtCoordinates.
+  ///
+  /// In en, this message translates to:
+  /// **'Location at {lat}, {long}'**
+  String locationAtCoordinates(String lat, String long);
+
+  /// No description provided for @todaySuffix.
+  ///
+  /// In en, this message translates to:
+  /// **'(today)'**
+  String get todaySuffix;
+
+  /// No description provided for @attendanceLogTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Attendance log ({present}/{total}) - {filter}'**
+  String attendanceLogTitle(int present, int total, String filter);
+
+  /// No description provided for @failedToMarkAttendance.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to mark attendance'**
+  String get failedToMarkAttendance;
+
+  /// No description provided for @gramPanchayatName.
+  ///
+  /// In en, this message translates to:
+  /// **'Gram Panchayat Name'**
+  String get gramPanchayatName;
+
+  /// No description provided for @noComplaintsForStatus.
+  ///
+  /// In en, this message translates to:
+  /// **'No {status} complaints'**
+  String noComplaintsForStatus(String status);
+
+  /// No description provided for @na.
+  ///
+  /// In en, this message translates to:
+  /// **'N/A'**
+  String get na;
+
+  /// No description provided for @noDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'No description'**
+  String get noDescription;
+
+  /// No description provided for @filterMonth.
+  ///
+  /// In en, this message translates to:
+  /// **'Month'**
+  String get filterMonth;
+
+  /// No description provided for @filterWeek.
+  ///
+  /// In en, this message translates to:
+  /// **'Week'**
+  String get filterWeek;
+
+  /// No description provided for @filterDay.
+  ///
+  /// In en, this message translates to:
+  /// **'Day'**
+  String get filterDay;
+
+  /// No description provided for @tapToScanQRCode.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap the button to scan a QR code'**
+  String get tapToScanQRCode;
+
+  /// No description provided for @scan.
+  ///
+  /// In en, this message translates to:
+  /// **'Scan'**
+  String get scan;
+
+  /// No description provided for @gpMasterData.
+  ///
+  /// In en, this message translates to:
+  /// **'GP Master Data'**
+  String get gpMasterData;
+
+  /// No description provided for @gpVillageNotAssignedContactAdmin.
+  ///
+  /// In en, this message translates to:
+  /// **'GP/Village is not assigned to your account. Please contact admin.'**
+  String get gpVillageNotAssignedContactAdmin;
+
+  /// No description provided for @exportingData.
+  ///
+  /// In en, this message translates to:
+  /// **'Exporting data...'**
+  String get exportingData;
+
+  /// No description provided for @exportSuccessful.
+  ///
+  /// In en, this message translates to:
+  /// **'Export Successful'**
+  String get exportSuccessful;
+
+  /// No description provided for @exportFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Export Failed'**
+  String get exportFailed;
+
+  /// No description provided for @csvFileSavedSuccessfully.
+  ///
+  /// In en, this message translates to:
+  /// **'CSV file saved successfully!\n\nLocation: {path}'**
+  String csvFileSavedSuccessfully(String path);
+
+  /// No description provided for @failedToExportDataPleaseTryAgain.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to export data. Please try again.'**
+  String get failedToExportDataPleaseTryAgain;
+
+  /// No description provided for @addNewAgency.
+  ///
+  /// In en, this message translates to:
+  /// **'Add New Agency'**
+  String get addNewAgency;
+
+  /// No description provided for @agencyNameRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Agency Name*'**
+  String get agencyNameRequired;
+
+  /// No description provided for @enterAgencyName.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter agency name'**
+  String get enterAgencyName;
+
+  /// No description provided for @required.
+  ///
+  /// In en, this message translates to:
+  /// **'Required'**
+  String get required;
+
+  /// No description provided for @enter10Digits.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter 10 digits'**
+  String get enter10Digits;
+
+  /// No description provided for @enterEmailAddress.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter email address'**
+  String get enterEmailAddress;
+
+  /// No description provided for @enterAddress.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter address'**
+  String get enterAddress;
+
+  /// No description provided for @failedToAddAgency.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to add agency: {error}'**
+  String failedToAddAgency(String error);
+
+  /// No description provided for @agency.
+  ///
+  /// In en, this message translates to:
+  /// **'Agency'**
+  String get agency;
+
+  /// No description provided for @selectAgency.
+  ///
+  /// In en, this message translates to:
+  /// **'Select Agency'**
+  String get selectAgency;
+
+  /// No description provided for @pleaseSelectAgency.
+  ///
+  /// In en, this message translates to:
+  /// **'Please select an agency'**
+  String get pleaseSelectAgency;
+
+  /// No description provided for @pleaseSelectWorkOrderDate.
+  ///
+  /// In en, this message translates to:
+  /// **'Please select work order date'**
+  String get pleaseSelectWorkOrderDate;
+
+  /// No description provided for @pleaseSelectDuration.
+  ///
+  /// In en, this message translates to:
+  /// **'Please select duration'**
+  String get pleaseSelectDuration;
+
+  /// No description provided for @pleaseSelectDurationToCalculateEndDate.
+  ///
+  /// In en, this message translates to:
+  /// **'Please select duration to calculate end date'**
+  String get pleaseSelectDurationToCalculateEndDate;
+
+  /// No description provided for @phoneNumberRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Phone number is required'**
+  String get phoneNumberRequired;
+
+  /// No description provided for @contractorAddedSuccessfully.
+  ///
+  /// In en, this message translates to:
+  /// **'Contractor added successfully!'**
+  String get contractorAddedSuccessfully;
+
+  /// No description provided for @contractorDetailsUpdatedSuccessfully.
+  ///
+  /// In en, this message translates to:
+  /// **'Contractor details updated successfully!'**
+  String get contractorDetailsUpdatedSuccessfully;
+
+  /// No description provided for @addNew.
+  ///
+  /// In en, this message translates to:
+  /// **'Add New'**
+  String get addNew;
+
+  /// No description provided for @addContractor.
+  ///
+  /// In en, this message translates to:
+  /// **'Add Contractor'**
+  String get addContractor;
+
+  /// No description provided for @enterContractorName.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter contractor name'**
+  String get enterContractorName;
+
+  /// No description provided for @phoneNumberLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Phone number'**
+  String get phoneNumberLabel;
+
+  /// No description provided for @workOrderDatePlaceholder.
+  ///
+  /// In en, this message translates to:
+  /// **'Work Order date'**
+  String get workOrderDatePlaceholder;
+
+  /// No description provided for @workOrderAmount.
+  ///
+  /// In en, this message translates to:
+  /// **'Work order amount'**
+  String get workOrderAmount;
+
+  /// No description provided for @enterAmount.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter amount'**
+  String get enterAmount;
+
+  /// No description provided for @selectDuration.
+  ///
+  /// In en, this message translates to:
+  /// **'Select duration'**
+  String get selectDuration;
+
+  /// No description provided for @selectFrequency.
+  ///
+  /// In en, this message translates to:
+  /// **'Select frequency'**
+  String get selectFrequency;
+
+  /// No description provided for @thisFieldIsRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'This field is required'**
+  String get thisFieldIsRequired;
+
+  /// No description provided for @pleaseSelectValue.
+  ///
+  /// In en, this message translates to:
+  /// **'Please select a value'**
+  String get pleaseSelectValue;
+
+  /// No description provided for @alternateDays.
+  ///
+  /// In en, this message translates to:
+  /// **'Alternate days'**
+  String get alternateDays;
+
+  /// No description provided for @twiceAWeek.
+  ///
+  /// In en, this message translates to:
+  /// **'Twice a week'**
+  String get twiceAWeek;
+
+  /// No description provided for @gramPanchayatFallback.
+  ///
+  /// In en, this message translates to:
+  /// **'Gram Panchayat'**
+  String get gramPanchayatFallback;
+
+  /// No description provided for @vdoName.
+  ///
+  /// In en, this message translates to:
+  /// **'VDO Name'**
+  String get vdoName;
+
+  /// No description provided for @sarpanchDetails.
+  ///
+  /// In en, this message translates to:
+  /// **'Sarpanch details'**
+  String get sarpanchDetails;
+
+  /// No description provided for @contactNumber.
+  ///
+  /// In en, this message translates to:
+  /// **'Contact Number'**
+  String get contactNumber;
+
+  /// No description provided for @numberPlaceholder10Digits.
+  ///
+  /// In en, this message translates to:
+  /// **'Number (10 digits)'**
+  String get numberPlaceholder10Digits;
+
+  /// No description provided for @numberOfWardPanchs.
+  ///
+  /// In en, this message translates to:
+  /// **'Number of Ward Panchs'**
+  String get numberOfWardPanchs;
+
+  /// No description provided for @noShort.
+  ///
+  /// In en, this message translates to:
+  /// **'No'**
+  String get noShort;
+
+  /// No description provided for @workOrderDetails.
+  ///
+  /// In en, this message translates to:
+  /// **'Work order details'**
+  String get workOrderDetails;
+
+  /// No description provided for @workOrderNo.
+  ///
+  /// In en, this message translates to:
+  /// **'Work order no'**
+  String get workOrderNo;
+
+  /// No description provided for @noDot.
+  ///
+  /// In en, this message translates to:
+  /// **'No.'**
+  String get noDot;
+
+  /// No description provided for @date.
+  ///
+  /// In en, this message translates to:
+  /// **'Date'**
+  String get date;
+
+  /// No description provided for @amount.
+  ///
+  /// In en, this message translates to:
+  /// **'Amount'**
+  String get amount;
+
+  /// No description provided for @fundSanctioned.
+  ///
+  /// In en, this message translates to:
+  /// **'Fund Sanctioned'**
+  String get fundSanctioned;
+
+  /// No description provided for @doorToDoorCollectionDetails.
+  ///
+  /// In en, this message translates to:
+  /// **'Door to door collection details'**
+  String get doorToDoorCollectionDetails;
+
+  /// No description provided for @noOfHouseholds.
+  ///
+  /// In en, this message translates to:
+  /// **'No. of households'**
+  String get noOfHouseholds;
+
+  /// No description provided for @noOfShops.
+  ///
+  /// In en, this message translates to:
+  /// **'No. of shops'**
+  String get noOfShops;
+
+  /// No description provided for @collectionFrequency.
+  ///
+  /// In en, this message translates to:
+  /// **'Collection frequency'**
+  String get collectionFrequency;
+
+  /// No description provided for @roadSweepingDetails.
+  ///
+  /// In en, this message translates to:
+  /// **'Road sweeping details'**
+  String get roadSweepingDetails;
+
+  /// No description provided for @widthM.
+  ///
+  /// In en, this message translates to:
+  /// **'Width (m)'**
+  String get widthM;
+
+  /// No description provided for @widthInMetres.
+  ///
+  /// In en, this message translates to:
+  /// **'Width in metres'**
+  String get widthInMetres;
+
+  /// No description provided for @lengthM.
+  ///
+  /// In en, this message translates to:
+  /// **'Length (m)'**
+  String get lengthM;
+
+  /// No description provided for @lengthInMetres.
+  ///
+  /// In en, this message translates to:
+  /// **'Length in metres'**
+  String get lengthInMetres;
+
+  /// No description provided for @cleaningFrequency.
+  ///
+  /// In en, this message translates to:
+  /// **'Cleaning frequency'**
+  String get cleaningFrequency;
+
+  /// No description provided for @drainCleaningDetails.
+  ///
+  /// In en, this message translates to:
+  /// **'Drain cleaning details'**
+  String get drainCleaningDetails;
+
+  /// No description provided for @length.
+  ///
+  /// In en, this message translates to:
+  /// **'Length'**
+  String get length;
+
+  /// No description provided for @swmAssetsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'SWM Assets (Solid Waste Management Assets)'**
+  String get swmAssetsTitle;
+
+  /// No description provided for @rrcResourceRecoveryCentre.
+  ///
+  /// In en, this message translates to:
+  /// **'RRC (Resource Recovery Centre)'**
+  String get rrcResourceRecoveryCentre;
+
+  /// No description provided for @pwmuPlasticWaste.
+  ///
+  /// In en, this message translates to:
+  /// **'PWMU (Plastic Waste Management Unit)'**
+  String get pwmuPlasticWaste;
+
+  /// No description provided for @compositPit.
+  ///
+  /// In en, this message translates to:
+  /// **'Composit pit'**
+  String get compositPit;
+
+  /// No description provided for @collectionVehicle.
+  ///
+  /// In en, this message translates to:
+  /// **'Collection vehicle'**
+  String get collectionVehicle;
+
+  /// No description provided for @sbmgYearTargetsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'SBMG Year Targets (Swachh Bharat Mission - Gramin Year Targets)'**
+  String get sbmgYearTargetsTitle;
+
+  /// No description provided for @ihhlIndividualHousehold.
+  ///
+  /// In en, this message translates to:
+  /// **'IHHL (Individual Household Latrine)'**
+  String get ihhlIndividualHousehold;
+
+  /// No description provided for @cscCommunitySanitation.
+  ///
+  /// In en, this message translates to:
+  /// **'CSC (Community Sanitation Complex)'**
+  String get cscCommunitySanitation;
+
+  /// No description provided for @soakPit.
+  ///
+  /// In en, this message translates to:
+  /// **'Soak pit'**
+  String get soakPit;
+
+  /// No description provided for @magicPit.
+  ///
+  /// In en, this message translates to:
+  /// **'Magic pit'**
+  String get magicPit;
+
+  /// No description provided for @leachPit.
+  ///
+  /// In en, this message translates to:
+  /// **'Leach pit'**
+  String get leachPit;
+
+  /// No description provided for @wspWasteStabilisation.
+  ///
+  /// In en, this message translates to:
+  /// **'WSP (Waste Stabilisation Pond)'**
+  String get wspWasteStabilisation;
+
+  /// No description provided for @dewatsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'DEWATS (Decentralised Wastewater Treatment System)'**
+  String get dewatsTitle;
+
+  /// No description provided for @headName.
+  ///
+  /// In en, this message translates to:
+  /// **'Head name'**
+  String get headName;
+
+  /// No description provided for @enterHeadName.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter head name'**
+  String get enterHeadName;
+
+  /// No description provided for @addVillage.
+  ///
+  /// In en, this message translates to:
+  /// **'Add Village'**
+  String get addVillage;
+
+  /// No description provided for @villagesCount.
+  ///
+  /// In en, this message translates to:
+  /// **'Villages ({count})'**
+  String villagesCount(int count);
+
+  /// No description provided for @villageNumber.
+  ///
+  /// In en, this message translates to:
+  /// **'Village {number}'**
+  String villageNumber(int number);
+
+  /// No description provided for @villageNameLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Village name'**
+  String get villageNameLabel;
+
+  /// No description provided for @population.
+  ///
+  /// In en, this message translates to:
+  /// **'Population'**
+  String get population;
+
+  /// No description provided for @noOfHouseholdsLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'No. of households'**
+  String get noOfHouseholdsLabel;
+
+  /// No description provided for @sbmgAssets.
+  ///
+  /// In en, this message translates to:
+  /// **'SBMG Assets'**
+  String get sbmgAssets;
+
+  /// No description provided for @gwmAssets.
+  ///
+  /// In en, this message translates to:
+  /// **'GWM Assets'**
+  String get gwmAssets;
+
+  /// No description provided for @viewAllSearchAgency.
+  ///
+  /// In en, this message translates to:
+  /// **'View all / Search…'**
+  String get viewAllSearchAgency;
+
+  /// No description provided for @ownIncome.
+  ///
+  /// In en, this message translates to:
+  /// **'Own income'**
+  String get ownIncome;
+
+  /// No description provided for @ceo.
+  ///
+  /// In en, this message translates to:
+  /// **'CEO'**
+  String get ceo;
+
+  /// No description provided for @districtInfoNotAvailable.
+  ///
+  /// In en, this message translates to:
+  /// **'District information not available.'**
+  String get districtInfoNotAvailable;
+
+  /// No description provided for @noBlocksAvailable.
+  ///
+  /// In en, this message translates to:
+  /// **'No blocks available.'**
+  String get noBlocksAvailable;
+
+  /// No description provided for @citizen.
+  ///
+  /// In en, this message translates to:
+  /// **'Citizen'**
+  String get citizen;
+
+  /// No description provided for @pleaseSelectBlockFirst.
+  ///
+  /// In en, this message translates to:
+  /// **'Please select a block first.'**
+  String get pleaseSelectBlockFirst;
+
+  /// No description provided for @noGramPanchayatsFoundForThisBlock.
+  ///
+  /// In en, this message translates to:
+  /// **'No Gram Panchayats found for this block.'**
+  String get noGramPanchayatsFoundForThisBlock;
+
+  /// No description provided for @failedToLoadBlocksError.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to load blocks: {error}'**
+  String failedToLoadBlocksError(String error);
+
+  /// No description provided for @failedToLoadGramPanchayatsError.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to load Gram Panchayats: {error}'**
+  String failedToLoadGramPanchayatsError(String error);
 }
 
 class _AppLocalizationsDelegate

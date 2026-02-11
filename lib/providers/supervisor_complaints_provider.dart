@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import '../models/api_complaint_model.dart';
 import '../services/complaints_service.dart';
+import '../services/api_services.dart';
 
 class SupervisorComplaintsProvider with ChangeNotifier {
   final ComplaintsService _complaintsService = ComplaintsService();
+  final ApiService _apiService = ApiService();
 
   // Loading states
   bool _isLoading = true;
@@ -11,6 +13,7 @@ class SupervisorComplaintsProvider with ChangeNotifier {
 
   // Data
   List<ApiComplaintModel> _complaints = [];
+  Map<int, String> _complaintTypeNames = {};
   String _villageName = 'Gram Panchayat';
 
   // Getters
@@ -52,6 +55,10 @@ class SupervisorComplaintsProvider with ChangeNotifier {
 
         _complaints = complaints;
         _villageName = villageName;
+        try {
+          final types = await _apiService.getComplaintTypes();
+          _complaintTypeNames = {for (var t in types) t.id: t.name};
+        } catch (_) {}
         _isLoading = false;
         notifyListeners();
       } else {
@@ -66,6 +73,17 @@ class SupervisorComplaintsProvider with ChangeNotifier {
       notifyListeners();
     }
   }
+
+  /// Display title for list card: use complaint type name by ID when available so list matches details page.
+  String getComplaintTypeDisplayName(ApiComplaintModel complaint) {
+    if (complaint.complaintTypeId != 0 && _complaintTypeNames.containsKey(complaint.complaintTypeId)) {
+      return _complaintTypeNames[complaint.complaintTypeId]!;
+    }
+    return complaint.complaintType.isNotEmpty ? complaint.complaintType : 'Complaint';
+  }
+
+  /// Resolve complaint type name by ID (for details screen when API returns id but not type name).
+  String? getComplaintTypeNameById(int id) => _complaintTypeNames[id];
 
   // Refresh complaints
   Future<void> refresh() async {

@@ -1,10 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:provider/provider.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../services/api_services.dart';
 import '../../config/connstants.dart';
+import '../../providers/bdo_complaints_provider.dart';
 import '../../l10n/app_localizations.dart';
 import '../../utils/location_display_helper.dart';
 import '../../utils/date_time_utils.dart';
+import '../../widgets/resolution_details_sheet.dart';
 
 class BdoComplaintDetailsScreen extends StatefulWidget {
   final int complaintId;
@@ -66,14 +70,24 @@ class _BdoComplaintDetailsScreenState extends State<BdoComplaintDetailsScreen> {
     // Try to determine complaint type name
     if (complaintType is Map && complaintType['name'] != null) {
       return complaintType['name'];
-    } else if (complaintType is String) {
-      return complaintType;
+    } else if (complaintType is String && complaintType.trim().isNotEmpty) {
+      return complaintType.trim();
     } else if (_complaintData?['complaint_type_name'] != null) {
       return _complaintData!['complaint_type_name'];
     }
-    
+
+    // Resolve from complaint_type_id when API returns id but not type name
+    final typeId = _complaintData?['complaint_type_id'];
+    if (typeId != null && context.mounted) {
+      final id = typeId is int ? typeId : int.tryParse(typeId.toString());
+      if (id != null) {
+        final resolved = context.read<BdoComplaintsProvider>().getComplaintTypeNameById(id);
+        if (resolved != null && resolved.isNotEmpty) return resolved;
+      }
+    }
+
     // Fallback to default
-    return 'Road Maintenance';
+    return AppLocalizations.of(context)!.roadMaintenance;
   }
 
   String get _dynamicStatusText {
@@ -86,21 +100,21 @@ class _BdoComplaintDetailsScreenState extends State<BdoComplaintDetailsScreen> {
 
     // First check if closed
     if (status == 4 || closedAt != null) {
-      return l10n.complaintResolved;
+      return l10n.complaintHasBeenClosed;
     }
 
-    // Then check if verified but not closed
+    // Then check if verified but not closed - show awaiting citizen message
     if (status == 3 || (verifiedAt != null && closedAt == null)) {
-      return l10n.complaintVerified;
+      return l10n.awaitingForCitizenToCloseComplaint;
     }
 
-    // Then check if resolved
-    if (status == 2 || resolvedAt != null) {
-      return l10n.waitingVerificationFromVdo;
+    // Then check if resolved but not verified - show awaiting VDO message
+    if (status == 2 || (resolvedAt != null && verifiedAt == null)) {
+      return l10n.awaitingForVdoToVerify;
     }
 
-    // Open status
-    return l10n.waitingForSupervisorToResolve;
+    // Open status - show awaiting supervisor message
+    return l10n.awaitingForSupervisorToTakeAction;
   }
 
   String get _dynamicStatusSubtext {
@@ -194,6 +208,7 @@ class _BdoComplaintDetailsScreenState extends State<BdoComplaintDetailsScreen> {
     }
 
     if (_errorMessage != null || _complaintData == null) {
+      final l10nErr = AppLocalizations.of(context)!;
       return Scaffold(
         backgroundColor: Colors.white,
         appBar: AppBar(
@@ -211,7 +226,7 @@ class _BdoComplaintDetailsScreenState extends State<BdoComplaintDetailsScreen> {
               Icon(Icons.error_outline, size: 64.sp, color: Colors.grey),
               SizedBox(height: 16.h),
               Text(
-                _errorMessage ?? 'Failed to load complaint details',
+                _errorMessage != null ? l10nErr.failedToLoadComplaintDetails : '',
                 style: TextStyle(fontSize: 16.sp, color: Colors.grey),
                 textAlign: TextAlign.center,
               ),
@@ -221,6 +236,7 @@ class _BdoComplaintDetailsScreenState extends State<BdoComplaintDetailsScreen> {
       );
     }
 
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
@@ -242,7 +258,7 @@ class _BdoComplaintDetailsScreenState extends State<BdoComplaintDetailsScreen> {
               ),
             ),
             Text(
-              '${_complaintData!['district_name'] ?? 'District'} | ${_complaintData!['block_name'] ?? 'Block'} | ${_complaintData!['village_name'] ?? 'GP'}',
+              '${_complaintData!['district_name'] ?? l10n.district} | ${_complaintData!['block_name'] ?? l10n.block} | ${_complaintData!['village_name'] ?? l10n.gp}',
               style: TextStyle(
                 fontSize: 10.sp,
                 fontWeight: FontWeight.w400,
@@ -366,6 +382,7 @@ class _BdoComplaintDetailsScreenState extends State<BdoComplaintDetailsScreen> {
 
   Widget _buildImages() {
     final media = _complaintData?['media'] as List<dynamic>? ?? [];
+    final l10n = AppLocalizations.of(context)!;
 
     if (media.isEmpty) {
       return Container(
@@ -378,7 +395,7 @@ class _BdoComplaintDetailsScreenState extends State<BdoComplaintDetailsScreen> {
         ),
         child: Center(
           child: Text(
-            'No images available',
+            l10n.noImagesAvailable,
             style: TextStyle(fontSize: 14.sp, color: const Color(0xFF6B7280)),
           ),
         ),
@@ -508,13 +525,24 @@ class _BdoComplaintDetailsScreenState extends State<BdoComplaintDetailsScreen> {
 
   Widget _buildComplaintDetails() {
     final complaintType = _complaintData?['complaint_type'];
+    final l10n = AppLocalizations.of(context)!;
 
     // Try to determine complaint type name
-    String complaintTypeName = 'Road Maintenance';
+    String complaintTypeName = l10n.roadMaintenance;
     if (complaintType is Map && complaintType['name'] != null) {
       complaintTypeName = complaintType['name'];
-    } else if (complaintType is String) {
-      complaintTypeName = complaintType;
+    } else if (complaintType is String && complaintType.trim().isNotEmpty) {
+      complaintTypeName = complaintType.trim();
+    } else {
+      // Resolve from complaint_type_id when API returns id but not type name
+      final typeId = _complaintData?['complaint_type_id'];
+      if (typeId != null && context.mounted) {
+        final id = typeId is int ? typeId : int.tryParse(typeId.toString());
+        if (id != null) {
+          final resolved = context.read<BdoComplaintsProvider>().getComplaintTypeNameById(id);
+          if (resolved != null && resolved.isNotEmpty) complaintTypeName = resolved;
+        }
+      }
     }
 
     return Container(
@@ -565,7 +593,7 @@ class _BdoComplaintDetailsScreenState extends State<BdoComplaintDetailsScreen> {
           SizedBox(height: 16.h),
 
           Text(
-            _complaintData?['description'] ?? 'No description available',
+            _complaintData?['description'] ?? l10n.noDescriptionAvailable,
             style: TextStyle(
               fontSize: 12.sp,
               fontWeight: FontWeight.w400,
@@ -574,6 +602,57 @@ class _BdoComplaintDetailsScreenState extends State<BdoComplaintDetailsScreen> {
             ),
           ),
           SizedBox(height: 16.h),
+
+          // Get Directions Button
+          if (_latitude != null && _longitude != null)
+            GestureDetector(
+              onTap: () {
+                _openGoogleMaps(
+                  _latitude,
+                  _longitude,
+                );
+              },
+              child: Container(
+                padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 14.h),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(8.r),
+                  border: Border.all(color: Colors.grey.shade300, width: 1),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.05),
+                      blurRadius: 4,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: Row(
+                  children: [
+                    Image.asset(
+                      'assets/icons/map.png',
+                      width: 24.w,
+                      height: 24.h,
+                      fit: BoxFit.contain,
+                    ),
+                    SizedBox(width: 12.w),
+                    Text(
+                      AppLocalizations.of(context)!.getDirections,
+                      style: TextStyle(
+                        fontSize: 14.sp,
+                        fontWeight: FontWeight.w500,
+                        color: const Color(0xFF111827),
+                      ),
+                    ),
+                    const Spacer(),
+                    Icon(
+                      Icons.arrow_forward_ios,
+                      size: 16.sp,
+                      color: AppColors.primaryColor,
+                    ),
+                  ],
+                ),
+              ),
+            ),
         ],
       ),
     );
@@ -602,6 +681,7 @@ class _BdoComplaintDetailsScreenState extends State<BdoComplaintDetailsScreen> {
               item['subtitle'],
               item['isCompleted'],
               showLine: item['showLine'],
+              onTap: () => _onTimelineStageTap(item),
             ),
           ),
         ],
@@ -641,16 +721,18 @@ class _BdoComplaintDetailsScreenState extends State<BdoComplaintDetailsScreen> {
           closedAt != null ||
           hasResolutionComment ||
           hasVerificationComment,
+      'stage': 'created',
     });
 
     // Add resolved if present
     if (resolvedAt != null || hasResolutionComment) {
       items.add({
         'title': l10n.resolved,
-        'subtitle': _formatTimelineSubtitle('Vendor / Supervisor', resolvedAt),
+        'subtitle': _formatTimelineSubtitle('Contractor / Supervisor', resolvedAt),
         'isCompleted': true,
         'showLine':
             verifiedAt != null || closedAt != null || hasVerificationComment,
+        'stage': 'resolved',
       });
     }
 
@@ -661,6 +743,7 @@ class _BdoComplaintDetailsScreenState extends State<BdoComplaintDetailsScreen> {
         'subtitle': _formatTimelineSubtitle('VDO', verifiedAt),
         'isCompleted': true,
         'showLine': closedAt != null,
+        'stage': 'verified',
       });
     }
 
@@ -671,6 +754,7 @@ class _BdoComplaintDetailsScreenState extends State<BdoComplaintDetailsScreen> {
         'subtitle': _formatTimelineSubtitle('Citizen', closedAt),
         'isCompleted': true,
         'showLine': false,
+        'stage': 'closed',
       });
     }
 
@@ -678,11 +762,32 @@ class _BdoComplaintDetailsScreenState extends State<BdoComplaintDetailsScreen> {
   }
 
   String _formatTimelineSubtitle(String user, String? dateString) {
-    String formattedDate = DateTimeUtils.formatDateStringIST(dateString);
+    String formattedDate = DateTimeUtils.formatComplaintDetailIST(dateString);
     if (formattedDate == 'Unknown') {
-      formattedDate = 'Unknown date';
+      formattedDate = AppLocalizations.of(context)!.unknownDate;
     }
     return '$user · $formattedDate';
+  }
+
+  void _onTimelineStageTap(Map<String, dynamic> item) {
+    final stage = item['stage'] as String?;
+    if (stage == 'resolved') {
+      ResolutionDetailsSheet.show(context, _complaintData);
+    } else {
+      showDialog<void>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: Text(item['title'] as String),
+          content: Text(item['subtitle'] as String),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: Text(AppLocalizations.of(context)!.cancel),
+            ),
+          ],
+        ),
+      );
+    }
   }
 
   String _getLocationDisplay() {
@@ -703,13 +808,63 @@ class _BdoComplaintDetailsScreenState extends State<BdoComplaintDetailsScreen> {
     );
   }
 
+  Future<void> _openGoogleMaps(double? lat, double? long) async {
+    if (lat == null || long == null) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(AppLocalizations.of(context)!.locationNotAvailable),
+          ),
+        );
+      }
+      return;
+    }
+
+    const mode = LaunchMode.externalApplication;
+    // Use directions URL so Maps opens the "Get directions" screen, not just the pin
+    final directionsUrl = Uri.parse(
+      'https://www.google.com/maps/dir/?api=1&destination=$lat,$long',
+    );
+    final geoUri = Uri.parse('geo:0,0?q=$lat,$long');
+
+    try {
+      bool launched = false;
+      try {
+        launched = await launchUrl(directionsUrl, mode: mode);
+      } catch (_) {}
+      if (!launched) {
+        launched = await launchUrl(geoUri, mode: mode);
+      }
+      if (!launched && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              AppLocalizations.of(context)!.couldNotOpenGoogleMaps,
+            ),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              AppLocalizations.of(context)!.couldNotOpenGoogleMaps,
+            ),
+          ),
+        );
+      }
+    }
+  }
+
   Widget _buildTimelineItem(
     String title,
     String subtitle,
     bool isCompleted, {
     bool showLine = true,
+    VoidCallback? onTap,
   }) {
-    return Row(
+    final content = Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Column(
@@ -759,11 +914,20 @@ class _BdoComplaintDetailsScreenState extends State<BdoComplaintDetailsScreen> {
         ),
       ],
     );
+    if (onTap != null) {
+      return InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(8.r),
+        child: content,
+      );
+    }
+    return content;
   }
 
   String _formatDate(String? date) {
-    if (date == null) return 'N/A';
-    final formatted = DateTimeUtils.formatDateStringIST(date);
-    return formatted == 'Unknown' ? 'N/A' : formatted;
+    final l10n = AppLocalizations.of(context)!;
+    if (date == null) return l10n.unknown;
+    final formatted = DateTimeUtils.formatComplaintDetailIST(date);
+    return formatted == 'Unknown' ? l10n.unknown : formatted;
   }
 }

@@ -38,7 +38,8 @@ class SmdProvider extends ChangeNotifier {
 
   // Location info
   String _districtName = 'District';
-  final String _blockName = 'Block';
+  String _blockName = '';
+  String _gpName = '';
 
   // Date range for analytics
   DateTime? _fromDate;
@@ -61,6 +62,19 @@ class SmdProvider extends ChangeNotifier {
 
   String get districtName => _districtName;
   String get blockName => _blockName;
+  String get gpName => _gpName;
+  
+  // Get full location path
+  String get locationPath {
+    final parts = <String>[_districtName];
+    if (_blockName.isNotEmpty) {
+      parts.add(_blockName);
+    }
+    if (_gpName.isNotEmpty) {
+      parts.add(_gpName);
+    }
+    return parts.join(' • ');
+  }
 
   String get dateRangeText => _dateRangeText;
   DateTime? get fromDate => _fromDate;
@@ -90,6 +104,21 @@ class SmdProvider extends ChangeNotifier {
           orElse: () => District(id: districtId, name: 'District'),
         );
         _districtName = district.name;
+      }
+
+      // Load saved Block/GP selection from HOME page location
+      // Fallback to old inspection location for backward compatibility
+      var savedLocation = await _authService.getPageLocation('smd', 'home');
+      if (savedLocation == null) {
+        // Fallback to old inspection location
+        savedLocation = await _authService.getInspectionLocation('smd');
+      }
+      if (savedLocation != null) {
+        _blockName = savedLocation['blockName'] as String? ?? '';
+        _gpName = savedLocation['gpName'] as String? ?? '';
+      } else {
+        _blockName = '';
+        _gpName = '';
       }
 
       notifyListeners();
@@ -139,12 +168,25 @@ class SmdProvider extends ChangeNotifier {
       print('🔄 Starting to load complaints analytics for SMD...');
 
       final districtId = await _authService.getSmdSelectedDistrictId();
+      
+      // Get saved Block/GP selection from HOME page location
+      // Fallback to old inspection location for backward compatibility
+      var savedLocation = await _authService.getPageLocation('smd', 'home');
+      if (savedLocation == null) {
+        savedLocation = await _authService.getInspectionLocation('smd');
+      }
+      final blockId = savedLocation?['blockId'] as int?;
+      final gpId = savedLocation?['gpId'] as int?;
 
       print('📡 SMD Complaints Parameters:');
       print('   - District ID: $districtId');
+      if (blockId != null) print('   - Block ID: $blockId');
+      if (gpId != null) print('   - GP ID: $gpId');
 
       final response = await _complaintsService.getComplaintsWithAnalytics(
         districtId: districtId,
+        blockId: blockId,
+        gpId: gpId,
         limit: 500,
         orderBy: 'newest',
         fromDate: _fromDate,
@@ -176,12 +218,25 @@ class SmdProvider extends ChangeNotifier {
       notifyListeners();
 
       final districtId = await _authService.getSmdSelectedDistrictId();
+      
+      // Get saved Block/GP selection from HOME page location
+      // Fallback to old inspection location for backward compatibility
+      var savedLocation = await _authService.getPageLocation('smd', 'home');
+      if (savedLocation == null) {
+        savedLocation = await _authService.getInspectionLocation('smd');
+      }
+      final blockId = savedLocation?['blockId'] as int?;
+      final gpId = savedLocation?['gpId'] as int?;
 
       print('📡 SMD Inspection Parameters:');
       print('   - District ID: $districtId');
+      if (blockId != null) print('   - Block ID: $blockId');
+      if (gpId != null) print('   - GP ID: $gpId');
 
       final inspectionResponse = await _apiService.getInspections(
         districtId: districtId,
+        blockId: blockId,
+        gpId: gpId,
         page: 1,
         pageSize: 100,
       );

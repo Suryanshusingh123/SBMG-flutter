@@ -40,6 +40,7 @@ class ApiConstants {
   // Annual Surveys Endpoints
   static const String annualSurveyEndpoint =
       '/api/v1/annual-surveys/latest-for-gp';
+  static const String annualSurveysListEndpoint = '/api/v1/annual-surveys';
   static const String annualSurveyFillEndpoint = '/api/v1/annual-surveys/fill';
   static const String annualSurveyActiveFyEndpoint =
       '/api/v1/annual-surveys/fy/active';

@@ -12,19 +12,30 @@ import '../../models/scheme_model.dart';
 import '../../models/event_model.dart';
 import '../../providers/citizen_schemes_provider.dart';
 import '../../providers/citizen_events_provider.dart';
-import '../../providers/citizen_bookmarks_provider.dart';
+import '../../providers/bookmarks_provider.dart';
 import '../../providers/locale_provider.dart';
 import '../../widgets/common/banner_carousel.dart';
 import '../../widgets/common/custom_bottom_navigation.dart';
 import '../../services/auth_services.dart';
 import '../../theme/citizen_colors.dart';
-import 'vendor_details_screen.dart';
+import 'contractor_details_screen.dart';
 import 'gp_master_data_details_screen.dart';
 import 'notifications_screen.dart';
 import 'scheme_details_screen.dart';
 
 class CitizenHomeScreen extends StatefulWidget {
-  const CitizenHomeScreen({super.key});
+  /// When true, this screen is shown inside [CitizenShellScreen]. Bottom nav and FAB
+  /// are provided by the shell; PopScope is also handled by the shell.
+  final bool isEmbeddedInShell;
+
+  /// When set (typically from [CitizenShellScreen]), switching tabs uses this instead of Navigator.
+  final void Function(int index)? onNavigateToTab;
+
+  const CitizenHomeScreen({
+    super.key,
+    this.isEmbeddedInShell = false,
+    this.onNavigateToTab,
+  });
 
   @override
   State<CitizenHomeScreen> createState() => _CitizenHomeScreenState();
@@ -164,7 +175,11 @@ class _CitizenHomeScreenState extends State<CitizenHomeScreen> {
             ElevatedButton(
               onPressed: () {
                 Navigator.of(context).pop();
-                Navigator.pushNamed(context, '/citizen-login');
+                Navigator.pushNamed(
+                  context,
+                  '/citizen-login',
+                  arguments: {'redirectTo': '/create-complaint'},
+                );
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF009B56),
@@ -378,7 +393,11 @@ class _CitizenHomeScreenState extends State<CitizenHomeScreen> {
             ElevatedButton(
               onPressed: () {
                 Navigator.of(context).pop();
-                Navigator.pushNamed(context, '/citizen-login');
+                Navigator.pushNamed(
+                  context,
+                  '/citizen-login',
+                  arguments: {'redirectTo': '/my-complaints'},
+                );
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF009B56),
@@ -403,14 +422,7 @@ class _CitizenHomeScreenState extends State<CitizenHomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return PopScope(
-      canPop: false,
-      onPopInvoked: (didPop) {
-        if (didPop) return;
-        // Prevent back navigation - user should logout instead
-        _showExitDialog();
-      },
-      child: Scaffold(
+    final scaffold = Scaffold(
         backgroundColor: CitizenColors.background(context),
         body: SafeArea(
           child: Column(
@@ -468,81 +480,85 @@ class _CitizenHomeScreenState extends State<CitizenHomeScreen> {
           ),
         ),
 
-        // Floating Action Button
-        floatingActionButton: Container(
-          margin: EdgeInsets.symmetric(horizontal: 5.w),
-          child: FloatingActionButton.extended(
-            onPressed: () {
-              // Check if user is logged in before navigating
-              _checkAuthAndNavigate(context);
-            },
-            backgroundColor: const Color(0xFF009B56),
-            foregroundColor: CitizenColors.light,
-            elevation: 8,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(30.r),
-            ),
-            label: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  AppLocalizations.of(context)!.raiseComplaint,
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
+        // FAB and Bottom Nav are provided by CitizenShellScreen when isEmbeddedInShell
+        floatingActionButton: widget.isEmbeddedInShell
+            ? null
+            : Container(
+                margin: EdgeInsets.symmetric(horizontal: 5.w),
+                child: FloatingActionButton.extended(
+                  onPressed: () => _checkAuthAndNavigate(context),
+                  backgroundColor: const Color(0xFF009B56),
+                  foregroundColor: CitizenColors.light,
+                  elevation: 8,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(30.r),
+                  ),
+                  label: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        AppLocalizations.of(context)!.raiseComplaint,
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      SizedBox(width: 8.w),
+                      Icon(Icons.arrow_forward, size: 20.sp),
+                    ],
                   ),
                 ),
-                SizedBox(width: 8.w),
-                Icon(Icons.arrow_forward, size: 20.sp),
-              ],
-            ),
-          ),
-        ),
+              ),
 
-        // Bottom Navigation Bar
-        bottomNavigationBar: CustomBottomNavigationBar(
-          currentIndex: _selectedIndex,
-          onTap: (index) {
-            setState(() {
-              _selectedIndex = index;
-            });
+        bottomNavigationBar: widget.isEmbeddedInShell
+            ? null
+            : CustomBottomNavigationBar(
+                currentIndex: _selectedIndex,
+                onTap: (index) {
+                  setState(() => _selectedIndex = index);
+                  switch (index) {
+                    case 0:
+                      break;
+                    case 1:
+                      _checkAuthAndNavigateToComplaints(context);
+                      break;
+                    case 2:
+                      Navigator.pushNamed(context, '/schemes');
+                      break;
+                    case 3:
+                      Navigator.pushReplacementNamed(context, '/settings');
+                      break;
+                  }
+                },
+                items: [
+                  BottomNavItem(
+                    iconPath: 'assets/icons/bottombar/home.png',
+                    label: AppLocalizations.of(context)!.home,
+                  ),
+                  BottomNavItem(
+                    iconPath: 'assets/icons/bottombar/complaints.png',
+                    label: AppLocalizations.of(context)!.myComplaint,
+                  ),
+                  BottomNavItem(
+                    iconPath: 'assets/icons/bottombar/schemes.png',
+                    label: AppLocalizations.of(context)!.schemes,
+                  ),
+                  BottomNavItem(
+                    iconPath: 'assets/icons/bottombar/settings.png',
+                    label: AppLocalizations.of(context)!.settings,
+                  ),
+                ],
+              ),
+      );
 
-            // Navigate to different screens based on selection
-            switch (index) {
-              case 0:
-                // Already on home
-                break;
-              case 1:
-                _checkAuthAndNavigateToComplaints(context);
-                break;
-              case 2:
-                Navigator.pushReplacementNamed(context, '/schemes');
-                break;
-              case 3:
-                Navigator.pushReplacementNamed(context, '/settings');
-                break;
-            }
-          },
-          items: [
-            BottomNavItem(
-              iconPath: 'assets/icons/bottombar/home.png',
-              label: AppLocalizations.of(context)!.home,
-            ),
-            BottomNavItem(
-              iconPath: 'assets/icons/bottombar/complaints.png',
-              label: AppLocalizations.of(context)!.myComplaint,
-            ),
-            BottomNavItem(
-              iconPath: 'assets/icons/bottombar/schemes.png',
-              label: AppLocalizations.of(context)!.schemes,
-            ),
-            BottomNavItem(
-              iconPath: 'assets/icons/bottombar/settings.png',
-              label: AppLocalizations.of(context)!.settings,
-            ),
-          ],
-        ),
-      ),
+    if (widget.isEmbeddedInShell) return scaffold;
+    return PopScope(
+      canPop: false,
+      onPopInvoked: (didPop) {
+        if (didPop) return;
+        _showExitDialog();
+      },
+      child: scaffold,
     );
   }
 
@@ -670,7 +686,11 @@ class _CitizenHomeScreenState extends State<CitizenHomeScreen> {
                   ),
                   TextButton(
                     onPressed: () {
-                      Navigator.pushNamed(context, '/schemes');
+                      if (widget.onNavigateToTab != null) {
+                        widget.onNavigateToTab!(2); // Schemes tab
+                      } else {
+                        Navigator.pushNamed(context, '/schemes');
+                      }
                     },
                     child: Text(
                       l10n.viewAll,
@@ -840,7 +860,7 @@ class _CitizenHomeScreenState extends State<CitizenHomeScreen> {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (context) => const VendorDetailsScreen(),
+                    builder: (context) => const ContractorDetailsScreen(),
                   ),
                 );
               },
@@ -931,16 +951,33 @@ class _CitizenHomeScreenState extends State<CitizenHomeScreen> {
           children: [
             Padding(
               padding: EdgeInsets.symmetric(horizontal: 16.w),
-              child: Text(
-                '${eventsProvider.eventsCount} ${eventsProvider.eventsCount != 1 ? l10n.eventsPlural : l10n.events}',
-                style: TextStyle(
-                  fontFamily: 'Noto Sans',
-                  fontSize: 18,
-                  fontWeight: FontWeight.w500,
-                  color: primaryTextColor,
-                  letterSpacing: 0,
-                  height: 1.0,
-                ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    '${eventsProvider.eventsCount} ${eventsProvider.eventsCount != 1 ? l10n.eventsPlural : l10n.events}',
+                    style: TextStyle(
+                      fontFamily: 'Noto Sans',
+                      fontSize: 18,
+                      fontWeight: FontWeight.w500,
+                      color: primaryTextColor,
+                      letterSpacing: 0,
+                      height: 1.0,
+                    ),
+                  ),
+                  TextButton(
+                    onPressed: () {
+                      Navigator.pushNamed(context, '/events');
+                    },
+                    child: Text(
+                      l10n.viewAll,
+                      style: const TextStyle(
+                        color: Color(0xFF009B56),
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
 
@@ -1044,52 +1081,6 @@ class _CitizenHomeScreenState extends State<CitizenHomeScreen> {
                             'assets/images/eventbanner.png',
                             fit: BoxFit.cover,
                           ),
-                  ),
-
-                  // Bookmark Button
-                  Positioned(
-                    top: 12,
-                    right: 12,
-                    child: Consumer<BookmarksProvider>(
-                      builder: (context, bookmarksProvider, child) {
-                        final isBookmarked = bookmarksProvider
-                            .isEventBookmarked(event.id);
-                        return GestureDetector(
-                          onTap: () {
-                            bookmarksProvider.toggleEventBookmark(
-                              event.id,
-                              !isBookmarked,
-                            );
-                          },
-                          child: Container(
-                            width: 40,
-                            height: 40,
-                            decoration: BoxDecoration(
-                              color: isBookmarked
-                                  ? const Color(0xFF009B56)
-                                  : CitizenColors.light.withOpacity(0.9),
-                              borderRadius: BorderRadius.circular(8.r),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withOpacity(0.2),
-                                  blurRadius: 4,
-                                  offset: const Offset(0, 2),
-                                ),
-                              ],
-                            ),
-                            child: Icon(
-                              isBookmarked
-                                  ? Icons.bookmark
-                                  : Icons.bookmark_border,
-                              color: isBookmarked
-                                  ? CitizenColors.light
-                                  : const Color(0xFF4CAF50),
-                              size: 20.sp,
-                            ),
-                          ),
-                        );
-                      },
-                    ),
                   ),
                 ],
               ),

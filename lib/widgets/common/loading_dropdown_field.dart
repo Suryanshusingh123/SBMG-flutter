@@ -4,7 +4,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 /// A reusable dropdown field that shows a loading indicator and is disabled while data is being fetched
 class LoadingDropdownField<T> extends StatelessWidget {
   final String label;
-  final String? value;
+  final T? value;
   final String placeholder;
   final List<T> items;
   final String Function(T) itemBuilder;

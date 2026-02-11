@@ -1,14 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:geolocator/geolocator.dart';
 import 'dart:io';
 import '../../services/api_services.dart';
 import '../../config/connstants.dart';
+import '../../providers/supervisor_complaints_provider.dart';
 import '../../l10n/app_localizations.dart';
 import '../../utils/location_display_helper.dart';
 import '../../utils/date_time_utils.dart';
+import '../../widgets/resolution_details_sheet.dart';
 
 class SupervisorComplaintDetailsScreen extends StatefulWidget {
   final int complaintId;
@@ -75,7 +78,7 @@ class _SupervisorComplaintDetailsScreenState
       print('❌ Error fetching complaint details: $e');
       setState(() {
         _isLoading = false;
-        _errorMessage = 'Failed to load complaint details';
+        _errorMessage = AppLocalizations.of(context)!.failedToLoadComplaintDetails;
       });
     }
   }
@@ -86,14 +89,24 @@ class _SupervisorComplaintDetailsScreenState
     // Try to determine complaint type name
     if (complaintType is Map && complaintType['name'] != null) {
       return complaintType['name'];
-    } else if (complaintType is String) {
-      return complaintType;
+    } else if (complaintType is String && complaintType.trim().isNotEmpty) {
+      return complaintType.trim();
     } else if (_complaintData?['complaint_type_name'] != null) {
       return _complaintData!['complaint_type_name'];
     }
-    
+
+    // Resolve from complaint_type_id when API returns id but not type name
+    final typeId = _complaintData?['complaint_type_id'];
+    if (typeId != null && context.mounted) {
+      final id = typeId is int ? typeId : int.tryParse(typeId.toString());
+      if (id != null) {
+        final resolved = context.read<SupervisorComplaintsProvider>().getComplaintTypeNameById(id);
+        if (resolved != null && resolved.isNotEmpty) return resolved;
+      }
+    }
+
     // Fallback to default
-    return 'Road Maintenance';
+    return AppLocalizations.of(context)!.roadMaintenance;
   }
 
   String get _dynamicStatusText {
@@ -235,7 +248,7 @@ class _SupervisorComplaintDetailsScreenState
               Icon(Icons.error_outline, size: 64.sp, color: Colors.grey),
               SizedBox(height: 16.h),
               Text(
-                _errorMessage ?? 'Failed to load complaint details',
+                _errorMessage ?? AppLocalizations.of(context)!.failedToLoadComplaintDetails,
                 style: TextStyle(fontSize: 16.sp, color: Colors.grey),
                 textAlign: TextAlign.center,
               ),
@@ -266,7 +279,7 @@ class _SupervisorComplaintDetailsScreenState
               ),
             ),
             Text(
-              '${_complaintData!['district_name'] ?? 'District'} | ${_complaintData!['block_name'] ?? 'Block'} | ${_complaintData!['village_name'] ?? 'GP'}',
+              '${_complaintData!['district_name'] ?? AppLocalizations.of(context)!.district} | ${_complaintData!['block_name'] ?? AppLocalizations.of(context)!.block} | ${_complaintData!['village_name'] ?? AppLocalizations.of(context)!.gp}',
               style: TextStyle(
                 fontSize: 10.sp,
                 fontWeight: FontWeight.w400,
@@ -403,7 +416,7 @@ class _SupervisorComplaintDetailsScreenState
         ),
         child: Center(
           child: Text(
-            'No images available',
+            AppLocalizations.of(context)!.noImagesAvailable,
             style: TextStyle(fontSize: 14.sp, color: const Color(0xFF6B7280)),
           ),
         ),
@@ -535,11 +548,21 @@ class _SupervisorComplaintDetailsScreenState
     final complaintType = _complaintData?['complaint_type'];
 
     // Try to determine complaint type name
-    String complaintTypeName = 'Road Maintenance';
+    String complaintTypeName = AppLocalizations.of(context)!.roadMaintenance;
     if (complaintType is Map && complaintType['name'] != null) {
       complaintTypeName = complaintType['name'];
-    } else if (complaintType is String) {
-      complaintTypeName = complaintType;
+    } else if (complaintType is String && complaintType.trim().isNotEmpty) {
+      complaintTypeName = complaintType.trim();
+    } else {
+      // Resolve from complaint_type_id when API returns id but not type name
+      final typeId = _complaintData?['complaint_type_id'];
+      if (typeId != null && context.mounted) {
+        final id = typeId is int ? typeId : int.tryParse(typeId.toString());
+        if (id != null) {
+          final resolved = context.read<SupervisorComplaintsProvider>().getComplaintTypeNameById(id);
+          if (resolved != null && resolved.isNotEmpty) complaintTypeName = resolved;
+        }
+      }
     }
 
     return Container(
@@ -590,7 +613,7 @@ class _SupervisorComplaintDetailsScreenState
           SizedBox(height: 16.h),
 
           Text(
-            _complaintData?['description'] ?? 'No description available',
+            _complaintData?['description'] ?? AppLocalizations.of(context)!.noDescriptionAvailable,
             style: TextStyle(
               fontSize: 14.sp,
               fontWeight: FontWeight.w400,
@@ -678,6 +701,7 @@ class _SupervisorComplaintDetailsScreenState
               item['subtitle'],
               item['isCompleted'],
               showLine: item['showLine'],
+              onTap: () => _onTimelineStageTap(item),
             ),
           ),
         ],
@@ -717,16 +741,18 @@ class _SupervisorComplaintDetailsScreenState
           closedAt != null ||
           hasResolutionComment ||
           hasVerificationComment,
+      'stage': 'created',
     });
 
     // Add resolved if present
     if (resolvedAt != null || hasResolutionComment) {
       items.add({
         'title': l10n.resolved,
-        'subtitle': _formatTimelineSubtitle('Vendor / Supervisor', resolvedAt),
+        'subtitle': _formatTimelineSubtitle('Contractor / Supervisor', resolvedAt),
         'isCompleted': true,
         'showLine':
             verifiedAt != null || closedAt != null || hasVerificationComment,
+        'stage': 'resolved',
       });
     }
 
@@ -737,6 +763,7 @@ class _SupervisorComplaintDetailsScreenState
         'subtitle': _formatTimelineSubtitle('VDO', verifiedAt),
         'isCompleted': true,
         'showLine': closedAt != null,
+        'stage': 'verified',
       });
     }
 
@@ -747,6 +774,7 @@ class _SupervisorComplaintDetailsScreenState
         'subtitle': _formatTimelineSubtitle('Citizen', closedAt),
         'isCompleted': true,
         'showLine': false,
+        'stage': 'closed',
       });
     }
 
@@ -754,11 +782,33 @@ class _SupervisorComplaintDetailsScreenState
   }
 
   String _formatTimelineSubtitle(String user, String? dateString) {
-    String formattedDate = DateTimeUtils.formatDateStringIST(dateString);
-    if (formattedDate == 'Unknown') {
-      formattedDate = 'Unknown date';
+    final l10n = AppLocalizations.of(context)!;
+    String formattedDate = DateTimeUtils.formatComplaintDetailIST(dateString);
+    if (formattedDate == l10n.unknown || formattedDate == 'Unknown') {
+      formattedDate = l10n.unknownDate;
     }
     return '$user · $formattedDate';
+  }
+
+  void _onTimelineStageTap(Map<String, dynamic> item) {
+    final stage = item['stage'] as String?;
+    if (stage == 'resolved') {
+      ResolutionDetailsSheet.show(context, _complaintData);
+    } else {
+      showDialog<void>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: Text(item['title'] as String),
+          content: Text(item['subtitle'] as String),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: Text(AppLocalizations.of(context)!.cancel),
+            ),
+          ],
+        ),
+      );
+    }
   }
 
   Widget _buildTimelineItem(
@@ -766,8 +816,9 @@ class _SupervisorComplaintDetailsScreenState
     String subtitle,
     bool isCompleted, {
     bool showLine = true,
+    VoidCallback? onTap,
   }) {
-    return Row(
+    final content = Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Column(
@@ -817,12 +868,21 @@ class _SupervisorComplaintDetailsScreenState
         ),
       ],
     );
+    if (onTap != null) {
+      return InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(8.r),
+        child: content,
+      );
+    }
+    return content;
   }
 
   String _formatDate(String? date) {
-    if (date == null) return 'N/A';
-    final formatted = DateTimeUtils.formatDateStringIST(date);
-    return formatted == 'Unknown' ? 'N/A' : formatted;
+    final l10n = AppLocalizations.of(context)!;
+    if (date == null) return l10n.na;
+    final formatted = DateTimeUtils.formatComplaintDetailIST(date);
+    return formatted == 'Unknown' || formatted == l10n.unknown ? l10n.na : formatted;
   }
 
   String _getLocationDisplay() {
@@ -855,29 +915,38 @@ class _SupervisorComplaintDetailsScreenState
       return;
     }
 
-    // Create Google Maps URL with lat/long
-    final url = Uri.parse(
-      'https://www.google.com/maps/search/?api=1&query=$lat,$long',
+    const mode = LaunchMode.externalApplication;
+    // Use directions URL so Maps opens the "Get directions" screen, not just the pin
+    final directionsUrl = Uri.parse(
+      'https://www.google.com/maps/dir/?api=1&destination=$lat,$long',
     );
+    final geoUri = Uri.parse('geo:0,0?q=$lat,$long');
 
     try {
-      if (await canLaunchUrl(url)) {
-        await launchUrl(url, mode: LaunchMode.externalApplication);
-      } else {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
-                AppLocalizations.of(context)!.couldNotOpenGoogleMaps,
-              ),
+      bool launched = false;
+      try {
+        launched = await launchUrl(directionsUrl, mode: mode);
+      } catch (_) {}
+      if (!launched) {
+        launched = await launchUrl(geoUri, mode: mode);
+      }
+      if (!launched && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              AppLocalizations.of(context)!.couldNotOpenGoogleMaps,
             ),
-          );
-        }
+          ),
+        );
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('${AppLocalizations.of(context)!.error}: $e')),
+          SnackBar(
+            content: Text(
+              AppLocalizations.of(context)!.couldNotOpenGoogleMaps,
+            ),
+          ),
         );
       }
     }
@@ -1010,8 +1079,9 @@ class _SupervisorComplaintDetailsScreenState
           ),
         );
 
-        // Pop the details screen to return to complaints list
-        Navigator.pop(context);
+        // Pop the details screen and signal refresh (true) so the complaints
+        // list can reload and show correct count after resolve-with-image.
+        Navigator.pop(context, true);
       }
     } catch (e) {
       print('❌ Error submitting resolution: $e');

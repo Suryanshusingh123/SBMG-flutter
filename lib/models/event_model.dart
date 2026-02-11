@@ -23,7 +23,6 @@ class Event {
   factory Event.fromJson(Map<String, dynamic> json) {
     final eventTitle =
         (json['title'] ?? json['name'] ?? 'Untitled Event') as String;
-    print('📋 Parsing Event: ${json['id']} - $eventTitle');
     return Event(
       id: json['id'] as int,
       title: eventTitle,

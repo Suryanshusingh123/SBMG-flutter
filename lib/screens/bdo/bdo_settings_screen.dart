@@ -3,6 +3,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:provider/provider.dart';
 import '../../config/connstants.dart';
 import '../../providers/locale_provider.dart';
+import '../../providers/bookmarks_provider.dart';
 import '../../services/auth_services.dart';
 import '../../l10n/app_localizations.dart';
 import '../../widgets/common/custom_bottom_navigation.dart';
@@ -11,7 +12,10 @@ import '../citizen/language_screen.dart';
 import '../citizen/bookmarks_screen.dart';
 
 class BdoSettingsScreen extends StatefulWidget {
-  const BdoSettingsScreen({super.key});
+  /// When true, this screen is shown inside [BdoShellScreen]; bottom nav is provided by the shell.
+  final bool isEmbeddedInShell;
+
+  const BdoSettingsScreen({super.key, this.isEmbeddedInShell = false});
 
   @override
   State<BdoSettingsScreen> createState() => _BdoSettingsScreenState();
@@ -126,11 +130,11 @@ class _BdoSettingsScreenState extends State<BdoSettingsScreen> {
                     ),
                     _buildDivider(),
 
-                    // My Collection (Bookmarks)
+                    // My Collection (schemes only)
                     _buildSettingItemWithSubtitle(
                       icon: Icons.bookmark_outline,
                       title: AppLocalizations.of(context)!.myCollection,
-                      subtitle: AppLocalizations.of(context)!.bookmarks,
+                      subtitle: AppLocalizations.of(context)!.bookmarkedSchemes,
                       onTap: () {
                         Navigator.push(
                           context,
@@ -174,8 +178,10 @@ class _BdoSettingsScreenState extends State<BdoSettingsScreen> {
         ),
       ),
 
-      // Bottom Navigation Bar
-      bottomNavigationBar: _buildBottomNavigationBar(),
+      // Bottom nav is provided by BdoShellScreen when isEmbeddedInShell
+      bottomNavigationBar: widget.isEmbeddedInShell
+          ? null
+          : _buildBottomNavigationBar(),
     );
   }
 
@@ -716,6 +722,12 @@ class _BdoSettingsScreenState extends State<BdoSettingsScreen> {
     // Clear BDO session
     final authService = AuthService();
     await authService.logout();
+    
+    // Clear bookmarks when user logs out
+    if (context.mounted) {
+      final bookmarksProvider = context.read<BookmarksProvider>();
+      bookmarksProvider.clearBookmarks();
+    }
 
     // Navigate to citizen home screen and clear navigation stack
     if (context.mounted) {
@@ -803,6 +815,12 @@ class _BdoSettingsScreenState extends State<BdoSettingsScreen> {
                       onPressed: () async {
                         final authService = AuthService();
                         await authService.logout();
+                        
+                        // Clear bookmarks when user logs out
+                        if (context.mounted) {
+                          final bookmarksProvider = context.read<BookmarksProvider>();
+                          bookmarksProvider.clearBookmarks();
+                        }
 
                         if (context.mounted) {
                           Navigator.pop(context); // Close dialog

@@ -7,14 +7,19 @@ import '../../providers/vdo_complaints_provider.dart';
 import '../../providers/vdo_provider.dart';
 import '../../services/auth_services.dart';
 import '../../services/api_services.dart';
+import '../../utils/date_time_utils.dart';
 import '../../utils/location_display_helper.dart';
 import '../../widgets/common/custom_bottom_navigation.dart';
 import '../../widgets/common/date_filter_bottom_sheet.dart';
+import 'package:intl/intl.dart';
 import '../../l10n/app_localizations.dart';
 import 'vdo_complaint_details_screen.dart';
 
 class VdoComplaintsScreen extends StatefulWidget {
-  const VdoComplaintsScreen({super.key});
+  /// When true, this screen is shown inside [VdoShellScreen]; bottom nav is provided by the shell.
+  final bool isEmbeddedInShell;
+
+  const VdoComplaintsScreen({super.key, this.isEmbeddedInShell = false});
 
   @override
   State<VdoComplaintsScreen> createState() => _VdoComplaintsScreenState();
@@ -67,71 +72,16 @@ class _VdoComplaintsScreenState extends State<VdoComplaintsScreen> {
       }
     } catch (e) {
       print('❌ Error loading GP name: $e');
-      setState(() {
-        _gpName = 'Gram Panchayat';
-      });
+        setState(() {
+          _gpName = AppLocalizations.of(context)!.gramPanchayatFallback;
+        });
     }
   }
 
-  String _getCurrentMonth() {
-    final months = [
-      'January',
-      'February',
-      'March',
-      'April',
-      'May',
-      'June',
-      'July',
-      'August',
-      'September',
-      'October',
-      'November',
-      'December',
-    ];
-    return months[DateTime.now().month - 1];
-  }
-
-  String _getDisplayMonth() {
-    // If a date filter is applied, show the month of the selected date
-    if (_filterDate != null) {
-      final months = [
-        'January',
-        'February',
-        'March',
-        'April',
-        'May',
-        'June',
-        'July',
-        'August',
-        'September',
-        'October',
-        'November',
-        'December',
-      ];
-      return months[_filterDate!.month - 1];
-    }
-
-    // If a date range is applied, show the month of the start date
-    if (_filterStartDate != null) {
-      final months = [
-        'January',
-        'February',
-        'March',
-        'April',
-        'May',
-        'June',
-        'July',
-        'August',
-        'September',
-        'October',
-        'November',
-        'December',
-      ];
-      return months[_filterStartDate!.month - 1];
-    }
-
-    // Otherwise, show current month
-    return _getCurrentMonth();
+  String _getDisplayMonth(BuildContext context) {
+    final locale = Localizations.localeOf(context);
+    final date = _filterDate ?? _filterStartDate ?? DateTime.now();
+    return DateFormat.MMMM(locale.toString()).format(date);
   }
 
   Future<void> _refreshComplaints() async {
@@ -156,45 +106,46 @@ class _VdoComplaintsScreenState extends State<VdoComplaintsScreen> {
           ],
         ),
       ),
-      bottomNavigationBar: CustomBottomNavigationBar(
-        currentIndex: _selectedIndex,
-        onTap: (index) {
-          if (index == _selectedIndex) return;
-
-          switch (index) {
-            case 0:
-              Navigator.pushReplacementNamed(context, '/vdo-dashboard');
-              break;
-            case 1:
-              // Already on complaints
-              break;
-            case 2:
-              Navigator.pushReplacementNamed(context, '/vdo-inspection');
-              break;
-            case 3:
-              Navigator.pushReplacementNamed(context, '/vdo-settings');
-              break;
-          }
-        },
-        items: [
-          BottomNavItem(
-            iconPath: 'assets/icons/bottombar/home.png',
-            label: AppLocalizations.of(context)!.home,
-          ),
-          BottomNavItem(
-            iconPath: 'assets/icons/bottombar/complaints.png',
-            label: AppLocalizations.of(context)!.complaints,
-          ),
-          BottomNavItem(
-            iconPath: 'assets/icons/bottombar/inspection.png',
-            label: AppLocalizations.of(context)!.inspection,
-          ),
-          BottomNavItem(
-            iconPath: 'assets/icons/bottombar/settings.png',
-            label: AppLocalizations.of(context)!.settings,
-          ),
-        ],
-      ),
+      // Bottom nav is provided by VdoShellScreen when isEmbeddedInShell
+      bottomNavigationBar: widget.isEmbeddedInShell
+          ? null
+          : CustomBottomNavigationBar(
+              currentIndex: _selectedIndex,
+              onTap: (index) {
+                if (index == _selectedIndex) return;
+                switch (index) {
+                  case 0:
+                    Navigator.pushReplacementNamed(context, '/vdo-dashboard');
+                    break;
+                  case 1:
+                    break;
+                  case 2:
+                    Navigator.pushReplacementNamed(context, '/vdo-inspection');
+                    break;
+                  case 3:
+                    Navigator.pushReplacementNamed(context, '/vdo-settings');
+                    break;
+                }
+              },
+              items: [
+                BottomNavItem(
+                  iconPath: 'assets/icons/bottombar/home.png',
+                  label: AppLocalizations.of(context)!.home,
+                ),
+                BottomNavItem(
+                  iconPath: 'assets/icons/bottombar/complaints.png',
+                  label: AppLocalizations.of(context)!.complaints,
+                ),
+                BottomNavItem(
+                  iconPath: 'assets/icons/bottombar/inspection.png',
+                  label: AppLocalizations.of(context)!.inspection,
+                ),
+                BottomNavItem(
+                  iconPath: 'assets/icons/bottombar/settings.png',
+                  label: AppLocalizations.of(context)!.settings,
+                ),
+              ],
+            ),
     );
   }
 
@@ -246,12 +197,63 @@ class _VdoComplaintsScreenState extends State<VdoComplaintsScreen> {
           ),
           SizedBox(height: 4.h),
           Text(
-            '${_gpName ?? 'Gram Panchayat'} • ${_getDisplayMonth()}',
+            '${_gpName ?? AppLocalizations.of(context)!.gramPanchayatFallback} • ${_getDisplayMonth(context)}',
             style: TextStyle(fontSize: 11.sp, color: const Color(0xFF6B7280)),
           ),
         ],
       ),
     );
+  }
+
+  int _getFilteredCount(List<ApiComplaintModel> complaints) {
+    List<ApiComplaintModel> filtered = List.from(complaints);
+
+    if (_filterDate != null) {
+      filtered = filtered.where((complaint) {
+        try {
+          final complaintDate = DateTime.parse(complaint.createdAt).toUtc();
+          final filterDate = DateTime.utc(
+            _filterDate!.year,
+            _filterDate!.month,
+            _filterDate!.day,
+          );
+          return complaintDate.year == filterDate.year &&
+              complaintDate.month == filterDate.month &&
+              complaintDate.day == filterDate.day;
+        } catch (e) {
+          return false;
+        }
+      }).toList();
+    }
+
+    if (_filterStartDate != null && _filterEndDate != null) {
+      filtered = filtered.where((complaint) {
+        try {
+          final complaintDate = DateTime.parse(complaint.createdAt).toUtc();
+          final startDate = DateTime.utc(
+            _filterStartDate!.year,
+            _filterStartDate!.month,
+            _filterStartDate!.day,
+          );
+          final endDate = DateTime.utc(
+            _filterEndDate!.year,
+            _filterEndDate!.month,
+            _filterEndDate!.day,
+            23,
+            59,
+            59,
+          );
+          return (complaintDate.isAfter(startDate.subtract(const Duration(seconds: 1))) ||
+                  complaintDate.isAtSameMomentAs(startDate)) &&
+              (complaintDate.isBefore(endDate) ||
+                  complaintDate.isAtSameMomentAs(endDate));
+        } catch (e) {
+          return false;
+        }
+      }).toList();
+    }
+
+    return filtered.length;
   }
 
   Widget _buildStatusTabs(BuildContext context) {
@@ -267,28 +269,28 @@ class _VdoComplaintsScreenState extends State<VdoComplaintsScreen> {
           _buildTab(
             context,
             l10n.open,
-            provider.openComplaints.length,
+            _getFilteredCount(provider.openComplaints),
             0,
           ),
           SizedBox(width: 12.w),
           _buildTab(
             context,
             l10n.resolved,
-            provider.resolvedComplaints.length,
+            _getFilteredCount(provider.resolvedComplaints),
             1,
           ),
           SizedBox(width: 12.w),
           _buildTab(
             context,
             l10n.verified,
-            provider.verifiedComplaints.length,
+            _getFilteredCount(provider.verifiedComplaints),
             2,
           ),
           SizedBox(width: 12.w),
           _buildTab(
             context,
             l10n.complaintClosed,
-            provider.closedComplaints.length,
+            _getFilteredCount(provider.closedComplaints),
             3,
           ),
         ],
@@ -521,6 +523,7 @@ class _VdoComplaintsScreenState extends State<VdoComplaintsScreen> {
   }
 
   Widget _buildComplaintCard(ApiComplaintModel complaint) {
+    final provider = context.watch<VdoComplaintsProvider>();
     final firstMediaUrl = complaint.hasMedia ? complaint.firstMediaUrl : null;
     final mediaUrl = firstMediaUrl != null
         ? ApiConstants.getMediaUrl(firstMediaUrl)
@@ -691,7 +694,7 @@ class _VdoComplaintsScreenState extends State<VdoComplaintsScreen> {
                       ],
                       Expanded(
                         child: Text(
-                          complaint.complaintType,
+                          provider.getComplaintTypeDisplayName(complaint),
                           style: TextStyle(
                             fontSize: 14.sp,
                             fontWeight: FontWeight.bold,
@@ -743,31 +746,8 @@ class _VdoComplaintsScreenState extends State<VdoComplaintsScreen> {
     );
   }
 
-  String _formatDate(String dateString) {
-    try {
-      // Parse the UTC date
-      final date = DateTime.parse(dateString);
-      // Convert to IST (UTC+5:30)
-      final istDate = date.add(const Duration(hours: 5, minutes: 30));
-      final months = [
-        'Jan',
-        'Feb',
-        'Mar',
-        'Apr',
-        'May',
-        'Jun',
-        'Jul',
-        'Aug',
-        'Sep',
-        'Oct',
-        'Nov',
-        'Dec',
-      ];
-      return '${months[istDate.month - 1]} ${istDate.day}, ${istDate.year}';
-    } catch (e) {
-      return 'Recent';
-    }
-  }
+  String _formatDate(String dateString) =>
+      DateTimeUtils.formatComplaintListIST(dateString);
 
   void _showSortOptions() {
     showModalBottomSheet(

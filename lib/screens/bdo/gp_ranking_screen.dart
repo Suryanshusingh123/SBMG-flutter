@@ -5,6 +5,7 @@ import '../../services/api_services.dart';
 import '../../services/auth_services.dart';
 import '../../models/geography_model.dart';
 import '../../widgets/common/date_filter_bottom_sheet.dart';
+import '../../l10n/app_localizations.dart';
 
 class GpRankingScreen extends StatefulWidget {
   const GpRankingScreen({super.key});
@@ -97,8 +98,9 @@ class _GpRankingScreenState extends State<GpRankingScreen> {
     } catch (e) {
       setState(() => _isLoading = false);
       if (mounted) {
+        final l10n = AppLocalizations.of(context)!;
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to load rankings: $e'), backgroundColor: Colors.red),
+          SnackBar(content: Text(l10n.failedToLoadRankings(e.toString())), backgroundColor: Colors.red),
         );
       }
     }

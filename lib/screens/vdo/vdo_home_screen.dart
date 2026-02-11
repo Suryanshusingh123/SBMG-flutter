@@ -16,12 +16,20 @@ import '../../providers/vdo_provider.dart';
 import '../citizen/language_screen.dart';
 import '../citizen/notifications_screen.dart';
 import '../citizen/scheme_details_screen.dart';
+import '../../utils/api_error_utils.dart';
+import '../citizen/village_master_data_form_screen.dart'
+    as citizen_master;
 import 'village_master_data_form_screen.dart';
 import 'attendance_log_screen.dart';
 import 'package:intl/intl.dart';
+import '../../widgets/common/bottom_sheet_picker.dart';
 
 class VdoHomeScreen extends StatefulWidget {
-  const VdoHomeScreen({super.key});
+  /// When true, this screen is shown inside [VdoShellScreen]. Bottom nav
+  /// and PopScope are provided by the shell.
+  final bool isEmbeddedInShell;
+
+  const VdoHomeScreen({super.key, this.isEmbeddedInShell = false});
 
   @override
   State<VdoHomeScreen> createState() => _VdoHomeScreenState();
@@ -42,83 +50,87 @@ class _VdoHomeScreenState extends State<VdoHomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final scaffold = Scaffold(
+      backgroundColor: Colors.white,
+      body: SafeArea(
+        child: Column(
+          children: [
+            // Top Header
+            _buildTopHeader(),
+
+            // Main Content
+            Expanded(
+              child: RefreshIndicator(
+                onRefresh: () async {
+                  await context.read<VdoProvider>().refresh();
+                },
+                child: SingleChildScrollView(
+                  child: Column(
+                    children: [
+                      const BannerCarousel(
+                        imagePaths: [
+                          'assets/images/dash1.jpeg',
+                          'assets/images/dash2.jpeg',
+                          'assets/images/dash3.jpeg',
+                          'assets/images/dash4.jpeg',
+                          'assets/images/dash5.jpeg',
+                        ],
+                      ),
+                      Image.asset('assets/images/Group.png'),
+
+                      SizedBox(height: 20.h),
+
+                      // Overview Section
+                      _buildOverviewSection(),
+
+                      SizedBox(height: 24.h),
+
+                      // Inspection Section
+                      _buildInspectionSection(),
+
+                      SizedBox(height: 14.h),
+
+                      // GP Master Data: View and Add
+                      _buildGpMasterDataSection(),
+
+                      SizedBox(height: 24.h),
+
+                      // Featured Schemes Section
+                      _buildFeaturedSchemesSection(),
+
+                      SizedBox(height: 24.h),
+
+                      // Events Section
+                      _buildEventsSection(),
+
+                      SizedBox(height: 24.h),
+
+                      // Social Media Icons
+                      _buildSocialMediaSection(),
+
+                      SizedBox(height: 20.h),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+      // Bottom nav is provided by VdoShellScreen when isEmbeddedInShell
+      bottomNavigationBar: widget.isEmbeddedInShell
+          ? null
+          : _buildBottomNavigationBar(),
+    );
+
+    if (widget.isEmbeddedInShell) return scaffold;
     return PopScope(
       canPop: false,
       onPopInvoked: (didPop) {
         if (didPop) return;
-        // Prevent back navigation - user should logout instead
         _showExitDialog();
       },
-      child: Scaffold(
-        backgroundColor: Colors.white,
-        body: SafeArea(
-          child: Column(
-            children: [
-              // Top Header
-              _buildTopHeader(),
-
-              // Main Content
-              Expanded(
-                child: RefreshIndicator(
-                  onRefresh: () async {
-                    await context.read<VdoProvider>().refresh();
-                  },
-                  child: SingleChildScrollView(
-                    child: Column(
-                      children: [
-                        const BannerCarousel(
-                          imagePaths: [
-                            'assets/images/dash1.jpeg',
-                            'assets/images/dash2.jpeg',
-                            'assets/images/dash3.jpeg',
-                            'assets/images/dash4.jpeg',
-                            'assets/images/dash5.jpeg',
-                          ],
-                        ),
-                        Image.asset('assets/images/Group.png'),
-
-                        SizedBox(height: 20.h),
-
-                        // Overview Section
-                        _buildOverviewSection(),
-
-                        SizedBox(height: 24.h),
-
-                        // Inspection Section
-                        _buildInspectionSection(),
-
-                        SizedBox(height: 14.h),
-
-                        // Start GP Master Data Button
-                        _buildStartVillageMasterDataButton(),
-
-                        SizedBox(height: 24.h),
-
-                        // Featured Schemes Section
-                        _buildFeaturedSchemesSection(),
-
-                        SizedBox(height: 24.h),
-
-                        // Events Section
-                        _buildEventsSection(),
-
-                        SizedBox(height: 24.h),
-
-                        // Social Media Icons
-                        _buildSocialMediaSection(),
-
-                        SizedBox(height: 20.h),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-        // Bottom Navigation Bar
-        bottomNavigationBar: _buildBottomNavigationBar(),
-      ),
+      child: scaffold,
     );
   }
 
@@ -290,21 +302,30 @@ class _VdoHomeScreenState extends State<VdoHomeScreen> {
                     ),
                   ),
                   SizedBox(width: 12.w),
-                  ElevatedButton.icon(
-                    onPressed: () async {
-                      await _handleExport(context, provider);
-                    },
-                    icon: const Icon(Icons.file_download, size: 18),
-                    label: Text(l10n.export),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF009B56),
-                      foregroundColor: Colors.white,
-                      padding: EdgeInsets.symmetric(
-                        horizontal: 16.w,
-                        vertical: 12.h,
-                      ),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8.r),
+                  Tooltip(
+                    message: provider.fromDate != null && provider.toDate != null
+                        ? l10n.export
+                        : AppLocalizations.of(context)!.selectDateRangeToEnableExport,
+                    child: ElevatedButton.icon(
+                      onPressed: provider.fromDate != null && provider.toDate != null
+                          ? () async {
+                              await _handleExport(context, provider);
+                            }
+                          : null,
+                      icon: const Icon(Icons.file_download, size: 18),
+                      label: Text(l10n.export),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF009B56),
+                        foregroundColor: Colors.white,
+                        disabledBackgroundColor: Colors.grey.shade300,
+                        disabledForegroundColor: Colors.grey.shade600,
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 16.w,
+                          vertical: 12.h,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8.r),
+                        ),
                       ),
                     ),
                   ),
@@ -352,10 +373,20 @@ class _VdoHomeScreenState extends State<VdoHomeScreen> {
                                 ),
                               ),
                               SizedBox(width: 8.w),
-                              Icon(
-                                Icons.info_outline,
-                                size: 16.sp,
-                                color: const Color(0xFF6B7280),
+                              Tooltip(
+                                message: l10n.tooltipTotalReportedComplaintDescription,
+                                child: GestureDetector(
+                                  onTap: () => _showInfoDialog(
+                                    context,
+                                    l10n.totalReportedComplaint,
+                                    l10n.tooltipTotalReportedComplaintDescription,
+                                  ),
+                                  child: Icon(
+                                    Icons.info_outline,
+                                    size: 16.sp,
+                                    color: const Color(0xFF6B7280),
+                                  ),
+                                ),
                               ),
                             ],
                           ),
@@ -393,6 +424,56 @@ class _VdoHomeScreenState extends State<VdoHomeScreen> {
     );
   }
 
+  void _showInfoDialog(BuildContext context, String title, String message) {
+    final l10n = AppLocalizations.of(context)!;
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12.r),
+        ),
+        title: Row(
+          children: [
+            Icon(
+              Icons.info_outline,
+              color: const Color(0xFF6B7280),
+              size: 20.sp,
+            ),
+            SizedBox(width: 8.w),
+            Expanded(
+              child: Text(
+                title,
+                style: TextStyle(
+                  fontSize: 16.sp,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ],
+        ),
+        content: Text(
+          message,
+          style: TextStyle(
+            fontSize: 14.sp,
+            color: const Color(0xFF6B7280),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: Text(
+              l10n.ok,
+              style: TextStyle(
+                fontSize: 14.sp,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildOverviewCard(String title, BuildContext context) {
     return Consumer<VdoProvider>(
       builder: (context, provider, child) {
@@ -407,6 +488,9 @@ class _VdoHomeScreenState extends State<VdoHomeScreen> {
 
         final isLoading = provider.isComplaintsLoading;
         final targetTab = title == l10n.openComplaint ? 0 : 1;
+        final tooltipMessage = title == l10n.openComplaint
+            ? l10n.tooltipOpenComplaintDescription
+            : l10n.tooltipResolvedComplaintsDescription;
 
         return GestureDetector(
           onTap: () => _navigateToComplaints(context, targetTab),
@@ -432,15 +516,34 @@ class _VdoHomeScreenState extends State<VdoHomeScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text(
-                        title,
-                        style: TextStyle(
-                          fontFamily: 'Noto Sans',
-                          fontSize: 12.sp,
-                          fontWeight: FontWeight.w500,
-                          color: const Color(0xFF717680),
-                          letterSpacing: 0.5,
-                        ),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              title,
+                              style: TextStyle(
+                                fontFamily: 'Noto Sans',
+                                fontSize: 12.sp,
+                                fontWeight: FontWeight.w500,
+                                color: const Color(0xFF717680),
+                                letterSpacing: 0.5,
+                              ),
+                            ),
+                          ),
+                          SizedBox(width: 4.w),
+                          Tooltip(
+                            message: tooltipMessage,
+                            child: GestureDetector(
+                              onTap: () => _showInfoDialog(
+                                  context, title, tooltipMessage),
+                              child: Icon(
+                                Icons.info_outline,
+                                size: 14.sp,
+                                color: const Color(0xFF6B7280),
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                       Text(
                         isLoading ? '...' : value,
@@ -517,7 +620,7 @@ class _VdoHomeScreenState extends State<VdoHomeScreen> {
               Expanded(
                 child: _buildActionCard(
                   icon: Icons.people,
-                  title: l10n.checkVendorSupervisorAttendance,
+                  title: l10n.checkContractorSupervisorAttendance,
                   onTap: () {
                     Navigator.push(
                       context,
@@ -670,51 +773,165 @@ class _VdoHomeScreenState extends State<VdoHomeScreen> {
     );
   }
 
-  Widget _buildStartVillageMasterDataButton() {
+  Widget _buildGpMasterDataSection() {
     final l10n = AppLocalizations.of(context)!;
+    final provider = context.watch<VdoProvider>();
+    final hasSurvey = provider.hasAnnualSurveyForGp;
 
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: 16.w),
-      child: GestureDetector(
-        onTap: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => const VillageMasterDataFormScreen(),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          if (hasSurvey == null)
+            _buildGpMasterDataLoadingPlaceholder()
+          else if (hasSurvey == true)
+            _buildGpMasterDataButton(
+              label: l10n.viewGpMasterData,
+              icon: Icons.visibility_outlined,
+              onTap: () => _openViewGpMasterData(),
+            )
+          else
+            _buildGpMasterDataButton(
+              label: l10n.addGpMasterData,
+              icon: Icons.add_circle_outline,
+              backgroundColor: const Color(0xffFACC15),
+              onTap: () => _openAddGpMasterData(),
             ),
-          );
-        },
-        child: Container(
-          width: double.infinity,
-          height: 56,
-          padding: EdgeInsets.symmetric(horizontal: 16.w),
-          decoration: BoxDecoration(
-            color: const Color(0xffFACC15), // Yellow background
-            borderRadius: BorderRadius.circular(12.r),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.05),
-                blurRadius: 4,
-                offset: const Offset(0, 2),
-              ),
-            ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildGpMasterDataLoadingPlaceholder() {
+    return Container(
+      width: double.infinity,
+      height: 56,
+      padding: EdgeInsets.symmetric(horizontal: 16.w),
+      decoration: BoxDecoration(
+        color: Colors.grey.shade200,
+        borderRadius: BorderRadius.circular(12.r),
+      ),
+      child: Row(
+        children: [
+          SizedBox(
+            width: 22.sp,
+            height: 22.sp,
+            child: CircularProgressIndicator(strokeWidth: 2),
           ),
-          child: Row(
-            children: [
-              Expanded(
-                child: Text(
-                  l10n.startVillageMasterData,
-                  style: TextStyle(
-                    fontFamily: 'Noto Sans',
-                    fontSize: 13.sp,
-                    fontWeight: FontWeight.w500,
-                    color: Colors.black,
-                  ),
+          SizedBox(width: 12.w),
+          Expanded(
+            child: Text(
+              AppLocalizations.of(context)!.gpMasterData,
+              style: TextStyle(
+                fontFamily: 'Noto Sans',
+                fontSize: 13.sp,
+                fontWeight: FontWeight.w500,
+                color: Colors.grey.shade700,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _openAddGpMasterData() async {
+    final result = await Navigator.push<Object?>(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const VillageMasterDataFormScreen(),
+      ),
+    );
+    if (!mounted) return;
+    if (result == true || result is String) {
+      await context.read<VdoProvider>().recheckAnnualSurveyStatus();
+    }
+  }
+
+  Widget _buildGpMasterDataButton({
+    required String label,
+    required IconData icon,
+    Color? backgroundColor,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: double.infinity,
+        height: 56,
+        padding: EdgeInsets.symmetric(horizontal: 16.w),
+        decoration: BoxDecoration(
+          color: backgroundColor ?? const Color(0xFF009B56),
+          borderRadius: BorderRadius.circular(12.r),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 4,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            Icon(icon, size: 22.sp, color: backgroundColor != null ? Colors.black : Colors.white),
+            SizedBox(width: 12.w),
+            Expanded(
+              child: Text(
+                label,
+                style: TextStyle(
+                  fontFamily: 'Noto Sans',
+                  fontSize: 13.sp,
+                  fontWeight: FontWeight.w500,
+                  color: backgroundColor != null ? Colors.black : Colors.white,
                 ),
               ),
-              Icon(Icons.chevron_right, size: 20.sp, color: Colors.black),
-            ],
+            ),
+            Icon(
+              Icons.chevron_right,
+              size: 20.sp,
+              color: backgroundColor != null ? Colors.black : Colors.white,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _openViewGpMasterData() async {
+    final villageId = await AuthService().getVillageId();
+    if (villageId == null) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              AppLocalizations.of(context)!.gpVillageNotAssignedContactAdmin,
+            ),
+            backgroundColor: Colors.red,
           ),
+        );
+      }
+      return;
+    }
+    if (!mounted) return;
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => citizen_master.VillageMasterDataFormScreen(
+          gpId: villageId,
+          onEditTapped: (surveyId, data) async {
+            if (!context.mounted) return false;
+            final updated = await Navigator.push<bool>(
+              context,
+              MaterialPageRoute(
+                builder: (context) => VillageMasterDataFormScreen(
+                  surveyId: surveyId,
+                  initialData: data,
+                ),
+              ),
+            );
+            return updated ?? false;
+          },
         ),
       ),
     );
@@ -774,10 +991,10 @@ class _VdoHomeScreenState extends State<VdoHomeScreen> {
               }
 
               if (provider.schemes.isEmpty) {
-                return const Center(
+                return Center(
                   child: Text(
-                    'No schemes available',
-                    style: TextStyle(color: Color(0xFF9CA3AF)),
+                    l10n.noSchemesAvailable,
+                    style: const TextStyle(color: Color(0xFF9CA3AF)),
                   ),
                 );
               }
@@ -824,7 +1041,6 @@ class _VdoHomeScreenState extends State<VdoHomeScreen> {
                         ApiConstants.getMediaUrl(scheme.media.first.mediaUrl),
                         fit: BoxFit.cover,
                         errorBuilder: (context, error, stackTrace) {
-                          print('❌ Error loading home scheme image: $error');
                           return Image.asset(
                             'assets/images/schemes.png',
                             fit: BoxFit.cover,
@@ -1282,7 +1498,7 @@ class _VdoHomeScreenState extends State<VdoHomeScreen> {
       ..hideCurrentSnackBar()
       ..showSnackBar(
         SnackBar(
-          content: Text('Could not open $platform link.'),
+          content: Text(AppLocalizations.of(context)!.couldNotOpenLink(platform)),
           backgroundColor: Colors.red,
         ),
       );
@@ -1353,7 +1569,7 @@ class _VdoHomeScreenState extends State<VdoHomeScreen> {
             borderRadius: BorderRadius.circular(12.r),
           ),
           title: Text(
-            'Exit App',
+            AppLocalizations.of(context)!.exitApp,
             style: TextStyle(
               fontFamily: 'Noto Sans',
               fontSize: 18.sp,
@@ -1362,7 +1578,7 @@ class _VdoHomeScreenState extends State<VdoHomeScreen> {
             ),
           ),
           content: Text(
-            'Are you sure you want to exit the app?',
+            AppLocalizations.of(context)!.areYouSureExitApp,
             style: TextStyle(
               fontFamily: 'Noto Sans',
               fontSize: 14.sp,
@@ -1375,7 +1591,7 @@ class _VdoHomeScreenState extends State<VdoHomeScreen> {
                 Navigator.of(context).pop();
               },
               child: Text(
-                'Cancel',
+                AppLocalizations.of(context)!.cancel,
                 style: TextStyle(
                   fontFamily: 'Noto Sans',
                   color: const Color(0xFF6B7280),
@@ -1396,7 +1612,7 @@ class _VdoHomeScreenState extends State<VdoHomeScreen> {
                 ),
               ),
               child: Text(
-                'Exit',
+                AppLocalizations.of(context)!.exit,
                 style: TextStyle(
                   fontFamily: 'Noto Sans',
                   fontWeight: FontWeight.w600,
@@ -1411,6 +1627,17 @@ class _VdoHomeScreenState extends State<VdoHomeScreen> {
   }
 
   Future<void> _handleExport(BuildContext context, VdoProvider provider) async {
+    if (provider.fromDate == null || provider.toDate == null) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(AppLocalizations.of(context)!.pleaseSelectDateRangeFirst),
+            backgroundColor: const Color(0xFF6B7280),
+          ),
+        );
+      }
+      return;
+    }
     // Show loading dialog
     showDialog(
       context: context,
@@ -1430,7 +1657,7 @@ class _VdoHomeScreenState extends State<VdoHomeScreen> {
               ),
               SizedBox(height: 16.h),
               Text(
-                'Exporting data...',
+                AppLocalizations.of(context)!.exportingData,
                 style: TextStyle(
                   fontFamily: 'Noto Sans',
                   fontSize: 14.sp,
@@ -1462,7 +1689,7 @@ class _VdoHomeScreenState extends State<VdoHomeScreen> {
               borderRadius: BorderRadius.circular(12.r),
             ),
             title: Text(
-              'Export Successful',
+              AppLocalizations.of(context)!.exportSuccessful,
               style: TextStyle(
                 fontFamily: 'Noto Sans',
                 fontSize: 18.sp,
@@ -1471,7 +1698,7 @@ class _VdoHomeScreenState extends State<VdoHomeScreen> {
               ),
             ),
             content: Text(
-              'CSV file saved successfully!\n\nLocation: $filePath',
+              AppLocalizations.of(context)!.csvFileSavedSuccessfully(filePath),
               style: TextStyle(
                 fontFamily: 'Noto Sans',
                 fontSize: 14.sp,
@@ -1490,7 +1717,7 @@ class _VdoHomeScreenState extends State<VdoHomeScreen> {
                   ),
                 ),
                 child: Text(
-                  'OK',
+                  AppLocalizations.of(context)!.ok,
                   style: TextStyle(
                     fontFamily: 'Noto Sans',
                     fontWeight: FontWeight.w600,
@@ -1511,7 +1738,7 @@ class _VdoHomeScreenState extends State<VdoHomeScreen> {
               borderRadius: BorderRadius.circular(12.r),
             ),
             title: Text(
-              'Export Failed',
+              AppLocalizations.of(context)!.exportFailed,
               style: TextStyle(
                 fontFamily: 'Noto Sans',
                 fontSize: 18.sp,
@@ -1520,7 +1747,7 @@ class _VdoHomeScreenState extends State<VdoHomeScreen> {
               ),
             ),
             content: Text(
-              'Failed to export data. Please try again.',
+              AppLocalizations.of(context)!.failedToExportDataPleaseTryAgain,
               style: TextStyle(
                 fontFamily: 'Noto Sans',
                 fontSize: 14.sp,
@@ -1539,7 +1766,7 @@ class _VdoHomeScreenState extends State<VdoHomeScreen> {
                   ),
                 ),
                 child: Text(
-                  'OK',
+                  AppLocalizations.of(context)!.ok,
                   style: TextStyle(
                     fontFamily: 'Noto Sans',
                     fontWeight: FontWeight.w600,
@@ -1565,7 +1792,7 @@ class _VdoHomeScreenState extends State<VdoHomeScreen> {
               borderRadius: BorderRadius.circular(12.r),
             ),
             title: Text(
-              'Export Failed',
+              AppLocalizations.of(context)!.exportFailed,
               style: TextStyle(
                 fontFamily: 'Noto Sans',
                 fontSize: 18.sp,
@@ -1574,7 +1801,7 @@ class _VdoHomeScreenState extends State<VdoHomeScreen> {
               ),
             ),
             content: Text(
-              'Error: $e',
+              userFriendlyApiMessage(e),
               style: TextStyle(
                 fontFamily: 'Noto Sans',
                 fontSize: 14.sp,
@@ -1593,7 +1820,7 @@ class _VdoHomeScreenState extends State<VdoHomeScreen> {
                   ),
                 ),
                 child: Text(
-                  'OK',
+                  AppLocalizations.of(context)!.ok,
                   style: TextStyle(
                     fontFamily: 'Noto Sans',
                     fontWeight: FontWeight.w600,
@@ -1619,10 +1846,20 @@ class _VdoHomeScreenState extends State<VdoHomeScreen> {
         throw Exception('Invalid GP/Village ID');
       }
 
-      // Fetch contractor details by GP ID
-      final contractor = await ApiService().getContractorByGpId(intGpId);
+      ContractorDetails? contractor;
+      try {
+        contractor = await ApiService().getContractorByGpId(intGpId);
+      } catch (e) {
+        // When no contractors exist for this village (404), allow VDO to add one
+        final msg = e.toString();
+        if (msg.contains('404') && msg.contains('No contractors found')) {
+          contractor = null;
+        } else {
+          rethrow;
+        }
+      }
 
-      // Show bottom sheet with details
+      // Show bottom sheet: with details to view/update, or null to add new
       if (mounted) {
         showModalBottomSheet(
           context: context,
@@ -1636,7 +1873,7 @@ class _VdoHomeScreenState extends State<VdoHomeScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error loading contractor details: $e'),
+            content: Text(userFriendlyApiMessage(e)),
             backgroundColor: Colors.red,
           ),
         );
@@ -1667,6 +1904,14 @@ class _VdoContractorDetailsBottomSheetState
   // Form controllers
   late final TextEditingController _nameController;
   late final TextEditingController _workOrderDateController;
+  late final TextEditingController _agencyIdController;
+  late final TextEditingController _personPhoneController;
+  late final TextEditingController _workOrderAmountController;
+
+  // Agency selection
+  Agency? _selectedAgency;
+  List<Agency> _agencies = [];
+  bool _isLoadingAgencies = false;
 
   // Dropdown values
   String? _selectedDuration;
@@ -1685,64 +1930,274 @@ class _VdoContractorDetailsBottomSheetState
     '24 months',
   ];
 
-  // Frequency options
+  // Frequency options (must match API enum: DAILY, ONCE_IN_THREE_DAYS, WEEKLY, MONTHLY only)
   final List<String> _frequencyOptions = [
-    'Daily',
-    '2 times a day',
-    '3 times a day',
-    'Weekly',
-    'Monthly',
+    'DAILY',
+    'ONCE_IN_THREE_DAYS',
+    'WEEKLY',
+    'MONTHLY',
   ];
+
+  String _getFrequencyLabel(BuildContext context, String value) {
+    final l10n = AppLocalizations.of(context)!;
+    switch (value) {
+      case 'DAILY':
+        return l10n.daily;
+      case 'ONCE_IN_THREE_DAYS':
+        return 'Once in 3 days';
+      case 'WEEKLY':
+        return l10n.weekly;
+      case 'MONTHLY':
+        return 'Monthly';
+      default:
+        return value;
+    }
+  }
 
   @override
   void initState() {
     super.initState();
+    _nameController = TextEditingController();
+    _workOrderDateController = TextEditingController();
+    _agencyIdController = TextEditingController();
+    _personPhoneController = TextEditingController();
+    _workOrderAmountController = TextEditingController();
+
     _currentContractorDetails = widget.contractorDetails;
+    _loadAgencies();
     _loadExistingData();
   }
 
   void _loadExistingData() {
-    final details = _currentContractorDetails ?? widget.contractorDetails;
+    final details = widget.contractorDetails;
     if (details != null) {
-      _nameController = TextEditingController(text: details.personName);
-
-      // Parse and set dates
+      _nameController.text = details.personName;
+      _personPhoneController.text = details.personPhone;
+      _workOrderAmountController.text = details.workOrderAmount.toString();
+      _agencyIdController.text = details.agency.id.toString();
+      _selectedAgency = details.agency;
+      
       try {
         _startDate = DateTime.parse(details.contractStartDate);
-        _workOrderDateController = TextEditingController(
-          text: _formatDateForDisplay(_startDate!),
-        );
-
+        _workOrderDateController.text = _formatDateForDisplay(_startDate!);
+        
         if (details.contractEndDate != null) {
           _endDate = DateTime.parse(details.contractEndDate!);
+          final duration = _endDate!.difference(_startDate!);
+          final months = (duration.inDays / 30).round();
+          final calculatedDuration = '$months months';
+          if (_durationOptions.contains(calculatedDuration)) {
+            _selectedDuration = calculatedDuration;
+          } else {
+            _selectedDuration = _findClosestDurationOption(months);
+          }
         }
       } catch (e) {
-        print('Error parsing dates: $e');
-        _startDate = null;
-        _workOrderDateController = TextEditingController();
+        print('Error parsing existing dates: $e');
       }
 
-      // Set duration based on dates
-      if (_startDate != null && _endDate != null) {
-        final duration = _endDate!.difference(_startDate!);
-        final months = (duration.inDays / 30).round();
-        final calculatedDuration = '$months months';
-        if (_durationOptions.contains(calculatedDuration)) {
-          _selectedDuration = calculatedDuration;
-        } else {
-          _selectedDuration = _findClosestDurationOption(months);
-        }
+      // Ensure frequency is uppercase and exists in options (API: DAILY, ONCE_IN_THREE_DAYS, WEEKLY, MONTHLY only)
+      final freq = details.cleaningFrequency.toUpperCase();
+      if (_frequencyOptions.contains(freq)) {
+        _selectedFrequency = freq;
       }
-
-      // Set frequency from model
-      if (_frequencyOptions.contains(details.workFrequency)) {
-        _selectedFrequency = details.workFrequency;
-      }
-    } else {
-      _nameController = TextEditingController();
-      _workOrderDateController = TextEditingController();
+      // FORTNIGHTLY not accepted by backend; do not pre-select, user must choose valid option
     }
   }
+
+  Future<void> _loadAgencies() async {
+    setState(() {
+      _isLoadingAgencies = true;
+    });
+
+    try {
+      final agencies = await ApiService().getAgencies(limit: 1000);
+      // Sort alphabetically
+      agencies.sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
+
+      setState(() {
+        _agencies = agencies;
+        _isLoadingAgencies = false;
+
+        // Try to match current agency
+        if (_currentContractorDetails != null && _selectedAgency == null) {
+          try {
+            _selectedAgency = _agencies.firstWhere(
+              (a) => a.id == _currentContractorDetails!.agency.id,
+            );
+          } catch (_) {
+            _selectedAgency = _currentContractorDetails!.agency;
+          }
+        }
+      });
+    } catch (e) {
+      setState(() {
+        _isLoadingAgencies = false;
+      });
+      print('Error loading agencies: $e');
+    }
+  }
+
+  Future<void> _showAddAgencyDialog() async {
+    final nameController = TextEditingController();
+    final phoneController = TextEditingController();
+    final emailController = TextEditingController();
+    final addressController = TextEditingController();
+    final formKey = GlobalKey<FormState>();
+
+    final result = await showDialog<Map<String, String>>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: Colors.white,
+        surfaceTintColor: Colors.white,
+        title: Text(
+          AppLocalizations.of(context)!.addNewAgency,
+          style: const TextStyle(fontFamily: 'Noto Sans', fontWeight: FontWeight.bold),
+        ),
+        content: SingleChildScrollView(
+          child: Form(
+            key: formKey,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextFormField(
+                  controller: nameController,
+                  decoration: InputDecoration(
+                    labelText: AppLocalizations.of(context)!.agencyNameRequired,
+                    hintText: AppLocalizations.of(context)!.enterAgencyName,
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(8.r)),
+                  ),
+                  validator: (v) => v == null || v.isEmpty ? AppLocalizations.of(context)!.required : null,
+                ),
+                SizedBox(height: 12.h),
+                TextFormField(
+                  controller: phoneController,
+                  decoration: InputDecoration(
+                    labelText: AppLocalizations.of(context)!.phoneNumberLabel,
+                    hintText: AppLocalizations.of(context)!.enterMobileNumberPlaceholder,
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(8.r)),
+                  ),
+                  keyboardType: TextInputType.phone,
+                  inputFormatters: [
+                    FilteringTextInputFormatter.digitsOnly,
+                    LengthLimitingTextInputFormatter(10),
+                  ],
+                  validator: (v) {
+                    if (v != null && v.isNotEmpty && v.length != 10) {
+                      return AppLocalizations.of(context)!.enter10Digits;
+                    }
+                    return null;
+                  },
+                ),
+                SizedBox(height: 12.h),
+                TextFormField(
+                  controller: emailController,
+                  decoration: InputDecoration(
+                    labelText: AppLocalizations.of(context)!.agencyEmail,
+                    hintText: AppLocalizations.of(context)!.enterEmailAddress,
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(8.r)),
+                  ),
+                  keyboardType: TextInputType.emailAddress,
+                ),
+                SizedBox(height: 12.h),
+                TextFormField(
+                  controller: addressController,
+                  decoration: InputDecoration(
+                    labelText: AppLocalizations.of(context)!.agencyAddress,
+                    hintText: AppLocalizations.of(context)!.enterAddress,
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(8.r)),
+                  ),
+                  maxLines: 2,
+                ),
+              ],
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(AppLocalizations.of(context)!.cancel, style: const TextStyle(color: Colors.grey)),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              if (formKey.currentState!.validate()) {
+                Navigator.pop(context, {
+                  'name': nameController.text.trim(),
+                  'phone': phoneController.text.trim(),
+                  'email': emailController.text.trim(),
+                  'address': addressController.text.trim(),
+                });
+              }
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF009B56),
+              foregroundColor: Colors.white,
+            ),
+            child: Text(AppLocalizations.of(context)!.add),
+          ),
+        ],
+      ),
+    );
+
+    if (result != null && result['name']!.isNotEmpty) {
+      setState(() => _isLoadingAgencies = true);
+      try {
+        final newAgency = await ApiService().createAgency(
+          name: result['name']!,
+          phone: result['phone']!.isNotEmpty ? result['phone'] : null,
+          email: result['email']!.isNotEmpty ? result['email'] : null,
+          address: result['address']!.isNotEmpty ? result['address'] : null,
+        );
+        await _loadAgencies(); // Reload and sort
+        setState(() {
+          // Robust selection: either find in the refreshed list or use the new one directly
+          try {
+            _selectedAgency = _agencies.firstWhere((a) => a.id == newAgency.id);
+          } catch (_) {
+            _selectedAgency = newAgency;
+            // Also add to the list if missing (e.g. pagination limit reached)
+            if (!_agencies.any((a) => a.id == newAgency.id)) {
+              _agencies.add(newAgency);
+              _agencies.sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
+            }
+          }
+        });
+      } catch (e) {
+        setState(() => _isLoadingAgencies = false);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(AppLocalizations.of(context)!.failedToAddAgency(e.toString())),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    }
+  }
+
+  void _showFullAgencyPicker() {
+    BottomSheetPicker.show<Agency>(
+      context: context,
+      title: AppLocalizations.of(context)!.selectAgency,
+      items: _agencies,
+      itemBuilder: (agency) => agency.name,
+      selectedItem: _selectedAgency,
+      showSearch: true,
+      onAdd: () async {
+        await _showAddAgencyDialog();
+        if (mounted && _selectedAgency != null) {
+          Navigator.pop(context); // Close the picker
+        }
+      },
+      onSelected: (agency) {
+        setState(() {
+          _selectedAgency = agency;
+        });
+      },
+    );
+  }
+
 
   String? _findClosestDurationOption(int months) {
     final availableMonths = [3, 6, 12, 18, 24];
@@ -1764,6 +2219,9 @@ class _VdoContractorDetailsBottomSheetState
   void dispose() {
     _nameController.dispose();
     _workOrderDateController.dispose();
+    _agencyIdController.dispose();
+    _personPhoneController.dispose();
+    _workOrderAmountController.dispose();
     super.dispose();
   }
 
@@ -1806,11 +2264,12 @@ class _VdoContractorDetailsBottomSheetState
       return;
     }
 
-    final details = widget.contractorDetails;
-    if (details == null) {
+    final details = _currentContractorDetails ?? widget.contractorDetails;
+
+    if (_selectedAgency == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Contractor details not available'),
+        SnackBar(
+          content: Text(AppLocalizations.of(context)!.pleaseSelectAgency),
           backgroundColor: Colors.red,
         ),
       );
@@ -1819,8 +2278,8 @@ class _VdoContractorDetailsBottomSheetState
 
     if (_startDate == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please select work order date'),
+        SnackBar(
+          content: Text(AppLocalizations.of(context)!.pleaseSelectWorkOrderDate),
           backgroundColor: Colors.red,
         ),
       );
@@ -1829,8 +2288,8 @@ class _VdoContractorDetailsBottomSheetState
 
     if (_selectedDuration == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please select duration'),
+        SnackBar(
+          content: Text(AppLocalizations.of(context)!.pleaseSelectDuration),
           backgroundColor: Colors.red,
         ),
       );
@@ -1851,10 +2310,19 @@ class _VdoContractorDetailsBottomSheetState
 
     if (_endDate == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please select duration to calculate end date'),
+        SnackBar(
+          content: Text(AppLocalizations.of(context)!.pleaseSelectDurationToCalculateEndDate),
           backgroundColor: Colors.red,
         ),
+      );
+      return;
+    }
+
+    // Validation: ensure agency and phone are present (already validated by _formKey and above checks)
+    if (_selectedAgency == null) return;
+    if (_personPhoneController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(AppLocalizations.of(context)!.phoneNumberRequired)),
       );
       return;
     }
@@ -1872,24 +2340,41 @@ class _VdoContractorDetailsBottomSheetState
         throw Exception('Invalid GP/Village ID');
       }
 
-      // Update contractor details
-      final updatedContractor = await ApiService().updateContractor(
-        contractorId: details.id,
-        agencyId: details.agency.id,
-        personName: _nameController.text.trim(),
-        personPhone: details.personPhone,
-        gpId: gpId,
-        contractStartDate: _formatDateForApi(_startDate!),
-        contractEndDate: _formatDateForApi(_endDate!),
-      );
+      final ContractorDetails result;
+      if (details == null) {
+        result = await ApiService().createContractor(
+          agencyId: _selectedAgency!.id,
+          personName: _nameController.text.trim(),
+          personPhone: _personPhoneController.text.trim(),
+          gpId: gpId,
+          contractStartDate: _formatDateForApi(_startDate!),
+          contractEndDate: _formatDateForApi(_endDate!),
+          workOrderAmount: double.tryParse(_workOrderAmountController.text) ?? 0.0,
+          cleaningFrequency: _selectedFrequency ?? 'DAILY',
+        );
+      } else {
+        result = await ApiService().updateContractor(
+          contractorId: details.id,
+          agencyId: _selectedAgency!.id,
+          personName: _nameController.text.trim(),
+          personPhone: _personPhoneController.text.trim(),
+          gpId: gpId,
+          contractStartDate: _formatDateForApi(_startDate!),
+          contractEndDate: _formatDateForApi(_endDate!),
+          workOrderAmount: double.tryParse(_workOrderAmountController.text) ?? 0.0,
+          cleaningFrequency: _selectedFrequency ?? 'DAILY',
+        );
+      }
+
+      if (!mounted) return;
 
       // Update the form controllers with saved values
-      _nameController.text = updatedContractor.personName;
+      _nameController.text = result.personName;
       try {
-        _startDate = DateTime.parse(updatedContractor.contractStartDate);
+        _startDate = DateTime.parse(result.contractStartDate);
         _workOrderDateController.text = _formatDateForDisplay(_startDate!);
-        if (updatedContractor.contractEndDate != null) {
-          _endDate = DateTime.parse(updatedContractor.contractEndDate!);
+        if (result.contractEndDate != null) {
+          _endDate = DateTime.parse(result.contractEndDate!);
         }
       } catch (e) {
         print('Error parsing updated dates: $e');
@@ -1910,32 +2395,187 @@ class _VdoContractorDetailsBottomSheetState
       setState(() {
         _isLoading = false;
         _isEditMode = false;
-        // Update current contractor details with the saved data
-        _currentContractorDetails = updatedContractor;
+        _currentContractorDetails = result;
       });
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Contractor details updated successfully!'),
-            backgroundColor: Color(0xFF009B56),
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            details == null
+                ? AppLocalizations.of(context)!.contractorAddedSuccessfully
+                : AppLocalizations.of(context)!.contractorDetailsUpdatedSuccessfully,
           ),
-        );
-      }
+          backgroundColor: const Color(0xFF009B56),
+        ),
+      );
     } catch (e) {
-      setState(() {
-        _isLoading = false;
-      });
-
       if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error updating contractor details: $e'),
+            content: Text(userFriendlyApiMessage(e)),
             backgroundColor: Colors.red,
           ),
         );
+        Navigator.of(context).pop();
       }
     }
+  }
+
+  Widget _buildAdvancedAgencySelector() {
+    if (_isLoadingAgencies) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            AppLocalizations.of(context)!.agency,
+            style: TextStyle(
+              fontSize: 14.sp,
+              fontWeight: FontWeight.w500,
+              color: const Color(0xFF374151),
+            ),
+          ),
+          SizedBox(height: 8.h),
+          Container(
+            height: 50.h,
+            decoration: BoxDecoration(
+              color: Colors.grey.shade100,
+              borderRadius: BorderRadius.circular(8.r),
+              border: Border.all(color: Colors.grey.shade300),
+            ),
+            child: Center(
+              child: SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  valueColor: AlwaysStoppedAnimation<Color>(const Color(0xFF009B56)),
+                ),
+              ),
+            ),
+          ),
+        ],
+      );
+    }
+
+    // Top 6 agencies sorted alphabetically
+    final List<Agency> quickAgencies = _agencies.take(6).toList();
+    
+    // Create menu items
+    final List<DropdownMenuItem<String>> menuItems = [];
+
+    for (final agency in quickAgencies) {
+      menuItems.add(DropdownMenuItem(
+        value: agency.id.toString(),
+        child: Text(
+          agency.name,
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(fontSize: 14.sp),
+        ),
+      ));
+    }
+
+    // Add currently selected if not in top 6
+    if (_selectedAgency != null && !quickAgencies.any((a) => a.id == _selectedAgency!.id)) {
+      menuItems.add(DropdownMenuItem(
+        value: _selectedAgency!.id.toString(),
+        child: Text(
+          _selectedAgency!.name,
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(fontSize: 14.sp),
+        ),
+      ));
+    }
+
+    // Add "Other..."
+    menuItems.add(DropdownMenuItem(
+      value: 'OTHER',
+      child: Text(
+        'Other...',
+        style: TextStyle(
+          fontSize: 14.sp,
+          color: const Color(0xFF009B56),
+          fontWeight: FontWeight.bold,
+        ),
+      ),
+    ));
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              AppLocalizations.of(context)!.agency,
+              style: TextStyle(
+                fontSize: 14.sp,
+                fontWeight: FontWeight.w500,
+                color: const Color(0xFF374151),
+              ),
+            ),
+            GestureDetector(
+              onTap: _showAddAgencyDialog,
+              child: Row(
+                children: [
+                   Icon(Icons.add_circle_outline, size: 16.sp, color: const Color(0xFF009B56)),
+                   SizedBox(width: 4.w),
+                   Text(
+                     AppLocalizations.of(context)!.addNew,
+                     style: TextStyle(
+                       fontSize: 12.sp,
+                       fontWeight: FontWeight.w600,
+                       color: const Color(0xFF009B56),
+                     ),
+                   ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        SizedBox(height: 8.h),
+        DropdownButtonFormField<String>(
+          value: _selectedAgency?.id.toString(),
+          dropdownColor: Colors.white,
+          decoration: InputDecoration(
+            hintText: AppLocalizations.of(context)!.selectAgency,
+            hintStyle: TextStyle(color: Colors.grey.shade500, fontSize: 14.sp),
+            filled: true,
+            fillColor: Colors.white,
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8.r),
+              borderSide: BorderSide(color: Colors.grey.shade300),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8.r),
+              borderSide: BorderSide(color: Colors.grey.shade300),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8.r),
+              borderSide: const BorderSide(color: Color(0xFF009B56)),
+            ),
+            contentPadding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 12.h),
+          ),
+          items: menuItems,
+          onChanged: (value) {
+            if (value == 'OTHER') {
+              _showFullAgencyPicker();
+            } else if (value != null) {
+              setState(() {
+                _selectedAgency = _agencies.firstWhere((a) => a.id.toString() == value);
+              });
+            }
+          },
+          validator: (value) {
+            if (_selectedAgency == null) {
+              return AppLocalizations.of(context)!.pleaseSelectAgency;
+            }
+            return null;
+          },
+        ),
+      ],
+    );
   }
 
   @override
@@ -1960,7 +2600,9 @@ class _VdoContractorDetailsBottomSheetState
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  AppLocalizations.of(context)!.vendorDetails,
+                  details != null
+                      ? AppLocalizations.of(context)!.contractorDetails
+                      : AppLocalizations.of(context)!.addContractor,
                   style: const TextStyle(
                     fontFamily: 'Noto Sans',
                     fontSize: 20,
@@ -1968,7 +2610,7 @@ class _VdoContractorDetailsBottomSheetState
                     color: Color(0xFF111827),
                   ),
                 ),
-                if (!_isEditMode)
+                if (details != null && !_isEditMode)
                   IconButton(
                     onPressed: () {
                       setState(() {
@@ -1985,22 +2627,28 @@ class _VdoContractorDetailsBottomSheetState
               if (!_isEditMode) ...[
                 // Read-only view
                 _buildDetailRow(
+                  AppLocalizations.of(context)!.agencyName,
+                  details.agency.name,
+                ),
+                SizedBox(height: 16.h),
+
+                _buildDetailRow(
                   AppLocalizations.of(context)!.name,
                   details.personName,
                 ),
                 SizedBox(height: 16.h),
 
                 _buildDetailRow(
-                  AppLocalizations.of(context)!.workOrderDate,
-                  _formatDateForDisplay(
-                    DateTime.parse(details.contractStartDate),
-                  ),
+                  AppLocalizations.of(context)!.personPhone,
+                  details.personPhone,
                 ),
                 SizedBox(height: 16.h),
 
                 _buildDetailRow(
-                  AppLocalizations.of(context)!.annualContractAmount,
-                  '₹ 12 Crore',
+                  AppLocalizations.of(context)!.workOrderDate,
+                  _formatDateForDisplay(
+                    _startDate ?? DateTime.now(),
+                  ),
                 ),
                 SizedBox(height: 16.h),
 
@@ -2014,8 +2662,16 @@ class _VdoContractorDetailsBottomSheetState
                 SizedBox(height: 16.h),
 
                 _buildDetailRow(
+                  AppLocalizations.of(context)!.annualContractAmount,
+                  '₹ ${details.workOrderAmount.toStringAsFixed(2)}',
+                ),
+                SizedBox(height: 16.h),
+
+                _buildDetailRow(
                   AppLocalizations.of(context)!.frequencyOfWork,
-                  details.workFrequency,
+                  details.cleaningFrequency.toUpperCase() == 'FORTNIGHTLY'
+                      ? '—'
+                      : _getFrequencyLabel(context, details.cleaningFrequency.toUpperCase()),
                 ),
 
                 SizedBox(height: 30.h),
@@ -2051,22 +2707,56 @@ class _VdoContractorDetailsBottomSheetState
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      // Agency Dropdown (Searchable using LoadingDropdownField)
+                      _buildAdvancedAgencySelector(),
+
+                      SizedBox(height: 20.h),
+
                       // Name Field
                       _buildFormField(
                         label: AppLocalizations.of(context)!.name,
                         controller: _nameController,
-                        placeholder: 'Enter contractor name',
+                        placeholder: AppLocalizations.of(context)!.enterContractorName,
+                      ),
+
+                      SizedBox(height: 20.h),
+
+                      // Phone Field
+                      _buildFormField(
+                        label: AppLocalizations.of(context)!.phoneNumberLabel,
+                        controller: _personPhoneController,
+                        placeholder: AppLocalizations.of(context)!.enterMobileNumberPlaceholder,
+                        keyboardType: TextInputType.phone,
+                        inputFormatters: [
+                          FilteringTextInputFormatter.digitsOnly,
+                          LengthLimitingTextInputFormatter(10),
+                        ],
+                        validator: (v) {
+                          if (v == null || v.isEmpty) return AppLocalizations.of(context)!.required;
+                          if (v.length != 10) return AppLocalizations.of(context)!.enter10Digits;
+                          return null;
+                        },
                       ),
 
                       SizedBox(height: 20.h),
 
                       // Work Order Date Field
                       _buildFormField(
-                        label: 'Panchayat',
+                        label: AppLocalizations.of(context)!.workOrderDate,
                         controller: _workOrderDateController,
-                        placeholder: 'Work Order date',
+                        placeholder: AppLocalizations.of(context)!.workOrderDatePlaceholder,
                         suffixIcon: Icons.calendar_today,
                         onTap: _selectStartDate,
+                      ),
+
+                      SizedBox(height: 20.h),
+
+                      // Work Order Amount
+                      _buildFormField(
+                        label: AppLocalizations.of(context)!.workOrderAmount,
+                        controller: _workOrderAmountController,
+                        placeholder: AppLocalizations.of(context)!.enterAmount,
+                        suffixIcon: Icons.currency_rupee,
                       ),
 
                       SizedBox(height: 20.h),
@@ -2075,7 +2765,7 @@ class _VdoContractorDetailsBottomSheetState
                       _buildDropdownField(
                         label: AppLocalizations.of(context)!.durationOfWork,
                         value: _selectedDuration,
-                        placeholder: 'Select duration',
+                        placeholder: AppLocalizations.of(context)!.selectDuration,
                         items: _durationOptions,
                         onChanged: (value) {
                           setState(() {
@@ -2103,7 +2793,7 @@ class _VdoContractorDetailsBottomSheetState
                       _buildDropdownField(
                         label: AppLocalizations.of(context)!.frequencyOfWork,
                         value: _selectedFrequency,
-                        placeholder: 'Select duration',
+                        placeholder: AppLocalizations.of(context)!.selectFrequency,
                         items: _frequencyOptions,
                         onChanged: (value) {
                           setState(() {
@@ -2140,9 +2830,9 @@ class _VdoContractorDetailsBottomSheetState
                                     ),
                                   ),
                                 )
-                              : const Text(
-                                  'Save',
-                                  style: TextStyle(
+                              : Text(
+                                  AppLocalizations.of(context)!.save,
+                                  style: const TextStyle(
                                     fontFamily: 'Noto Sans',
                                     fontSize: 16,
                                     fontWeight: FontWeight.w600,
@@ -2155,8 +2845,149 @@ class _VdoContractorDetailsBottomSheetState
                 ),
               ],
             ] else ...[
-              const Text('No contractor details found'),
-              SizedBox(height: 20.h),
+              // Add Contractor form (when no contractor exists for this village)
+              Form(
+                key: _formKey,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Agency Dropdown (Searchable using LoadingDropdownField)
+                    _buildAdvancedAgencySelector(),
+
+                    SizedBox(height: 20.h),
+
+                    // Name Field
+                    _buildFormField(
+                      label: AppLocalizations.of(context)!.name,
+                      controller: _nameController,
+                      placeholder: AppLocalizations.of(context)!.enterContractorName,
+                    ),
+
+                    SizedBox(height: 20.h),
+
+                    // Phone Field
+                    _buildFormField(
+                      label: AppLocalizations.of(context)!.phoneNumberLabel,
+                      controller: _personPhoneController,
+                      placeholder: AppLocalizations.of(context)!.enterMobileNumberPlaceholder,
+                      keyboardType: TextInputType.phone,
+                      inputFormatters: [
+                        FilteringTextInputFormatter.digitsOnly,
+                        LengthLimitingTextInputFormatter(10),
+                      ],
+                      validator: (v) {
+                        if (v == null || v.isEmpty) return AppLocalizations.of(context)!.required;
+                        if (v.length != 10) return AppLocalizations.of(context)!.enter10Digits;
+                        return null;
+                      },
+                    ),
+
+                    SizedBox(height: 20.h),
+
+                    // Work Order Date Field
+                    _buildFormField(
+                      label: AppLocalizations.of(context)!.workOrderDate,
+                      controller: _workOrderDateController,
+                      placeholder: AppLocalizations.of(context)!.workOrderDatePlaceholder,
+                      suffixIcon: Icons.calendar_today,
+                      onTap: _selectStartDate,
+                    ),
+
+                    SizedBox(height: 20.h),
+
+                    // Work Order Amount
+                    _buildFormField(
+                      label: AppLocalizations.of(context)!.workOrderAmount,
+                      controller: _workOrderAmountController,
+                      placeholder: AppLocalizations.of(context)!.enterAmount,
+                      suffixIcon: Icons.currency_rupee,
+                      keyboardType: TextInputType.number,
+                    ),
+
+                    SizedBox(height: 20.h),
+
+                    // Duration Dropdown
+                    _buildDropdownField(
+                      label: AppLocalizations.of(context)!.durationOfWork,
+                      value: _selectedDuration,
+                      placeholder: AppLocalizations.of(context)!.selectDuration,
+                      items: _durationOptions,
+                      onChanged: (value) {
+                        setState(() {
+                          _selectedDuration = value;
+                          // Calculate end date based on duration
+                          if (_startDate != null && value != null) {
+                            final months = int.tryParse(
+                              value.replaceAll(' months', ''),
+                            );
+                            if (months != null) {
+                              _endDate = DateTime(
+                                _startDate!.year,
+                                _startDate!.month + months,
+                                _startDate!.day,
+                              );
+                            }
+                          }
+                        });
+                      },
+                    ),
+
+                    SizedBox(height: 20.h),
+
+                    // Frequency Dropdown
+                    _buildDropdownField(
+                      label: AppLocalizations.of(context)!.frequencyOfWork,
+                      value: _selectedFrequency,
+                      placeholder: AppLocalizations.of(context)!.selectFrequency,
+                      items: _frequencyOptions,
+                      onChanged: (value) {
+                        setState(() {
+                          _selectedFrequency = value;
+                        });
+                      },
+                    ),
+
+                    SizedBox(height: 30.h),
+
+                    // Save Button
+                    SizedBox(
+                      width: double.infinity,
+                      height: 50,
+                      child: ElevatedButton(
+                        onPressed: _isLoading ? null : _handleSave,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF009B56),
+                          foregroundColor: Colors.white,
+                          disabledBackgroundColor: Colors.grey.shade300,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8.r),
+                          ),
+                          elevation: 0,
+                        ),
+                        child: _isLoading
+                            ? const SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  valueColor: AlwaysStoppedAnimation<Color>(
+                                    Colors.white,
+                                  ),
+                                ),
+                              )
+                            : Text(
+                                AppLocalizations.of(context)!.save,
+                                style: TextStyle(
+                                  fontFamily: 'Noto Sans',
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ],
           ],
         ),
@@ -2218,6 +3049,9 @@ class _VdoContractorDetailsBottomSheetState
     required String placeholder,
     IconData? suffixIcon,
     VoidCallback? onTap,
+    TextInputType? keyboardType,
+    List<TextInputFormatter>? inputFormatters,
+    String? Function(String?)? validator,
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -2236,11 +3070,13 @@ class _VdoContractorDetailsBottomSheetState
           controller: controller,
           onTap: onTap,
           readOnly: onTap != null,
+          keyboardType: keyboardType,
+          inputFormatters: inputFormatters,
           decoration: InputDecoration(
             hintText: placeholder,
             hintStyle: TextStyle(color: Colors.grey.shade500, fontSize: 14.sp),
             filled: true,
-            fillColor: Colors.grey.shade50,
+            fillColor: Colors.white,
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(8.r),
               borderSide: BorderSide(color: Colors.grey.shade300),
@@ -2261,12 +3097,13 @@ class _VdoContractorDetailsBottomSheetState
                 ? Icon(suffixIcon, color: Colors.grey.shade600, size: 20.sp)
                 : null,
           ),
-          validator: (value) {
-            if (value == null || value.isEmpty) {
-              return 'This field is required';
-            }
-            return null;
-          },
+          validator: validator ??
+              (value) {
+                if (value == null || value.isEmpty) {
+                  return AppLocalizations.of(context)!.thisFieldIsRequired;
+                }
+                return null;
+              },
         ),
       ],
     );
@@ -2293,12 +3130,13 @@ class _VdoContractorDetailsBottomSheetState
         ),
         SizedBox(height: 8.h),
         DropdownButtonFormField<String>(
-          initialValue: value,
+          value: value,
+          dropdownColor: Colors.white,
           decoration: InputDecoration(
             hintText: placeholder,
             hintStyle: TextStyle(color: Colors.grey.shade500, fontSize: 14),
             filled: true,
-            fillColor: Colors.grey.shade50,
+            fillColor: Colors.white,
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(8.r),
               borderSide: BorderSide(color: Colors.grey.shade300),
@@ -2315,29 +3153,17 @@ class _VdoContractorDetailsBottomSheetState
               horizontal: 12,
               vertical: 12,
             ),
-            suffixIcon: const Icon(
-              Icons.keyboard_arrow_down,
-              color: Color(0xFF6B7280),
-              size: 20,
-            ),
           ),
           items: items.map((String item) {
             return DropdownMenuItem<String>(
               value: item,
-              child: Text(
-                item,
-                style: const TextStyle(
-                  fontFamily: 'Noto Sans',
-                  fontSize: 14,
-                  color: Color(0xFF374151),
-                ),
-              ),
+              child: Text(_getFrequencyLabel(context, item)),
             );
           }).toList(),
           onChanged: onChanged,
           validator: (value) {
             if (value == null || value.isEmpty) {
-              return 'Please select a value';
+              return AppLocalizations.of(context)!.pleaseSelectValue;
             }
             return null;
           },

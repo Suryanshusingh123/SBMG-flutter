@@ -1,13 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:geocoding/geocoding.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:provider/provider.dart';
 import '../../theme/citizen_colors.dart';
 import '../../services/api_services.dart';
 import '../../config/connstants.dart';
 import '../../providers/citizen_auth_provider.dart';
+import '../../providers/citizen_complaints_provider.dart';
 import '../../l10n/app_localizations.dart';
 import '../../utils/date_time_utils.dart';
+import '../../widgets/resolution_details_sheet.dart';
 
 class ComplaintDetailsScreen extends StatefulWidget {
   final String complaintId;
@@ -301,53 +304,110 @@ class _ComplaintDetailsScreenState extends State<ComplaintDetailsScreen> {
     return 'Location not available';
   }
 
+  Future<void> _openGoogleMaps(double? lat, double? long) async {
+    if (lat == null || long == null) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(AppLocalizations.of(context)!.locationNotAvailable),
+          ),
+        );
+      }
+      return;
+    }
+
+    const mode = LaunchMode.externalApplication;
+    // Use directions URL so Maps opens the "Get directions" screen, not just the pin
+    final directionsUrl = Uri.parse(
+      'https://www.google.com/maps/dir/?api=1&destination=$lat,$long',
+    );
+    final geoUri = Uri.parse('geo:0,0?q=$lat,$long');
+
+    try {
+      bool launched = false;
+      try {
+        launched = await launchUrl(directionsUrl, mode: mode);
+      } catch (_) {}
+      if (!launched) {
+        launched = await launchUrl(geoUri, mode: mode);
+      }
+      if (!launched && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              AppLocalizations.of(context)!.couldNotOpenGoogleMaps,
+            ),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              AppLocalizations.of(context)!.couldNotOpenGoogleMaps,
+            ),
+          ),
+        );
+      }
+    }
+  }
+
   String get _getComplaintTypeName {
     final complaintType = _complaintData?['complaint_type'];
 
     // Try to determine complaint type name
     if (complaintType is Map && complaintType['name'] != null) {
       return complaintType['name'];
-    } else if (complaintType is String) {
-      return complaintType;
+    } else if (complaintType is String && complaintType.trim().isNotEmpty) {
+      return complaintType.trim();
     } else if (_complaintData?['complaint_type_name'] != null) {
       return _complaintData!['complaint_type_name'];
     }
-    
+
+    // Resolve from complaint_type_id when API returns id but not type name
+    final typeId = _complaintData?['complaint_type_id'];
+    if (typeId != null) {
+      final id = typeId is int ? typeId : int.tryParse(typeId.toString());
+      if (id != null && context.mounted) {
+        final resolved = context.read<ComplaintsProvider>().getComplaintTypeById(id);
+        if (resolved != null) return resolved.name;
+      }
+    }
+
     // Fallback to default
     return 'Road Maintenance';
   }
 
   String get _dynamicStatusText {
     final status = _complaintData?['status_id'];
+    final closedAt = _complaintData?['closed_at'];
+    final verifiedAt = _complaintData?['verified_at'];
+    final resolvedAt = _complaintData?['resolved_at'];
 
     print('🔍 Status Check: status_id = $status');
-    print('🔍 Status Check: verified_at = ${_complaintData?['verified_at']}');
-    print('🔍 Status Check: closed_at = ${_complaintData?['closed_at']}');
+    print('🔍 Status Check: verified_at = $verifiedAt');
+    print('🔍 Status Check: closed_at = $closedAt');
 
-    // If verified but not closed, show "Verified"
-    if (status == 3 ||
-        (_complaintData?['verified_at'] != null &&
-            _complaintData?['closed_at'] == null)) {
-      return 'Verified';
+    final l10n = AppLocalizations.of(context)!;
+
+    // First check if closed
+    if (status == 4 || closedAt != null) {
+      return 'Complaint has been closed';
     }
 
-    // If closed, show "Closed"
-    if (status == 4 || _complaintData?['closed_at'] != null) {
-      return 'Closed';
+    // Then check if verified but not closed - show awaiting citizen message
+    if (status == 3 || (verifiedAt != null && closedAt == null)) {
+      return l10n.awaitingForCitizenToCloseComplaint;
     }
 
-    switch (status) {
-      case 1:
-        return 'Under Process';
-      case 2:
-        return 'Verification Pending';
-      case 3:
-        return 'Verified';
-      case 4:
-        return 'Closed';
-      default:
-        return 'Under Process';
+    // Then check if resolved but not verified - show awaiting VDO message
+    if (status == 2 || (resolvedAt != null && verifiedAt == null)) {
+      return l10n.awaitingForVdoToVerify;
     }
+
+    // Open status - show awaiting supervisor message
+    return l10n.awaitingForSupervisorToTakeAction;
   }
 
   String get _dynamicStatusSubtext {
@@ -756,8 +816,18 @@ class _ComplaintDetailsScreenState extends State<ComplaintDetailsScreen> {
     String complaintTypeName = 'Road Maintenance';
     if (complaintType is Map && complaintType['name'] != null) {
       complaintTypeName = complaintType['name'];
-    } else if (complaintType is String) {
-      complaintTypeName = complaintType;
+    } else if (complaintType is String && complaintType.trim().isNotEmpty) {
+      complaintTypeName = complaintType.trim();
+    } else {
+      // Resolve from complaint_type_id when API returns id but not type name
+      final typeId = _complaintData?['complaint_type_id'];
+      if (typeId != null && context.mounted) {
+        final id = typeId is int ? typeId : int.tryParse(typeId.toString());
+        if (id != null) {
+          final resolved = context.read<ComplaintsProvider>().getComplaintTypeById(id);
+          if (resolved != null) complaintTypeName = resolved.name;
+        }
+      }
     }
 
     return Container(
@@ -818,6 +888,59 @@ class _ComplaintDetailsScreenState extends State<ComplaintDetailsScreen> {
               height: 1.4,
             ),
           ),
+
+          // Get Directions Button
+          if (_latitude != null && _longitude != null)
+            GestureDetector(
+              onTap: () {
+                _openGoogleMaps(_latitude, _longitude);
+              },
+              child: Container(
+                margin: EdgeInsets.only(top: 16.h),
+                padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 14.h),
+                decoration: BoxDecoration(
+                  color: CitizenColors.surface(context),
+                  borderRadius: BorderRadius.circular(8.r),
+                  border: Border.all(
+                    color: _secondaryTextColor.withOpacity(0.3),
+                    width: 1,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.05),
+                      blurRadius: 4,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: Row(
+                  children: [
+                    Image.asset(
+                      'assets/icons/map.png',
+                      width: 24.w,
+                      height: 24.h,
+                      fit: BoxFit.contain,
+                    ),
+                    SizedBox(width: 12.w),
+                    Text(
+                      AppLocalizations.of(context)!.getDirections,
+                      style: TextStyle(
+                        fontFamily: 'Noto Sans',
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                        color: _primaryTextColor,
+                      ),
+                    ),
+                    const Spacer(),
+                    Icon(
+                      Icons.arrow_forward_ios,
+                      size: 16.sp,
+                      color: AppColors.primaryColor,
+                    ),
+                  ],
+                ),
+              ),
+            ),
         ],
       ),
     );
@@ -847,6 +970,7 @@ class _ComplaintDetailsScreenState extends State<ComplaintDetailsScreen> {
               item['subtitle'],
               item['isCompleted'],
               showLine: item['showLine'],
+              onTap: () => _onTimelineStageTap(item),
             ),
           ),
         ],
@@ -884,16 +1008,18 @@ class _ComplaintDetailsScreenState extends State<ComplaintDetailsScreen> {
           closedAt != null ||
           hasResolutionComment ||
           hasVerificationComment,
+      'stage': 'created',
     });
 
     // Add resolved if present
     if (resolvedAt != null || hasResolutionComment) {
       items.add({
         'title': 'Resolved',
-        'subtitle': _formatTimelineSubtitle('Vendor / Supervisor', resolvedAt),
+        'subtitle': _formatTimelineSubtitle('Contractor / Supervisor', resolvedAt),
         'isCompleted': true,
         'showLine':
             verifiedAt != null || closedAt != null || hasVerificationComment,
+        'stage': 'resolved',
       });
     }
 
@@ -904,6 +1030,7 @@ class _ComplaintDetailsScreenState extends State<ComplaintDetailsScreen> {
         'subtitle': _formatTimelineSubtitle('VDO', verifiedAt),
         'isCompleted': true,
         'showLine': closedAt != null,
+        'stage': 'verified',
       });
     }
 
@@ -914,6 +1041,7 @@ class _ComplaintDetailsScreenState extends State<ComplaintDetailsScreen> {
         'subtitle': _formatTimelineSubtitle('Citizen', closedAt),
         'isCompleted': true,
         'showLine': false,
+        'stage': 'closed',
       });
     }
 
@@ -921,11 +1049,32 @@ class _ComplaintDetailsScreenState extends State<ComplaintDetailsScreen> {
   }
 
   String _formatTimelineSubtitle(String user, String? dateString) {
-    String formattedDate = DateTimeUtils.formatDateStringIST(dateString);
+    String formattedDate = DateTimeUtils.formatComplaintDetailIST(dateString);
     if (formattedDate == 'Unknown') {
       formattedDate = 'Unknown date';
     }
     return '$user · $formattedDate';
+  }
+
+  void _onTimelineStageTap(Map<String, dynamic> item) {
+    final stage = item['stage'] as String?;
+    if (stage == 'resolved') {
+      ResolutionDetailsSheet.show(context, _complaintData);
+    } else {
+      showDialog<void>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: Text(item['title'] as String),
+          content: Text(item['subtitle'] as String),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: Text(AppLocalizations.of(context)!.cancel),
+            ),
+          ],
+        ),
+      );
+    }
   }
 
   Widget _buildTimelineItem(
@@ -933,8 +1082,9 @@ class _ComplaintDetailsScreenState extends State<ComplaintDetailsScreen> {
     String subtitle,
     bool isCompleted, {
     bool showLine = true,
+    VoidCallback? onTap,
   }) {
-    return Row(
+    final content = Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Column(
@@ -986,6 +1136,14 @@ class _ComplaintDetailsScreenState extends State<ComplaintDetailsScreen> {
         ),
       ],
     );
+    if (onTap != null) {
+      return InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(8.r),
+        child: content,
+      );
+    }
+    return content;
   }
 
   Widget _buildActionButtons() {
@@ -1170,7 +1328,8 @@ class _ComplaintDetailsScreenState extends State<ComplaintDetailsScreen> {
   }
 
   String _formatDate(String? dateStr) {
-    return DateTimeUtils.formatDateStringIST(dateStr);
+    final formatted = DateTimeUtils.formatComplaintDetailIST(dateStr);
+    return formatted == 'Unknown' ? '—' : formatted;
   }
 }
 

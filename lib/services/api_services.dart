@@ -5,7 +5,7 @@ import 'package:geocoding/geocoding.dart';
 import '../config/connstants.dart';
 import '../models/scheme_model.dart';
 import '../models/event_model.dart';
-import '../models/geography_model.dart';
+import '../models/geography_model.dart' hide Agency;
 import '../models/complaint_type_model.dart';
 import '../models/inspection_model.dart';
 import '../models/contractor_model.dart';
@@ -32,6 +32,7 @@ class ApiService {
     required String method,
     Map<String, String>? headers,
     Object? body,
+    bool skip401Logout = false, // Flag to skip auto-logout on 401
   }) async {
     final url = Uri.parse('${ApiConstants.baseUrl}$endpoint');
 
@@ -49,6 +50,9 @@ class ApiService {
             headers: headers,
             body: json.encode(body),
           );
+        } else if (body == null || body == '') {
+          // Don't send body for empty/null POST requests
+          response = await http.post(url, headers: headers);
         } else {
           response = await http.post(url, headers: headers, body: body);
         }
@@ -85,7 +89,7 @@ class ApiService {
     }
 
     // Handle 401 Unauthorized response
-    if (response.statusCode == 401) {
+    if (response.statusCode == 401 && !skip401Logout) {
       print('🚨 401 Unauthorized response detected - logging out user');
       _handle401Error();
     }
@@ -142,13 +146,11 @@ class ApiService {
 
       if (data is List) {
         final schemes = data.map((json) => Scheme.fromJson(json)).toList();
-        print('✅ Schemes fetched: ${schemes.length} items');
         return schemes;
       } else {
         throw Exception('Invalid response format for schemes');
       }
     } catch (e) {
-      print('❌ Error fetching schemes: $e');
       throw Exception('Failed to fetch schemes: $e');
     }
   }
@@ -167,10 +169,8 @@ class ApiService {
       print('🟢 API Response: Status ${response.statusCode}');
 
       final data = _handleResponse(response);
-      print('✅ Scheme fetched: ID $schemeId');
       return Scheme.fromJson(data);
     } catch (e) {
-      print('❌ Error fetching scheme: $e');
       throw Exception('Failed to fetch scheme: $e');
     }
   }
@@ -199,13 +199,11 @@ class ApiService {
 
       if (data is List) {
         final events = data.map((json) => Event.fromJson(json)).toList();
-        print('✅ Events fetched: ${events.length} items');
         return events;
       } else {
         throw Exception('Invalid response format for events');
       }
     } catch (e) {
-      print('❌ Error fetching events: $e');
       throw Exception('Failed to fetch events: $e');
     }
   }
@@ -224,11 +222,227 @@ class ApiService {
       print('🟢 API Response: Status ${response.statusCode}');
 
       final data = _handleResponse(response);
-      print('✅ Event fetched: ID $eventId');
       return Event.fromJson(data);
     } catch (e) {
-      print('❌ Error fetching event: $e');
       throw Exception('Failed to fetch event: $e');
+    }
+  }
+
+  // Event bookmark APIs (require auth)
+
+  /// Add event to user's bookmarks. POST /api/v1/events/{id}/bookmark
+  Future<void> addEventBookmark(int eventId) async {
+    try {
+      final endpoint = '${ApiConstants.eventsEndpoint}$eventId/bookmark';
+      print('🔵 API Request: POST ${ApiConstants.baseUrl}$endpoint');
+      print('🔑 Headers: ${await AuthService().getAuthHeaders()}');
+
+      final response = await _makeRequest(
+        endpoint: endpoint,
+        method: 'POST',
+        headers: await AuthService().getAuthHeaders(),
+        body: null, // Don't send body for bookmark operations
+        skip401Logout: true, // Don't auto-logout on 401 for bookmarks
+      );
+
+      print('🟢 API Response: Status ${response.statusCode}');
+      print('📦 Response Body: ${response.body}');
+      
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+      } else if (response.statusCode == 403) {
+        final errorMsg = 'Authentication failed. Please login again.';
+        print('❌ $errorMsg');
+        throw Exception(errorMsg);
+      } else {
+        throw Exception('API Error: ${response.statusCode} - ${response.body}');
+      }
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  /// Remove event from user's bookmarks. DELETE /api/v1/events/{id}/bookmark
+  Future<void> removeEventBookmark(int eventId) async {
+    try {
+      final endpoint = '${ApiConstants.eventsEndpoint}$eventId/bookmark';
+      print('🔵 API Request: DELETE ${ApiConstants.baseUrl}$endpoint');
+      print('🔑 Headers: ${await AuthService().getAuthHeaders()}');
+
+      final response = await _makeRequest(
+        endpoint: endpoint,
+        method: 'DELETE',
+        headers: await AuthService().getAuthHeaders(),
+        skip401Logout: true, // Don't auto-logout on 401 for bookmarks
+      );
+
+      print('🟢 API Response: Status ${response.statusCode}');
+      print('📦 Response Body: ${response.body}');
+      
+      if (response.statusCode >= 200 && response.statusCode < 300 ||
+          response.statusCode == 404) {
+      } else if (response.statusCode == 403) {
+        final errorMsg = 'Authentication failed. Please login again.';
+        print('❌ $errorMsg');
+        throw Exception(errorMsg);
+      } else if (response.statusCode != 404) {
+        throw Exception('API Error: ${response.statusCode} - ${response.body}');
+      }
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  /// Get user's bookmarked events. GET /api/v1/events/bookmarked/list
+  Future<List<Event>> getBookmarkedEvents({
+    int skip = 0,
+    int limit = 100,
+  }) async {
+    try {
+      final endpoint =
+          '${ApiConstants.eventsEndpoint}bookmarked/list?skip=$skip&limit=$limit';
+      print('🔵 API Request: GET ${ApiConstants.baseUrl}$endpoint');
+      print('🔑 Headers: ${await AuthService().getAuthHeaders()}');
+
+      final response = await _makeRequest(
+        endpoint: endpoint,
+        method: 'GET',
+        headers: await AuthService().getAuthHeaders(),
+        skip401Logout: true, // Don't auto-logout on 401 for bookmarks
+      );
+
+      print('🟢 API Response: Status ${response.statusCode}');
+      print('📦 Response Body: ${response.body}');
+      
+      if (response.statusCode == 403) {
+        final errorMsg = 'Authentication failed. Please login again.';
+        print('❌ $errorMsg');
+        throw Exception(errorMsg);
+      }
+      
+      final data = _handleResponse(response);
+
+      List<dynamic> list = [];
+      if (data is List) {
+        list = data;
+      } else if (data is Map && data['items'] != null) {
+        list = data['items'] as List<dynamic>;
+      } else if (data is Map && data['data'] != null) {
+        list = data['data'] as List<dynamic>;
+      }
+
+      final events = list.map((e) => Event.fromJson(e as Map<String, dynamic>)).toList();
+      return events;
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  // Scheme bookmark APIs (require auth)
+
+  /// Add scheme to user's bookmarks. POST /api/v1/schemes/{id}/bookmark
+  Future<void> addSchemeBookmark(int schemeId) async {
+    try {
+      final endpoint = '${ApiConstants.schemesEndpoint}$schemeId/bookmark';
+      print('🔵 API Request: POST ${ApiConstants.baseUrl}$endpoint');
+      print('🔑 Headers: ${await AuthService().getAuthHeaders()}');
+
+      final response = await _makeRequest(
+        endpoint: endpoint,
+        method: 'POST',
+        headers: await AuthService().getAuthHeaders(),
+        body: null, // Don't send body for bookmark operations
+        skip401Logout: true, // Don't auto-logout on 401 for bookmarks (might be endpoint issue)
+      );
+
+      print('🟢 API Response: Status ${response.statusCode}');
+      print('📦 Response Body: ${response.body}');
+      
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+      } else if (response.statusCode == 403) {
+        final errorMsg = 'Authentication failed. Please login again.';
+        print('❌ $errorMsg');
+        throw Exception(errorMsg);
+      } else {
+        throw Exception('API Error: ${response.statusCode} - ${response.body}');
+      }
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  /// Remove scheme from user's bookmarks. DELETE /api/v1/schemes/{id}/bookmark
+  Future<void> removeSchemeBookmark(int schemeId) async {
+    try {
+      final endpoint = '${ApiConstants.schemesEndpoint}$schemeId/bookmark';
+      print('🔵 API Request: DELETE ${ApiConstants.baseUrl}$endpoint');
+      print('🔑 Headers: ${await AuthService().getAuthHeaders()}');
+
+      final response = await _makeRequest(
+        endpoint: endpoint,
+        method: 'DELETE',
+        headers: await AuthService().getAuthHeaders(),
+        skip401Logout: true, // Don't auto-logout on 401 for bookmarks
+      );
+
+      print('🟢 API Response: Status ${response.statusCode}');
+      print('📦 Response Body: ${response.body}');
+      
+      if (response.statusCode >= 200 && response.statusCode < 300 ||
+          response.statusCode == 404) {
+      } else if (response.statusCode == 403) {
+        final errorMsg = 'Authentication failed. Please login again.';
+        print('❌ $errorMsg');
+        throw Exception(errorMsg);
+      } else if (response.statusCode != 404) {
+        throw Exception('API Error: ${response.statusCode} - ${response.body}');
+      }
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  /// Get user's bookmarked schemes. GET /api/v1/schemes/bookmarked/list
+  Future<List<Scheme>> getBookmarkedSchemes({
+    int skip = 0,
+    int limit = 100,
+  }) async {
+    try {
+      final endpoint =
+          '${ApiConstants.schemesEndpoint}bookmarked/list?skip=$skip&limit=$limit';
+      print('🔵 API Request: GET ${ApiConstants.baseUrl}$endpoint');
+      print('🔑 Headers: ${await AuthService().getAuthHeaders()}');
+
+      final response = await _makeRequest(
+        endpoint: endpoint,
+        method: 'GET',
+        headers: await AuthService().getAuthHeaders(),
+        skip401Logout: true, // Don't auto-logout on 401 for bookmarks
+      );
+
+      print('🟢 API Response: Status ${response.statusCode}');
+      print('📦 Response Body: ${response.body}');
+      
+      if (response.statusCode == 403) {
+        final errorMsg = 'Authentication failed. Please login again.';
+        print('❌ $errorMsg');
+        throw Exception(errorMsg);
+      }
+      
+      final data = _handleResponse(response);
+
+      List<dynamic> list = [];
+      if (data is List) {
+        list = data;
+      } else if (data is Map && data['items'] != null) {
+        list = data['items'] as List<dynamic>;
+      } else if (data is Map && data['data'] != null) {
+        list = data['data'] as List<dynamic>;
+      }
+
+      final schemes = list.map((s) => Scheme.fromJson(s as Map<String, dynamic>)).toList();
+      return schemes;
+    } catch (e) {
+      rethrow;
     }
   }
 
@@ -584,16 +798,25 @@ class ApiService {
     }
   }
 
-  /// Get latest annual survey for a Gram Panchayat
+  /// Get latest annual survey for a Gram Panchayat.
+  /// GET /api/v1/annual-surveys/latest-for-gp/{gp_id}
+  /// Returns the full survey (same shape as getAnnualSurveyById). Uses auth headers when available.
   Future<Map<String, dynamic>> getLatestAnnualSurveyForGp(int gpId) async {
     try {
       final endpoint = '${ApiConstants.annualSurveyEndpoint}/$gpId';
       print('🔵 API Request: GET ${ApiConstants.baseUrl}$endpoint');
 
+      final auth = AuthService();
+      final token = await auth.getToken();
+      final headers = Map<String, String>.from(ApiConstants.publicHeaders);
+      if (token != null && token.isNotEmpty) {
+        headers['Authorization'] = 'Bearer $token';
+      }
+
       final response = await _makeRequest(
         endpoint: endpoint,
         method: 'GET',
-        headers: ApiConstants.publicHeaders,
+        headers: headers,
       );
 
       print('🟢 API Response: Status ${response.statusCode}');
@@ -614,6 +837,80 @@ class ApiService {
       }
     } catch (e) {
       print('❌ Error fetching annual survey: $e');
+      rethrow;
+    }
+  }
+
+  /// Get a single annual survey by ID.
+  /// GET /api/v1/annual-surveys/{survey_id}
+  Future<Map<String, dynamic>> getAnnualSurveyById(int surveyId) async {
+    try {
+      final endpoint = '${ApiConstants.annualSurveysListEndpoint}/$surveyId';
+      print('🔵 API Request: GET ${ApiConstants.baseUrl}$endpoint');
+
+      final token = await _getAuthToken();
+      final headers = {
+        ...ApiConstants.publicHeaders,
+        if (token.isNotEmpty) 'Authorization': 'Bearer $token',
+      };
+
+      final response = await _makeRequest(
+        endpoint: endpoint,
+        method: 'GET',
+        headers: headers,
+      );
+
+      if (response.statusCode == 200) {
+        final data = _handleResponse(response);
+        print('✅ Annual survey $surveyId fetched');
+        return data;
+      } else if (response.statusCode == 404) {
+        throw Exception('Survey not found');
+      } else {
+        throw Exception('API Error: ${response.statusCode} - ${response.body}');
+      }
+    } catch (e) {
+      print('❌ Error fetching annual survey by id: $e');
+      rethrow;
+    }
+  }
+
+  /// Get annual surveys list, optionally filtered by district.
+  /// GET /api/v1/annual-surveys/?skip=0&limit=100&district_id=1
+  Future<Map<String, dynamic>> getAnnualSurveys({
+    int skip = 0,
+    int limit = 100,
+    int? districtId,
+  }) async {
+    try {
+      final query = <String>['skip=$skip', 'limit=$limit'];
+      if (districtId != null) query.add('district_id=$districtId');
+      final endpoint =
+          '${ApiConstants.annualSurveysListEndpoint}?${query.join('&')}';
+      print('🔵 API Request: GET ${ApiConstants.baseUrl}$endpoint');
+
+      final auth = AuthService();
+      final token = await auth.getToken();
+      final headers = Map<String, String>.from(ApiConstants.publicHeaders);
+      if (token != null && token.isNotEmpty) {
+        headers['Authorization'] = 'Bearer $token';
+      }
+
+      final response = await _makeRequest(
+        endpoint: endpoint,
+        method: 'GET',
+        headers: headers,
+      );
+
+      if (response.statusCode == 200) {
+        final data = _handleResponse(response);
+        print('✅ Annual surveys list fetched');
+        return data is Map<String, dynamic> ? data : {'items': data};
+      } else {
+        throw Exception('API Error: ${response.statusCode} - ${response.body}');
+      }
+    } catch (e) {
+      print('❌ Error fetching annual surveys list: $e');
       rethrow;
     }
   }
@@ -646,6 +943,37 @@ class ApiService {
       return data;
     } catch (e) {
       print('❌ Error closing complaint: $e');
+      throw Exception('Failed to close complaint: $e');
+    }
+  }
+
+  /// SMD close complaint (sets status to CLOSED via dstatus_id=4)
+  Future<Map<String, dynamic>> closeComplaintBySmd({
+    required int complaintId,
+  }) async {
+    try {
+      final endpoint = '/api/v1/complaints/smd/complaints/$complaintId';
+      final token = await _getAuthToken();
+      final headers = {
+        ...ApiConstants.publicHeaders,
+        if (token.isNotEmpty) 'Authorization': 'Bearer $token',
+        'Content-Type': 'application/x-www-form-urlencoded',
+      };
+      const body = 'dstatus_id=4';
+      print('🔵 SMD Close complaint: PUT ${ApiConstants.baseUrl}$endpoint');
+      print('📋 Complaint ID: $complaintId');
+      final response = await _makeRequest(
+        endpoint: endpoint,
+        method: 'PUT',
+        headers: headers,
+        body: body,
+      );
+      print('🟢 API Response: Status ${response.statusCode}');
+      final data = _handleResponse(response);
+      print('✅ SMD complaint closed successfully');
+      return data as Map<String, dynamic>;
+    } catch (e) {
+      print('❌ Error closing complaint by SMD: $e');
       throw Exception('Failed to close complaint: $e');
     }
   }
@@ -858,6 +1186,276 @@ class ApiService {
     }
   }
 
+  /// Get list of agencies with pagination and search
+  Future<List<Agency>> getAgencies({
+    int skip = 0,
+    int limit = 1000,
+    String? nameLike,
+  }) async {
+    try {
+      var endpoint = '/api/v1/contractors/agencies?skip=$skip&limit=$limit';
+      if (nameLike != null && nameLike.isNotEmpty) {
+        endpoint += '&name_like=$nameLike';
+      }
+
+      print('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+      print('🔵 AGENCY API REQUEST: LIST');
+      print('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+      print('📍 URL: ${ApiConstants.baseUrl}$endpoint');
+      print('📋 Parameters:');
+      print('   - Skip: $skip');
+      print('   - Limit: $limit');
+      if (nameLike != null) print('   - Name Like: $nameLike');
+      print('⏰ Timestamp: ${DateTime.now()}');
+      print('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+
+      final response = await _makeRequest(
+        endpoint: endpoint,
+        method: 'GET',
+        headers: ApiConstants.publicHeaders,
+      );
+
+      print('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+      print('🟢 AGENCY API RESPONSE: LIST');
+      print('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+      print('📊 Status Code: ${response.statusCode}');
+      print('⏰ Timestamp: ${DateTime.now()}');
+      print('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+
+      final data = _handleResponse(response) as List<dynamic>;
+      final agencies = data.map((json) => Agency.fromJson(json)).toList();
+
+      print('✅ SUCCESS: Agencies fetched: ${agencies.length} items');
+      return agencies;
+    } catch (e) {
+      print('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+      print('❌ AGENCY API ERROR: LIST');
+      print('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+      print('🔍 Error Details:');
+      print('   - Error Message: $e');
+      print('   - Error Type: ${e.runtimeType}');
+      print('⏰ Timestamp: ${DateTime.now()}');
+      print('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+      throw Exception('Failed to fetch agencies: $e');
+    }
+  }
+
+  /// Create a new agency
+  Future<Agency> createAgency({
+    required String name,
+    String? phone,
+    String? email,
+    String? address,
+  }) async {
+    try {
+      const endpoint = '/api/v1/contractors/agencies';
+
+      print('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+      print('🔵 AGENCY API REQUEST: CREATE');
+      print('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+      print('📍 URL: ${ApiConstants.baseUrl}$endpoint');
+      print('📋 Create Data:');
+      print('   - Name: $name');
+      if (phone != null) print('   - Phone: $phone');
+      if (email != null) print('   - Email: $email');
+      if (address != null) print('   - Address: $address');
+      print('⏰ Timestamp: ${DateTime.now()}');
+      print('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+
+      final body = {
+        'name': name,
+        if (phone != null) 'phone': phone,
+        if (email != null) 'email': email,
+        if (address != null) 'address': address,
+      };
+
+      final response = await _makeRequest(
+        endpoint: endpoint,
+        method: 'POST',
+        headers: ApiConstants.publicHeaders,
+        body: body,
+      );
+
+      print('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+      print('🟢 AGENCY API RESPONSE: CREATE');
+      print('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+      print('📊 Status Code: ${response.statusCode}');
+      print('📦 Response Body: ${response.body}');
+      print('⏰ Timestamp: ${DateTime.now()}');
+      print('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        final data = _handleResponse(response);
+        final agency = Agency.fromJson(data);
+
+        print('✅ SUCCESS: Agency created');
+        print('📋 New Agency ID: ${agency.id}');
+        print('📋 Agency Name: ${agency.name}');
+
+        return agency;
+      } else {
+        final error = _handleResponse(response);
+        throw Exception(error['message'] ?? 'Failed to create agency');
+      }
+    } catch (e) {
+      print('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+      print('❌ AGENCY API ERROR: CREATE');
+      print('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+      print('🔍 Error Details:');
+      print('   - Error Message: $e');
+      print('   - Error Type: ${e.runtimeType}');
+      print('⏰ Timestamp: ${DateTime.now()}');
+      print('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+      throw Exception('Failed to create agency: $e');
+    }
+  }
+
+  /// Get list of contractors with filters
+  Future<List<ContractorDetails>> getContractors({
+    int skip = 0,
+    int limit = 100,
+    int? gpId,
+    int? blockId,
+    int? districtId,
+    int? agencyId,
+    String? personName,
+    bool activeOnly = false,
+  }) async {
+    try {
+      var endpoint = '/api/v1/contractors/contractors?skip=$skip&limit=$limit&active_only=$activeOnly';
+      if (gpId != null) endpoint += '&gp_id=$gpId';
+      if (blockId != null) endpoint += '&block_id=$blockId';
+      if (districtId != null) endpoint += '&district_id=$districtId';
+      if (agencyId != null) endpoint += '&agency_id=$agencyId';
+      if (personName != null && personName.isNotEmpty) {
+        endpoint += '&person_name=$personName';
+      }
+
+      print('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+      print('🔵 CONTRACTOR API REQUEST: LIST');
+      print('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+      print('📍 URL: ${ApiConstants.baseUrl}$endpoint');
+      print('📋 Parameters:');
+      print('   - Skip: $skip');
+      print('   - Limit: $limit');
+      if (gpId != null) print('   - GP ID: $gpId');
+      if (blockId != null) print('   - Block ID: $blockId');
+      if (districtId != null) print('   - District ID: $districtId');
+      if (agencyId != null) print('   - Agency ID: $agencyId');
+      if (personName != null) print('   - Person Name: $personName');
+      print('   - Active Only: $activeOnly');
+      print('⏰ Timestamp: ${DateTime.now()}');
+      print('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+
+      final response = await _makeRequest(
+        endpoint: endpoint,
+        method: 'GET',
+        headers: ApiConstants.publicHeaders,
+      );
+
+      print('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+      print('🟢 CONTRACTOR API RESPONSE: LIST');
+      print('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+      print('📊 Status Code: ${response.statusCode}');
+      print('⏰ Timestamp: ${DateTime.now()}');
+      print('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+
+      final data = _handleResponse(response) as List<dynamic>;
+      final contractors = data.map((json) => ContractorDetails.fromJson(json)).toList();
+
+      print('✅ SUCCESS: Contractors fetched: ${contractors.length} items');
+      return contractors;
+    } catch (e) {
+      print('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+      print('❌ CONTRACTOR API ERROR: LIST');
+      print('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+      print('🔍 Error Details:');
+      print('   - Error Message: $e');
+      print('   - Error Type: ${e.runtimeType}');
+      print('⏰ Timestamp: ${DateTime.now()}');
+      print('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+      throw Exception('Failed to fetch contractors: $e');
+    }
+  }
+
+  /// Create contractor (VDO only)
+  Future<ContractorDetails> createContractor({
+    required int agencyId,
+    required String personName,
+    required String personPhone,
+    required int gpId,
+    required String contractStartDate,
+    required String contractEndDate,
+    double workOrderAmount = 0.0,
+    String cleaningFrequency = 'Daily',
+  }) async {
+    try {
+      const endpoint = '/api/v1/contractors/contractors';
+
+      print('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+      print('🔵 CONTRACTOR API REQUEST: CREATE');
+      print('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+      print('📍 URL: ${ApiConstants.baseUrl}$endpoint');
+      print('📋 Create Data:');
+      print('   - Contract Start Date: $contractStartDate');
+      print('   - Contract End Date: $contractEndDate');
+      print('   - Work Order Amount: $workOrderAmount');
+      print('   - Cleaning Frequency: $cleaningFrequency');
+      print('⏰ Timestamp: ${DateTime.now()}');
+      print('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+
+      final body = {
+        'agency_id': agencyId,
+        'person_name': personName,
+        'person_phone': personPhone,
+        'gp_id': gpId,
+        'contract_start_date': contractStartDate,
+        'contract_end_date': contractEndDate,
+        'contract_amount': workOrderAmount,
+        'contract_frequency': cleaningFrequency,
+      };
+
+      final response = await _makeRequest(
+        endpoint: endpoint,
+        method: 'POST',
+        headers: await AuthService().getAuthHeaders(),
+        body: body,
+      );
+
+      print('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+      print('🟢 CONTRACTOR API RESPONSE: CREATE');
+      print('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+      print('📊 Status Code: ${response.statusCode}');
+      print('📦 Response Body: ${response.body}');
+      print('⏰ Timestamp: ${DateTime.now()}');
+      print('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        final data = _handleResponse(response);
+        final contractor = ContractorDetails.fromJson(data);
+
+        print('✅ SUCCESS: Contractor created');
+        print('📋 New Contractor ID: ${contractor.id}');
+        print('📋 Person Name: ${contractor.personName}');
+
+        return contractor;
+      } else {
+        final error = _handleResponse(response);
+        throw Exception(error['message'] ?? 'Failed to create contractor');
+      }
+    } catch (e) {
+      print('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+      print('❌ CONTRACTOR API ERROR: CREATE');
+      print('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+      print('🔍 Error Details:');
+      print('   - Error Message: $e');
+      print('   - Error Type: ${e.runtimeType}');
+      print('⏰ Timestamp: ${DateTime.now()}');
+      print('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+      throw Exception('Failed to create contractor: $e');
+    }
+  }
+
   /// Update contractor details
   Future<ContractorDetails> updateContractor({
     required int contractorId,
@@ -867,6 +1465,8 @@ class ApiService {
     required int gpId,
     required String contractStartDate,
     required String contractEndDate,
+    double? workOrderAmount,
+    String? cleaningFrequency,
   }) async {
     try {
       final endpoint = '/api/v1/contractors/contractors/$contractorId';
@@ -883,6 +1483,8 @@ class ApiService {
       print('   - GP ID: $gpId');
       print('   - Contract Start Date: $contractStartDate');
       print('   - Contract End Date: $contractEndDate');
+      if (workOrderAmount != null) print('   - Work Order Amount: $workOrderAmount');
+      if (cleaningFrequency != null) print('   - Cleaning Frequency: $cleaningFrequency');
       print('🔑 Headers: ${await AuthService().getAuthHeaders()}');
       print('⏰ Timestamp: ${DateTime.now()}');
       print('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
@@ -895,6 +1497,9 @@ class ApiService {
         'contract_start_date': contractStartDate,
         'contract_end_date': contractEndDate,
       };
+
+      if (workOrderAmount != null) body['contract_amount'] = workOrderAmount;
+      if (cleaningFrequency != null) body['contract_frequency'] = cleaningFrequency;
 
       final response = await _makeRequest(
         endpoint: endpoint,
@@ -1257,6 +1862,7 @@ class ApiService {
         final inspection = inspectionResponse.items[i];
         print('   📋 Inspection ${i + 1}:');
         print('      - ID: ${inspection.id}');
+        print('      - Village ID: ${inspection.villageId}');
         print('      - Village: ${inspection.villageName}');
         print('      - Date: ${inspection.date}');
         print('      - Officer: ${inspection.officerName}');
@@ -1264,6 +1870,11 @@ class ApiService {
         print('      - Visibly Clean: ${inspection.visiblyClean}');
         print('      - Overall Score: ${inspection.overallScore}');
         print('      - Remarks: ${inspection.remarks}');
+        
+        // Check if the returned inspection matches the requested GP
+        if (gpId != null && inspection.villageId != gpId) {
+          print('      ⚠️ WARNING: Inspection village_id (${inspection.villageId}) does not match requested gp_id ($gpId)');
+        }
       }
 
       return inspectionResponse;
@@ -1278,6 +1889,32 @@ class ApiService {
       print('   - Error: $e');
       print('   - Error Type: ${e.runtimeType}');
       throw Exception('Failed to fetch inspections: $e');
+    }
+  }
+
+  /// Fetch a single inspection by ID
+  /// GET /api/v1/inspections/{id}
+  Future<Inspection> getInspection(int id) async {
+    try {
+      final endpoint = '${ApiConstants.inspectionsEndpoint}$id';
+
+      final token = await _getAuthToken();
+      final headers = {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'Authorization': 'Bearer $token',
+      };
+
+      final response = await _makeRequest(
+        endpoint: endpoint,
+        method: 'GET',
+        headers: headers,
+      );
+
+      final data = _handleResponse(response) as Map<String, dynamic>;
+      return Inspection.fromJson(data);
+    } catch (e) {
+      throw Exception('Failed to fetch inspection details: $e');
     }
   }
 
@@ -1588,6 +2225,71 @@ class ApiService {
       }
     } catch (e) {
       print('❌ Error submitting annual survey: $e');
+      rethrow;
+    }
+  }
+
+  /// Update (edit) an existing annual survey / GP Master Data.
+  /// PUT /api/v1/annual-surveys/{surveyId}
+  Future<Map<String, dynamic>> updateAnnualSurvey({
+    required int surveyId,
+    required Map<String, dynamic> payload,
+  }) async {
+    try {
+      final endpoint = '${ApiConstants.annualSurveysListEndpoint}/$surveyId';
+      final token = await _getAuthToken();
+      final headers = {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'Authorization': 'Bearer $token',
+      };
+
+      print('🔵 API Request: PUT ${ApiConstants.baseUrl}$endpoint');
+      print('📋 Payload keys: ${payload.keys.toList()}');
+
+      final response = await _makeRequest(
+        endpoint: endpoint,
+        method: 'PUT',
+        headers: headers,
+        body: payload,
+      );
+
+      print('🟢 API Response: Status ${response.statusCode}');
+      print('📦 Response Body: ${response.body}');
+
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        final data = response.body.isNotEmpty
+            ? json.decode(response.body) as Map<String, dynamic>
+            : <String, dynamic>{};
+        print('✅ Annual survey updated successfully');
+        return data;
+      } else if (response.statusCode == 422) {
+        final errorData = response.body.isNotEmpty
+            ? json.decode(response.body)
+            : {'detail': []};
+        List<String> errors = [];
+        if (errorData['detail'] is List) {
+          for (var error in errorData['detail']) {
+            if (error['msg'] != null) {
+              final field = error['loc'] != null &&
+                      (error['loc'] as List).isNotEmpty
+                  ? (error['loc'] as List).last
+                  : 'field';
+              errors.add('$field: ${error['msg']}');
+            }
+          }
+        }
+        throw Exception(errors.isNotEmpty
+            ? errors.join('\n')
+            : 'Validation failed. Please check your input.');
+      } else {
+        final err = response.body.isNotEmpty
+            ? json.decode(response.body)
+            : {'message': 'Failed to update survey'};
+        throw Exception(err['message'] ?? 'Failed to update survey');
+      }
+    } catch (e) {
+      print('❌ Error updating annual survey: $e');
       rethrow;
     }
   }

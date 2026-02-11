@@ -5,6 +5,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:intl/intl.dart';
 import '../../config/connstants.dart';
+import '../../l10n/app_localizations.dart';
 import '../../services/api_services.dart';
 
 class SmdNewInspectionScreen extends StatefulWidget {
@@ -77,123 +78,6 @@ class _SmdNewInspectionScreenState extends State<SmdNewInspectionScreen> {
     _villageController.text = widget.gpName;
     // Auto-expand General Details section initially since Village is pre-filled
     _generalDetailsExpanded = true;
-    _setupAutoExpandListeners();
-  }
-
-  void _setupAutoExpandListeners() {
-    // Listen to General Details fields to auto-expand Household Waste section
-    _numberOfWardsController.addListener(_checkAndAutoExpandGeneralDetails);
-    // Note: Radio button changes are handled in onChanged callbacks
-
-    // Listen to Household Waste fields - handled via onChanged callbacks
-    // Listen to Road Cleaning fields - handled via onChanged callbacks
-    // Listen to Drain Cleaning fields - handled via onChanged callbacks
-    // Listen to CSC Cleaning fields - handled via onChanged callbacks
-    // Listen to Other Points fields - handled via onChanged callbacks
-    // Listen to Suggestions field
-    _suggestionsController.addListener(_checkAndAutoExpandSuggestions);
-  }
-
-  void _checkAndAutoExpandGeneralDetails() {
-    if (_numberOfWardsController.text.trim().isNotEmpty &&
-        _dailyRegisterMaintained != null) {
-      _autoExpandNextSection('generalDetails');
-    }
-  }
-
-  void _checkAndAutoExpandHouseholdWaste() {
-    if (_wasteCollectionInterval != null &&
-        _separateCollectionWetDry != null &&
-        _wasteDisposalAtRRC != null &&
-        _arrangementAtRRC != null &&
-        _vehicleProperlyPrepared != null) {
-      _autoExpandNextSection('householdWaste');
-    }
-  }
-
-  void _checkAndAutoExpandRoadCleaning() {
-    if (_roadCleaningInterval != null) {
-      _autoExpandNextSection('roadCleaning');
-    }
-  }
-
-  void _checkAndAutoExpandDrainCleaning() {
-    if (_drainCleaningInterval != null &&
-        _sludgeDisposalArrangement != null &&
-        _drainWasteCollectedRoadside != null) {
-      _autoExpandNextSection('drainCleaning');
-    }
-  }
-
-  void _checkAndAutoExpandCscCleaning() {
-    if (_cscCleaningInterval != null &&
-        _cscElectricityWaterAvailable != null &&
-        _cscUsedByCommunity != null &&
-        _pinkToiletUsedInSchools != null) {
-      _autoExpandNextSection('cscCleaning');
-    }
-  }
-
-  void _checkAndAutoExpandOtherPoints() {
-    if (_firmPaidRegularly != null &&
-        _staffPaidRegularly != null &&
-        _safetyEquipmentProvided != null &&
-        _feedbackRegisterEntry != null &&
-        _rateChartPrepared != null &&
-        _rateChartDisplayed != null) {
-      _autoExpandNextSection('otherPoints');
-    }
-  }
-
-
-  void _checkAndAutoExpandSuggestions() {
-    // Suggestions are optional, so we don't auto-expand based on them
-  }
-
-  void _autoExpandNextSection(String currentSection) {
-    if (!mounted) return;
-
-    setState(() {
-      // Close current section and open next one
-      switch (currentSection) {
-        case 'generalDetails':
-          _generalDetailsExpanded = false;
-          if (!_householdWasteExpanded) {
-            _householdWasteExpanded = true;
-          }
-          break;
-        case 'householdWaste':
-          _householdWasteExpanded = false;
-          if (!_roadCleaningExpanded) {
-            _roadCleaningExpanded = true;
-          }
-          break;
-        case 'roadCleaning':
-          _roadCleaningExpanded = false;
-          if (!_drainCleaningExpanded) {
-            _drainCleaningExpanded = true;
-          }
-          break;
-        case 'drainCleaning':
-          _drainCleaningExpanded = false;
-          if (!_cscCleaningExpanded) {
-            _cscCleaningExpanded = true;
-          }
-          break;
-        case 'cscCleaning':
-          _cscCleaningExpanded = false;
-          if (!_otherPointsExpanded) {
-            _otherPointsExpanded = true;
-          }
-          break;
-        case 'otherPoints':
-          _otherPointsExpanded = false;
-          if (!_suggestionsExpanded) {
-            _suggestionsExpanded = true;
-          }
-          break;
-      }
-    });
   }
 
   @override
@@ -215,8 +99,8 @@ class _SmdNewInspectionScreenState extends State<SmdNewInspectionScreen> {
           icon: const Icon(Icons.arrow_back, color: Colors.black),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text(
-          'Inspection',
+        title: Text(
+          AppLocalizations.of(context)!.inspection,
           style: TextStyle(
             color: Colors.black,
             fontSize: 18,
@@ -261,8 +145,6 @@ class _SmdNewInspectionScreenState extends State<SmdNewInspectionScreen> {
                           selectedValue: _dailyRegisterMaintained,
                           onChanged: (value) {
                             setState(() => _dailyRegisterMaintained = value);
-                            // Check if section is complete and auto-expand next
-                            Future.microtask(() => _checkAndAutoExpandGeneralDetails());
                           },
                         ),
                         SizedBox(height: 16.h),
@@ -289,8 +171,8 @@ class _SmdNewInspectionScreenState extends State<SmdNewInspectionScreen> {
                           selectedValue: _wasteCollectionInterval,
                           onChanged: (value) {
                             setState(() => _wasteCollectionInterval = value);
-                            Future.microtask(() => _checkAndAutoExpandHouseholdWaste());
                           },
+                          includeFortnight: false,
                         ),
                         SizedBox(height: 16.h),
                         _buildYesNoRadioGroup(
@@ -299,7 +181,6 @@ class _SmdNewInspectionScreenState extends State<SmdNewInspectionScreen> {
                           selectedValue: _separateCollectionWetDry,
                           onChanged: (value) {
                             setState(() => _separateCollectionWetDry = value);
-                            Future.microtask(() => _checkAndAutoExpandHouseholdWaste());
                           },
                         ),
                         SizedBox(height: 16.h),
@@ -308,7 +189,6 @@ class _SmdNewInspectionScreenState extends State<SmdNewInspectionScreen> {
                           selectedValue: _wasteDisposalAtRRC,
                           onChanged: (value) {
                             setState(() => _wasteDisposalAtRRC = value);
-                            Future.microtask(() => _checkAndAutoExpandHouseholdWaste());
                           },
                         ),
                         SizedBox(height: 16.h),
@@ -318,7 +198,6 @@ class _SmdNewInspectionScreenState extends State<SmdNewInspectionScreen> {
                           selectedValue: _arrangementAtRRC,
                           onChanged: (value) {
                             setState(() => _arrangementAtRRC = value);
-                            Future.microtask(() => _checkAndAutoExpandHouseholdWaste());
                           },
                         ),
                         SizedBox(height: 16.h),
@@ -328,7 +207,6 @@ class _SmdNewInspectionScreenState extends State<SmdNewInspectionScreen> {
                           selectedValue: _vehicleProperlyPrepared,
                           onChanged: (value) {
                             setState(() => _vehicleProperlyPrepared = value);
-                            Future.microtask(() => _checkAndAutoExpandHouseholdWaste());
                           },
                         ),
                         SizedBox(height: 16.h),
@@ -354,8 +232,8 @@ class _SmdNewInspectionScreenState extends State<SmdNewInspectionScreen> {
                           selectedValue: _roadCleaningInterval,
                           onChanged: (value) {
                             setState(() => _roadCleaningInterval = value);
-                            Future.microtask(() => _checkAndAutoExpandRoadCleaning());
                           },
+                          includeDaily: false, // API: WEEKLY, FORTNIGHTLY, MONTHLY, NONE only
                         ),
                         SizedBox(height: 16.h),
                         _buildImageUploadSection(
@@ -379,8 +257,8 @@ class _SmdNewInspectionScreenState extends State<SmdNewInspectionScreen> {
                           selectedValue: _drainCleaningInterval,
                           onChanged: (value) {
                             setState(() => _drainCleaningInterval = value);
-                            Future.microtask(() => _checkAndAutoExpandDrainCleaning());
                           },
+                          includeDaily: false, // API: WEEKLY, FORTNIGHTLY, MONTHLY, NONE only
                         ),
                         SizedBox(height: 16.h),
                         _buildYesNoRadioGroup(
@@ -389,7 +267,6 @@ class _SmdNewInspectionScreenState extends State<SmdNewInspectionScreen> {
                           selectedValue: _sludgeDisposalArrangement,
                           onChanged: (value) {
                             setState(() => _sludgeDisposalArrangement = value);
-                            Future.microtask(() => _checkAndAutoExpandDrainCleaning());
                           },
                         ),
                         SizedBox(height: 16.h),
@@ -398,7 +275,6 @@ class _SmdNewInspectionScreenState extends State<SmdNewInspectionScreen> {
                           selectedValue: _drainWasteCollectedRoadside,
                           onChanged: (value) {
                             setState(() => _drainWasteCollectedRoadside = value);
-                            Future.microtask(() => _checkAndAutoExpandDrainCleaning());
                           },
                         ),
                         SizedBox(height: 16.h),
@@ -423,8 +299,8 @@ class _SmdNewInspectionScreenState extends State<SmdNewInspectionScreen> {
                           selectedValue: _cscCleaningInterval,
                           onChanged: (value) {
                             setState(() => _cscCleaningInterval = value);
-                            Future.microtask(() => _checkAndAutoExpandCscCleaning());
                           },
+                          includeFortnight: false,
                         ),
                         SizedBox(height: 16.h),
                         _buildYesNoRadioGroup(
@@ -432,7 +308,6 @@ class _SmdNewInspectionScreenState extends State<SmdNewInspectionScreen> {
                           selectedValue: _cscElectricityWaterAvailable,
                           onChanged: (value) {
                             setState(() => _cscElectricityWaterAvailable = value);
-                            Future.microtask(() => _checkAndAutoExpandCscCleaning());
                           },
                         ),
                         SizedBox(height: 16.h),
@@ -441,7 +316,6 @@ class _SmdNewInspectionScreenState extends State<SmdNewInspectionScreen> {
                           selectedValue: _cscUsedByCommunity,
                           onChanged: (value) {
                             setState(() => _cscUsedByCommunity = value);
-                            Future.microtask(() => _checkAndAutoExpandCscCleaning());
                           },
                         ),
                         SizedBox(height: 16.h),
@@ -450,7 +324,6 @@ class _SmdNewInspectionScreenState extends State<SmdNewInspectionScreen> {
                           selectedValue: _pinkToiletUsedInSchools,
                           onChanged: (value) {
                             setState(() => _pinkToiletUsedInSchools = value);
-                            Future.microtask(() => _checkAndAutoExpandCscCleaning());
                           },
                         ),
                         SizedBox(height: 16.h),
@@ -475,7 +348,6 @@ class _SmdNewInspectionScreenState extends State<SmdNewInspectionScreen> {
                           selectedValue: _firmPaidRegularly,
                           onChanged: (value) {
                             setState(() => _firmPaidRegularly = value);
-                            Future.microtask(() => _checkAndAutoExpandOtherPoints());
                           },
                         ),
                         SizedBox(height: 16.h),
@@ -485,7 +357,6 @@ class _SmdNewInspectionScreenState extends State<SmdNewInspectionScreen> {
                           selectedValue: _staffPaidRegularly,
                           onChanged: (value) {
                             setState(() => _staffPaidRegularly = value);
-                            Future.microtask(() => _checkAndAutoExpandOtherPoints());
                           },
                         ),
                         SizedBox(height: 16.h),
@@ -494,7 +365,6 @@ class _SmdNewInspectionScreenState extends State<SmdNewInspectionScreen> {
                           selectedValue: _safetyEquipmentProvided,
                           onChanged: (value) {
                             setState(() => _safetyEquipmentProvided = value);
-                            Future.microtask(() => _checkAndAutoExpandOtherPoints());
                           },
                         ),
                         SizedBox(height: 16.h),
@@ -504,7 +374,6 @@ class _SmdNewInspectionScreenState extends State<SmdNewInspectionScreen> {
                           selectedValue: _feedbackRegisterEntry,
                           onChanged: (value) {
                             setState(() => _feedbackRegisterEntry = value);
-                            Future.microtask(() => _checkAndAutoExpandOtherPoints());
                           },
                         ),
                         SizedBox(height: 16.h),
@@ -513,7 +382,6 @@ class _SmdNewInspectionScreenState extends State<SmdNewInspectionScreen> {
                           selectedValue: _rateChartPrepared,
                           onChanged: (value) {
                             setState(() => _rateChartPrepared = value);
-                            Future.microtask(() => _checkAndAutoExpandOtherPoints());
                           },
                         ),
                         SizedBox(height: 16.h),
@@ -523,7 +391,6 @@ class _SmdNewInspectionScreenState extends State<SmdNewInspectionScreen> {
                           selectedValue: _rateChartDisplayed,
                           onChanged: (value) {
                             setState(() => _rateChartDisplayed = value);
-                            Future.microtask(() => _checkAndAutoExpandOtherPoints());
                           },
                         ),
                         SizedBox(height: 16.h),
@@ -605,8 +472,8 @@ class _SmdNewInspectionScreenState extends State<SmdNewInspectionScreen> {
                             ),
                           ),
                         )
-                      : const Text(
-                          'Submit',
+                      : Text(
+                          AppLocalizations.of(context)!.submit,
                           style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.w600,
@@ -760,7 +627,22 @@ class _SmdNewInspectionScreenState extends State<SmdNewInspectionScreen> {
     required String label,
     required String? selectedValue,
     required ValueChanged<String?> onChanged,
+    bool includeFortnight = true,
+    bool includeDaily = true,
   }) {
+    final options = <Widget>[
+      if (includeDaily) ...[
+        _buildRadioOption(value: 'Daily', groupValue: selectedValue, onChanged: onChanged),
+        SizedBox(width: 16.w),
+      ],
+      _buildRadioOption(value: 'Weekly', groupValue: selectedValue, onChanged: onChanged),
+      if (includeFortnight) ...[
+        SizedBox(width: 16.w),
+        _buildRadioOption(value: 'Fortnight', groupValue: selectedValue, onChanged: onChanged),
+      ],
+      SizedBox(width: 16.w),
+      _buildRadioOption(value: 'None', groupValue: selectedValue, onChanged: onChanged),
+    ];
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -777,31 +659,7 @@ class _SmdNewInspectionScreenState extends State<SmdNewInspectionScreen> {
           scrollDirection: Axis.horizontal,
           child: Row(
             mainAxisAlignment: MainAxisAlignment.start,
-            children: [
-              _buildRadioOption(
-                value: 'Daily',
-                groupValue: selectedValue,
-                onChanged: onChanged,
-              ),
-              SizedBox(width: 16.w),
-              _buildRadioOption(
-                value: 'Weekly',
-                groupValue: selectedValue,
-                onChanged: onChanged,
-              ),
-              SizedBox(width: 16.w),
-              _buildRadioOption(
-                value: 'Fortnight',
-                groupValue: selectedValue,
-                onChanged: onChanged,
-              ),
-              SizedBox(width: 16.w),
-              _buildRadioOption(
-                value: 'None',
-                groupValue: selectedValue,
-                onChanged: onChanged,
-              ),
-            ],
+            children: options,
           ),
         ),
       ],
@@ -874,7 +732,7 @@ class _SmdNewInspectionScreenState extends State<SmdNewInspectionScreen> {
                   Icon(Icons.image, size: 40.sp, color: Colors.grey.shade400),
                   SizedBox(height: 8.h),
                   Text(
-                    'Upload image',
+                    AppLocalizations.of(context)!.uploadImage,
                     style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
                   ),
                 ],
@@ -975,8 +833,8 @@ class _SmdNewInspectionScreenState extends State<SmdNewInspectionScreen> {
     if (currentImages.length >= 5) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Maximum 5 photos can be uploaded'),
+          SnackBar(
+            content: Text(AppLocalizations.of(context)!.maximumFivePhotosUploaded),
             backgroundColor: Colors.orange,
             duration: Duration(seconds: 2),
           ),
@@ -1004,7 +862,7 @@ class _SmdNewInspectionScreenState extends State<SmdNewInspectionScreen> {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: Text(
-                  'Only ${remainingSlots} photo(s) added. Maximum 5 photos allowed.',
+                  AppLocalizations.of(context)!.onlyPhotosAddedMaximumFive(remainingSlots),
                 ),
                 backgroundColor: Colors.orange,
                 duration: const Duration(seconds: 2),
@@ -1017,7 +875,7 @@ class _SmdNewInspectionScreenState extends State<SmdNewInspectionScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Failed to pick images: $e'),
+            content: Text(AppLocalizations.of(context)!.failedToPickImagesError(e.toString())),
             backgroundColor: Colors.red,
           ),
         );
@@ -1054,7 +912,7 @@ class _SmdNewInspectionScreenState extends State<SmdNewInspectionScreen> {
               ),
               SizedBox(height: 20.h),
               Text(
-                'Your Inspection has been submitted successfully',
+                AppLocalizations.of(context)!.inspectionSubmittedSuccessfully,
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontSize: 15.sp,
@@ -1080,7 +938,7 @@ class _SmdNewInspectionScreenState extends State<SmdNewInspectionScreen> {
                     elevation: 0,
                   ),
                   child: Text(
-                    'Close',
+                    AppLocalizations.of(context)!.close,
                     style: TextStyle(
                       fontSize: 16.sp,
                       fontWeight: FontWeight.w600,
@@ -1095,7 +953,7 @@ class _SmdNewInspectionScreenState extends State<SmdNewInspectionScreen> {
     );
   }
 
-  String? _convertIntervalToApi(String? value, {bool allowDaily = true}) {
+  String? _convertIntervalToApi(String? value, {bool allowDaily = true, bool allowFortnight = false}) {
     if (value == null) return null;
     switch (value) {
       case 'Daily':
@@ -1103,7 +961,7 @@ class _SmdNewInspectionScreenState extends State<SmdNewInspectionScreen> {
       case 'Weekly':
         return 'WEEKLY';
       case 'Fortnight':
-        return 'FORTNIGHTLY';
+        return allowFortnight ? 'FORTNIGHTLY' : 'WEEKLY';
       case 'None':
         return 'NONE';
       default:
@@ -1111,11 +969,10 @@ class _SmdNewInspectionScreenState extends State<SmdNewInspectionScreen> {
     }
   }
 
+  // API only accepts WEEKLY, FORTNIGHTLY, MONTHLY, NONE for road/drain (no DAILY; UI hides Daily for these)
   String? _convertRoadDrainIntervalToApi(String? value) {
     if (value == null) return null;
     switch (value) {
-      case 'Daily':
-        return 'WEEKLY';
       case 'Weekly':
         return 'WEEKLY';
       case 'Fortnight':
@@ -1143,8 +1000,8 @@ class _SmdNewInspectionScreenState extends State<SmdNewInspectionScreen> {
 
     if (_villageController.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please enter village name'),
+        SnackBar(
+          content: Text(AppLocalizations.of(context)!.pleaseEnterVillageName),
           backgroundColor: Colors.red,
         ),
       );
@@ -1184,7 +1041,7 @@ class _SmdNewInspectionScreenState extends State<SmdNewInspectionScreen> {
             _convertYesNoToBool(_dailyRegisterMaintained) ?? false,
         'household_waste': {
           'waste_collection_frequency':
-              _convertIntervalToApi(_wasteCollectionInterval) ?? 'DAILY',
+              _convertIntervalToApi(_wasteCollectionInterval, allowFortnight: false) ?? 'DAILY',
           'dry_wet_vehicle_segregation':
               _convertYesNoToBool(_separateCollectionWetDry) ?? false,
           'covered_collection_in_vehicles':
@@ -1209,7 +1066,7 @@ class _SmdNewInspectionScreenState extends State<SmdNewInspectionScreen> {
         },
         'community_sanitation': {
           'csc_cleaning_frequency':
-              _convertIntervalToApi(_cscCleaningInterval) ?? 'DAILY',
+              _convertIntervalToApi(_cscCleaningInterval, allowFortnight: false) ?? 'DAILY',
           'electricity_and_water':
               _convertYesNoToBool(_cscElectricityWaterAvailable) ?? false,
           'csc_used_by_community':
@@ -1245,7 +1102,7 @@ class _SmdNewInspectionScreenState extends State<SmdNewInspectionScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Failed to submit inspection: $e'),
+            content: Text(AppLocalizations.of(context)!.failedToSubmitInspection(e.toString())),
             backgroundColor: Colors.red,
           ),
         );

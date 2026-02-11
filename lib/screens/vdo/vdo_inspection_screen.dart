@@ -12,7 +12,10 @@ import '../../models/inspection_model.dart';
 import 'new_inspection_screen.dart';
 
 class VdoInspectionScreen extends StatefulWidget {
-  const VdoInspectionScreen({super.key});
+  /// When true, this screen is shown inside [VdoShellScreen]; bottom nav is provided by the shell.
+  final bool isEmbeddedInShell;
+
+  const VdoInspectionScreen({super.key, this.isEmbeddedInShell = false});
 
   @override
   State<VdoInspectionScreen> createState() => _VdoInspectionScreenState();
@@ -140,45 +143,46 @@ class _VdoInspectionScreenState extends State<VdoInspectionScreen> {
           ],
         ),
       ),
-      bottomNavigationBar: CustomBottomNavigationBar(
-        currentIndex: _selectedIndex,
-        onTap: (index) {
-          if (index == _selectedIndex) return;
-
-          switch (index) {
-            case 0:
-              Navigator.pushReplacementNamed(context, '/vdo-dashboard');
-              break;
-            case 1:
-              Navigator.pushReplacementNamed(context, '/vdo-complaints');
-              break;
-            case 2:
-              // Already on inspection
-              break;
-            case 3:
-              Navigator.pushReplacementNamed(context, '/vdo-settings');
-              break;
-          }
-        },
-        items: [
-          BottomNavItem(
-            iconPath: 'assets/icons/bottombar/home.png',
-            label: AppLocalizations.of(context)!.home,
-          ),
-          BottomNavItem(
-            iconPath: 'assets/icons/bottombar/complaints.png',
-            label: AppLocalizations.of(context)!.complaints,
-          ),
-          BottomNavItem(
-            iconPath: 'assets/icons/bottombar/inspection.png',
-            label: AppLocalizations.of(context)!.inspection,
-          ),
-          BottomNavItem(
-            iconPath: 'assets/icons/bottombar/settings.png',
-            label: AppLocalizations.of(context)!.settings,
-          ),
-        ],
-      ),
+      // Bottom nav is provided by VdoShellScreen when isEmbeddedInShell
+      bottomNavigationBar: widget.isEmbeddedInShell
+          ? null
+          : CustomBottomNavigationBar(
+              currentIndex: _selectedIndex,
+              onTap: (index) {
+                if (index == _selectedIndex) return;
+                switch (index) {
+                  case 0:
+                    Navigator.pushReplacementNamed(context, '/vdo-dashboard');
+                    break;
+                  case 1:
+                    Navigator.pushReplacementNamed(context, '/vdo-complaints');
+                    break;
+                  case 2:
+                    break;
+                  case 3:
+                    Navigator.pushReplacementNamed(context, '/vdo-settings');
+                    break;
+                }
+              },
+              items: [
+                BottomNavItem(
+                  iconPath: 'assets/icons/bottombar/home.png',
+                  label: AppLocalizations.of(context)!.home,
+                ),
+                BottomNavItem(
+                  iconPath: 'assets/icons/bottombar/complaints.png',
+                  label: AppLocalizations.of(context)!.complaints,
+                ),
+                BottomNavItem(
+                  iconPath: 'assets/icons/bottombar/inspection.png',
+                  label: AppLocalizations.of(context)!.inspection,
+                ),
+                BottomNavItem(
+                  iconPath: 'assets/icons/bottombar/settings.png',
+                  label: AppLocalizations.of(context)!.settings,
+                ),
+              ],
+            ),
     );
   }
 
@@ -381,7 +385,11 @@ class _VdoInspectionScreenState extends State<VdoInspectionScreen> {
   Widget _buildInspectionCard(Inspection inspection) {
     return GestureDetector(
       onTap: () {
-        // TODO: Navigate to inspection details
+        Navigator.pushNamed(
+          context,
+          '/inspection-details',
+          arguments: {'inspectionId': inspection.id},
+        );
       },
       child: Container(
         margin: EdgeInsets.only(bottom: 12.h),

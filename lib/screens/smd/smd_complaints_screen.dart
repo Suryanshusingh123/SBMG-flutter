@@ -10,10 +10,15 @@ import '../../widgets/common/date_filter_bottom_sheet.dart';
 import '../../config/connstants.dart';
 import '../../services/auth_services.dart';
 import '../../l10n/app_localizations.dart';
+import '../../screens/common/unified_select_location_screen.dart';
+import '../../providers/smd_provider.dart';
 import 'smd_complaint_details_screen.dart';
 
 class SmdComplaintsScreen extends StatefulWidget {
-  const SmdComplaintsScreen({super.key});
+  /// When true, this screen is shown inside [SmdShellScreen]; bottom nav is provided by the shell.
+  final bool isEmbeddedInShell;
+
+  const SmdComplaintsScreen({super.key, this.isEmbeddedInShell = false});
 
   @override
   State<SmdComplaintsScreen> createState() => _SmdComplaintsScreenState();
@@ -27,6 +32,8 @@ class _SmdComplaintsScreenState extends State<SmdComplaintsScreen>
   DateTime? _filterStartDate;
   DateTime? _filterEndDate;
   String _sortOrder = 'newest';
+  Map<String, dynamic>? _complaintLocation;
+  final AuthService _authService = AuthService();
 
   @override
   void initState() {
@@ -39,8 +46,7 @@ class _SmdComplaintsScreenState extends State<SmdComplaintsScreen>
   Future<void> _checkAndSelectLocation() async {
     if (!mounted) return;
     
-    final authService = AuthService();
-    final districtId = await authService.getSmdSelectedDistrictId();
+    final districtId = await _authService.getSmdSelectedDistrictId();
     
     if (districtId == null) {
       // No district selected, go to district selection
@@ -48,7 +54,19 @@ class _SmdComplaintsScreenState extends State<SmdComplaintsScreen>
       return;
     }
     
-    // District is selected, load complaints (same as CEO - no need for block/GP selection)
+    // Load saved location for COMPLAINTS page if available
+    // Fallback to old inspection location for backward compatibility
+    var savedLocation = await _authService.getPageLocation('smd', 'complaints');
+    if (savedLocation == null) {
+      savedLocation = await _authService.getInspectionLocation('smd');
+    }
+    if (savedLocation != null) {
+      setState(() {
+        _complaintLocation = savedLocation;
+      });
+    }
+    
+    // Load complaints
     context.read<SmdComplaintsProvider>().loadComplaints();
   }
 
@@ -60,7 +78,7 @@ class _SmdComplaintsScreenState extends State<SmdComplaintsScreen>
           Icon(Icons.error_outline, size: 64.sp, color: Colors.red),
           SizedBox(height: 16.h),
           Text(
-            provider.errorMessage ?? 'Something went wrong',
+            provider.errorMessage ?? AppLocalizations.of(context)!.somethingWentWrong,
             style: TextStyle(
               fontFamily: 'Noto Sans',
               fontSize: 16.sp,
@@ -76,7 +94,7 @@ class _SmdComplaintsScreenState extends State<SmdComplaintsScreen>
               backgroundColor: const Color(0xFF009B56),
               foregroundColor: Colors.white,
             ),
-            child: const Text('Retry'),
+            child: Text(AppLocalizations.of(context)!.retry),
           ),
         ],
       ),
@@ -135,28 +153,31 @@ class _SmdComplaintsScreenState extends State<SmdComplaintsScreen>
               ],
             ),
           ),
-          bottomNavigationBar: CustomBottomNavigationBar(
-            currentIndex: _currentIndex,
-            onTap: _onBottomNavTap,
-            items: const [
-              BottomNavItem(
-                iconPath: 'assets/icons/bottombar/home.png',
-                label: 'Home',
-              ),
-              BottomNavItem(
-                iconPath: 'assets/icons/bottombar/complaints.png',
-                label: 'Complaint',
-              ),
-              BottomNavItem(
-                iconPath: 'assets/icons/bottombar/inspection.png',
-                label: 'Inspection',
-              ),
-              BottomNavItem(
-                iconPath: 'assets/icons/bottombar/settings.png',
-                label: 'Settings',
-              ),
-            ],
-          ),
+          // Bottom nav is provided by SmdShellScreen when isEmbeddedInShell
+          bottomNavigationBar: widget.isEmbeddedInShell
+              ? null
+              : CustomBottomNavigationBar(
+                  currentIndex: _currentIndex,
+                  onTap: _onBottomNavTap,
+                  items: [
+                    BottomNavItem(
+                      iconPath: 'assets/icons/bottombar/home.png',
+                      label: AppLocalizations.of(context)!.home,
+                    ),
+                    BottomNavItem(
+                      iconPath: 'assets/icons/bottombar/complaints.png',
+                      label: AppLocalizations.of(context)!.complaints,
+                    ),
+                    BottomNavItem(
+                      iconPath: 'assets/icons/bottombar/inspection.png',
+                      label: AppLocalizations.of(context)!.inspection,
+                    ),
+                    BottomNavItem(
+                      iconPath: 'assets/icons/bottombar/settings.png',
+                      label: AppLocalizations.of(context)!.settings,
+                    ),
+                  ],
+                ),
         );
       },
     );
@@ -186,7 +207,7 @@ class _SmdComplaintsScreenState extends State<SmdComplaintsScreen>
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Complaint ($totalComplaints)',
+                    AppLocalizations.of(context)!.complaintCount(totalComplaints),
                     style: TextStyle(
                       fontFamily: 'Noto Sans',
                       fontSize: 22.sp,
@@ -195,22 +216,97 @@ class _SmdComplaintsScreenState extends State<SmdComplaintsScreen>
                     ),
                   ),
                   SizedBox(height: 2.h),
-                  Text(
-                    '${provider.villageName} • ${_getDisplayMonth()}',
-                    style: TextStyle(
-                      fontFamily: 'Noto Sans',
-                      fontSize: 14.sp,
-                      fontWeight: FontWeight.w500,
-                      color: Color(0xFF4B5563),
-                      letterSpacing: 0,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
+                  Consumer<SmdProvider>(
+                    builder: (context, smdProvider, child) {
+                      String locationText;
+                      if (_complaintLocation != null) {
+                        final parts = <String>[];
+                        if (_complaintLocation!['districtName'] != null) {
+                          parts.add(_complaintLocation!['districtName'] as String);
+                        }
+                        if (_complaintLocation!['blockName'] != null) {
+                          parts.add(_complaintLocation!['blockName'] as String);
+                        }
+                        if (_complaintLocation!['gpName'] != null) {
+                          parts.add(_complaintLocation!['gpName'] as String);
+                        }
+                        locationText = parts.isNotEmpty ? parts.join(' • ') : smdProvider.locationPath;
+                      } else {
+                        locationText = smdProvider.locationPath.isNotEmpty 
+                            ? smdProvider.locationPath 
+                            : provider.villageName;
+                      }
+                      
+                      return Text(
+                        '$locationText • ${_getDisplayMonth()}',
+                        style: TextStyle(
+                          fontFamily: 'Noto Sans',
+                          fontSize: 14.sp,
+                          fontWeight: FontWeight.w500,
+                          color: Color(0xFF4B5563),
+                          letterSpacing: 0,
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      );
+                    },
                   ),
                 ],
               ),
               Row(
                 children: [
+                  GestureDetector(
+                    onTap: () async {
+                      final result = await Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const UnifiedSelectLocationScreen(userRole: 'smd'),
+                        ),
+                      );
+                      if (result is Map<String, dynamic> && result['districtId'] != null) {
+                        print('📍 Location changed - New location: $result');
+                        print('   - District ID: ${result['districtId']}');
+                        print('   - Block ID: ${result['blockId']}');
+                        print('   - GP ID: ${result['gpId']}');
+                        
+                        // Save the location for COMPLAINTS page
+                        await _authService.savePageLocation('smd', 'complaints', result);
+                        
+                        // Also update the old district ID storage for backward compatibility
+                        if (result['districtId'] != null) {
+                          await _authService.setSmdSelectedDistrictId(result['districtId'] as int);
+                        }
+                        
+                        // Verify it was saved correctly
+                        final saved = await _authService.getInspectionLocation('smd');
+                        print('💾 Verified saved location: $saved');
+                        if (saved == null) {
+                          print('❌ ERROR: Location was not saved correctly!');
+                          return;
+                        }
+                        
+                        // Update state
+                        setState(() {
+                          _complaintLocation = result;
+                        });
+                        
+                        // Reload complaints with new location
+                        if (mounted) {
+                          context.read<SmdComplaintsProvider>().loadComplaints();
+                        }
+                      } else {
+                        print('⚠️ Location change cancelled or invalid result: $result');
+                      }
+                    },
+                    child: Padding(
+                      padding: EdgeInsets.only(right: 8.w),
+                      child: Icon(
+                        Icons.location_on,
+                        size: 24.sp,
+                        color: AppColors.primaryColor,
+                      ),
+                    ),
+                  ),
                   GestureDetector(
                     onTap: _showDateFilter,
                     child: Icon(
@@ -235,6 +331,57 @@ class _SmdComplaintsScreenState extends State<SmdComplaintsScreen>
         ],
       ),
     );
+  }
+
+  int _getFilteredCount(List<ApiComplaintModel> complaints) {
+    List<ApiComplaintModel> filtered = List.from(complaints);
+
+    if (_filterDate != null) {
+      filtered = filtered.where((complaint) {
+        try {
+          final complaintDate = DateTime.parse(complaint.createdAt).toUtc();
+          final filterDate = DateTime.utc(
+            _filterDate!.year,
+            _filterDate!.month,
+            _filterDate!.day,
+          );
+          return complaintDate.year == filterDate.year &&
+              complaintDate.month == filterDate.month &&
+              complaintDate.day == filterDate.day;
+        } catch (e) {
+          return false;
+        }
+      }).toList();
+    }
+
+    if (_filterStartDate != null && _filterEndDate != null) {
+      filtered = filtered.where((complaint) {
+        try {
+          final complaintDate = DateTime.parse(complaint.createdAt).toUtc();
+          final startDate = DateTime.utc(
+            _filterStartDate!.year,
+            _filterStartDate!.month,
+            _filterStartDate!.day,
+          );
+          final endDate = DateTime.utc(
+            _filterEndDate!.year,
+            _filterEndDate!.month,
+            _filterEndDate!.day,
+            23,
+            59,
+            59,
+          );
+          return (complaintDate.isAfter(startDate.subtract(const Duration(seconds: 1))) ||
+                  complaintDate.isAtSameMomentAs(startDate)) &&
+              (complaintDate.isBefore(endDate) ||
+                  complaintDate.isAtSameMomentAs(endDate));
+        } catch (e) {
+          return false;
+        }
+      }).toList();
+    }
+
+    return filtered.length;
   }
 
   Widget _buildStatusTabs(SmdComplaintsProvider provider) {
@@ -264,19 +411,19 @@ class _SmdComplaintsScreenState extends State<SmdComplaintsScreen>
         ),
         tabs: [
           _buildTab(
-            'Open (${provider.openComplaints.length})',
+            AppLocalizations.of(context)!.openCount(_getFilteredCount(provider.openComplaints)),
             _tabController.index == 0,
           ),
           _buildTab(
-            'Resolved (${provider.resolvedComplaints.length})',
+            AppLocalizations.of(context)!.resolvedCount(_getFilteredCount(provider.resolvedComplaints)),
             _tabController.index == 1,
           ),
           _buildTab(
-            'Verified (${provider.verifiedComplaints.length})',
+            AppLocalizations.of(context)!.verifiedCount(_getFilteredCount(provider.verifiedComplaints)),
             _tabController.index == 2,
           ),
           _buildTab(
-            'Disposed complaints (${provider.closedComplaints.length})',
+            AppLocalizations.of(context)!.disposedComplaintsCount(_getFilteredCount(provider.closedComplaints)),
             _tabController.index == 3,
           ),
         ],
@@ -403,7 +550,7 @@ class _SmdComplaintsScreenState extends State<SmdComplaintsScreen>
             ),
             SizedBox(height: 16.h),
             Text(
-              'No complaints found',
+              AppLocalizations.of(context)!.noComplaintsFound,
               style: TextStyle(
                 fontFamily: 'Noto Sans',
                 fontSize: 16.sp,
@@ -539,7 +686,7 @@ class _SmdComplaintsScreenState extends State<SmdComplaintsScreen>
                     children: [
                       Expanded(
                         child: Text(
-                          complaint.complaintType,
+                          provider.getComplaintTypeDisplayName(complaint),
                           style: TextStyle(
                             fontFamily: 'Noto Sans',
                             fontSize: 18.sp,
@@ -648,14 +795,14 @@ class _SmdComplaintsScreenState extends State<SmdComplaintsScreen>
               ),
             ),
             SizedBox(height: 20.h),
-            _buildSortOption('Newest First', _sortOrder == 'newest', () {
+            _buildSortOption(AppLocalizations.of(context)!.newestFirst, _sortOrder == 'newest', () {
               setState(() {
                 _sortOrder = 'newest';
               });
               Navigator.pop(context);
             }),
             SizedBox(height: 12.h),
-            _buildSortOption('Oldest First', _sortOrder == 'oldest', () {
+            _buildSortOption(AppLocalizations.of(context)!.oldestFirst, _sortOrder == 'oldest', () {
               setState(() {
                 _sortOrder = 'oldest';
               });

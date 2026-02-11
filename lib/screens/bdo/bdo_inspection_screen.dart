@@ -10,10 +10,15 @@ import '../../widgets/common/date_filter_bottom_sheet.dart';
 import '../../l10n/app_localizations.dart';
 import '../../models/inspection_model.dart';
 import '../../services/auth_services.dart';
+import '../../models/geography_model.dart';
+import '../../services/api_services.dart';
 import '../common/unified_select_location_screen.dart';
 
 class BdoInspectionScreen extends StatefulWidget {
-  const BdoInspectionScreen({super.key});
+  /// When true, this screen is shown inside [BdoShellScreen]; bottom nav is provided by the shell.
+  final bool isEmbeddedInShell;
+
+  const BdoInspectionScreen({super.key, this.isEmbeddedInShell = false});
 
   @override
   State<BdoInspectionScreen> createState() => _BdoInspectionScreenState();
@@ -40,27 +45,79 @@ class _BdoInspectionScreenState extends State<BdoInspectionScreen> {
   Future<void> _checkAndLoadLocation() async {
     if (_hasCheckedLocation) return;
 
-    // Check if inspection location exists
-    final location = await _authService.getInspectionLocation('bdo');
-    
-    if (location == null || location['gpId'] == null) {
-      // Show location selection screen once
-      if (!mounted) return;
-      final result = await Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (_) => const UnifiedSelectLocationScreen(userRole: 'bdo'),
-        ),
-      );
-
-      if (result is Map<String, dynamic> && result['gpId'] != null) {
-        setState(() {
-          _inspectionLocation = result;
-        });
+    // Check if INSPECTION page location exists
+    var location = await _authService.getPageLocation('bdo', 'inspections');
+    if (location == null) {
+      location = await _authService.getInspectionLocation('bdo');
+    }
+    // BDO: district/block are fixed from login. If no saved location, pre-fill from auth.
+    if (location == null || location['blockId'] == null) {
+      final districtId = await _authService.getDistrictId();
+      final blockId = await _authService.getBlockId();
+      if (districtId != null && blockId != null) {
+        try {
+          final apiService = ApiService();
+          final districts = await apiService.getDistricts();
+          final district = districts.firstWhere(
+                (d) => d.id == districtId,
+                orElse: () => District(id: districtId, name: 'District'),
+              );
+          final blocks = await apiService.getBlocks(districtId: districtId);
+          final block = blocks.firstWhere(
+                (b) => b.id == blockId,
+                orElse: () => Block(id: blockId, name: 'Block', districtId: districtId),
+              );
+          final built = {
+            'districtId': districtId,
+            'districtName': district.name,
+            'blockId': blockId,
+            'blockName': block.name,
+            'gpId': null,
+            'gpName': null,
+          };
+          await _authService.savePageLocation('bdo', 'inspections', built);
+          if (mounted) {
+            setState(() {
+              _inspectionLocation = built;
+            });
+          }
+        } catch (_) {
+          // Fall back to showing location screen
+          if (!mounted) return;
+          final result = await Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => const UnifiedSelectLocationScreen(userRole: 'bdo'),
+            ),
+          );
+          if (result is Map<String, dynamic> && result['blockId'] != null) {
+            await _authService.savePageLocation('bdo', 'inspections', result);
+            setState(() {
+              _inspectionLocation = result;
+            });
+          } else {
+            Navigator.pop(context);
+            return;
+          }
+        }
       } else {
-        // User cancelled, go back
-        Navigator.pop(context);
-        return;
+        // Auth missing district/block: show location screen (district/block will be fixed from auth there)
+        if (!mounted) return;
+        final result = await Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => const UnifiedSelectLocationScreen(userRole: 'bdo'),
+          ),
+        );
+        if (result is Map<String, dynamic> && result['blockId'] != null) {
+          await _authService.savePageLocation('bdo', 'inspections', result);
+          setState(() {
+            _inspectionLocation = result;
+          });
+        } else {
+          Navigator.pop(context);
+          return;
+        }
       }
     } else {
       setState(() {
@@ -69,7 +126,7 @@ class _BdoInspectionScreenState extends State<BdoInspectionScreen> {
     }
 
     _hasCheckedLocation = true;
-    
+
     if (!_hasLoadedInspections) {
       _hasLoadedInspections = true;
       if (mounted) {
@@ -124,46 +181,46 @@ class _BdoInspectionScreenState extends State<BdoInspectionScreen> {
           ],
         ),
       ),
-      bottomNavigationBar: CustomBottomNavigationBar(
-        currentIndex: _selectedIndex,
-        onTap: (index) {
-          setState(() {
-            _selectedIndex = index;
-          });
-          switch (index) {
-            case 0:
-              Navigator.pushReplacementNamed(context, '/bdo-dashboard');
-              break;
-            case 1:
-              Navigator.pushReplacementNamed(context, '/bdo-complaints');
-              break;
-            case 2:
-              // already on inspections
-              break;
-            case 3:
-              Navigator.pushReplacementNamed(context, '/bdo-settings');
-              break;
-          }
-        },
-        items: [
-          BottomNavItem(
-            iconPath: 'assets/icons/bottombar/home.png',
-            label: AppLocalizations.of(context)!.home,
-          ),
-          BottomNavItem(
-            iconPath: 'assets/icons/bottombar/complaints.png',
-            label: AppLocalizations.of(context)!.complaints,
-          ),
-          BottomNavItem(
-            iconPath: 'assets/icons/bottombar/inspection.png',
-            label: AppLocalizations.of(context)!.inspection,
-          ),
-          BottomNavItem(
-            iconPath: 'assets/icons/bottombar/settings.png',
-            label: AppLocalizations.of(context)!.settings,
-          ),
-        ],
-      ),
+      // Bottom nav is provided by BdoShellScreen when isEmbeddedInShell
+      bottomNavigationBar: widget.isEmbeddedInShell
+          ? null
+          : CustomBottomNavigationBar(
+              currentIndex: _selectedIndex,
+              onTap: (index) {
+                setState(() => _selectedIndex = index);
+                switch (index) {
+                  case 0:
+                    Navigator.pushReplacementNamed(context, '/bdo-dashboard');
+                    break;
+                  case 1:
+                    Navigator.pushReplacementNamed(context, '/bdo-complaints');
+                    break;
+                  case 2:
+                    break;
+                  case 3:
+                    Navigator.pushReplacementNamed(context, '/bdo-settings');
+                    break;
+                }
+              },
+              items: [
+                BottomNavItem(
+                  iconPath: 'assets/icons/bottombar/home.png',
+                  label: AppLocalizations.of(context)!.home,
+                ),
+                BottomNavItem(
+                  iconPath: 'assets/icons/bottombar/complaints.png',
+                  label: AppLocalizations.of(context)!.complaints,
+                ),
+                BottomNavItem(
+                  iconPath: 'assets/icons/bottombar/inspection.png',
+                  label: AppLocalizations.of(context)!.inspection,
+                ),
+                BottomNavItem(
+                  iconPath: 'assets/icons/bottombar/settings.png',
+                  label: AppLocalizations.of(context)!.settings,
+                ),
+              ],
+            ),
     );
   }
 
@@ -198,10 +255,35 @@ class _BdoInspectionScreenState extends State<BdoInspectionScreen> {
                             builder: (_) => const UnifiedSelectLocationScreen(userRole: 'bdo'),
                           ),
                         );
-                        if (result is Map<String, dynamic> && result['gpId'] != null) {
+                        if (result is Map<String, dynamic> && result['blockId'] != null) {
+                          print('📍 Location changed - New location: $result');
+                          print('   - District ID: ${result['districtId']}');
+                          print('   - Block ID: ${result['blockId']}');
+                          print('   - GP ID: ${result['gpId']}');
+                          
+                          // Save the location for INSPECTIONS page
+                          await _authService.savePageLocation('bdo', 'inspections', result);
+                          
+                          // Verify it was saved correctly
+                          final saved = await _authService.getPageLocation('bdo', 'inspections');
+                          print('💾 Verified saved location: $saved');
+                          if (saved == null) {
+                            print('❌ ERROR: Location was not saved correctly!');
+                            return;
+                          }
+                          
+                          // Update state
                           setState(() {
                             _inspectionLocation = result;
                           });
+                          
+                          // Reload inspections with new location
+                          if (mounted) {
+                            // Clear provider state first to show loading
+                            context.read<BdoInspectionProvider>().loadInspections();
+                          }
+                        } else {
+                          print('⚠️ Location change cancelled or invalid result: $result');
                         }
                       },
                       child: Padding(
@@ -228,8 +310,8 @@ class _BdoInspectionScreenState extends State<BdoInspectionScreen> {
           SizedBox(height: 4.h),
           Text(
             _inspectionLocation != null
-                ? '${_inspectionLocation!['districtName']} • ${_inspectionLocation!['blockName']} • ${_inspectionLocation!['gpName']} • ${_displayMonth()}'
-                : '${bdoProvider.blockName} • ${_displayMonth()}',
+                ? '${_inspectionLocation!['districtName'] ?? ''}${_inspectionLocation!['blockName'] != null ? ' • ${_inspectionLocation!['blockName']}' : ''}${_inspectionLocation!['gpName'] != null ? ' • ${_inspectionLocation!['gpName']}' : ''} • ${_displayMonth()}'
+                : '${bdoProvider.districtName} • ${bdoProvider.blockName} • ${_displayMonth()}',
             style: TextStyle(fontSize: 11.sp, color: const Color(0xFF6B7280)),
           ),
         ],
@@ -403,77 +485,86 @@ class _BdoInspectionScreenState extends State<BdoInspectionScreen> {
   }
 
   Widget _buildInspectionCard(Inspection inspection) {
-    return Container(
-      margin: EdgeInsets.only(bottom: 12.h),
-      padding: EdgeInsets.all(16.r),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12.r),
-        border: Border.all(color: Colors.grey.shade200),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 4,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 40.w,
-            height: 40.h,
-            decoration: BoxDecoration(
-              color: AppColors.primaryColor,
-              borderRadius: BorderRadius.circular(8.r),
+    return GestureDetector(
+      onTap: () {
+        Navigator.pushNamed(
+          context,
+          '/inspection-details',
+          arguments: {'inspectionId': inspection.id},
+        );
+      },
+      child: Container(
+        margin: EdgeInsets.only(bottom: 12.h),
+        padding: EdgeInsets.all(16.r),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12.r),
+          border: Border.all(color: Colors.grey.shade200),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 4,
+              offset: const Offset(0, 2),
             ),
-            child: Stack(
-              alignment: Alignment.center,
-              children: [
-                Icon(Icons.description, color: Colors.white, size: 18.sp),
-                Positioned(
-                  left: 6.w,
-                  top: 6.h,
-                  child: Icon(
-                    Icons.description,
-                    color: Colors.white.withOpacity(0.7),
-                    size: 14.sp,
+          ],
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 40.w,
+              height: 40.h,
+              decoration: BoxDecoration(
+                color: AppColors.primaryColor,
+                borderRadius: BorderRadius.circular(8.r),
+              ),
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  Icon(Icons.description, color: Colors.white, size: 18.sp),
+                  Positioned(
+                    left: 6.w,
+                    top: 6.h,
+                    child: Icon(
+                      Icons.description,
+                      color: Colors.white.withOpacity(0.7),
+                      size: 14.sp,
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
-          SizedBox(width: 12.w),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  _formatDate(inspection.date),
-                  style: TextStyle(
-                    fontSize: 13.sp,
-                    fontWeight: FontWeight.w600,
-                    color: const Color(0xFF111827),
+            SizedBox(width: 12.w),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    _formatDate(inspection.date),
+                    style: TextStyle(
+                      fontSize: 13.sp,
+                      fontWeight: FontWeight.w600,
+                      color: const Color(0xFF111827),
+                    ),
                   ),
-                ),
-                SizedBox(height: 4.h),
-                Text(
-                  inspection.villageName,
-                  style: TextStyle(
-                    fontSize: 11.sp,
-                    fontWeight: FontWeight.w400,
-                    color: const Color(0xFF6B7280),
+                  SizedBox(height: 4.h),
+                  Text(
+                    inspection.villageName,
+                    style: TextStyle(
+                      fontSize: 11.sp,
+                      fontWeight: FontWeight.w400,
+                      color: const Color(0xFF6B7280),
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
-          Icon(
-            Icons.arrow_forward_ios,
-            color: Colors.grey.shade400,
-            size: 14.sp,
-          ),
-        ],
+            Icon(
+              Icons.arrow_forward_ios,
+              color: Colors.grey.shade400,
+              size: 14.sp,
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -767,81 +858,90 @@ class _BdoGpInspectionScreenState extends State<_BdoGpInspectionScreen> {
                     itemCount: filtered0(provider.inspections).length,
                     itemBuilder: (context, index) {
                       final inspection = filtered0(provider.inspections)[index];
-                      return Container(
-                        margin: EdgeInsets.only(bottom: 12.h),
-                        padding: EdgeInsets.all(16.r),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(12.r),
-                          border: Border.all(color: Colors.grey.shade200),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withOpacity(0.05),
-                              blurRadius: 4,
-                              offset: const Offset(0, 2),
-                            ),
-                          ],
-                        ),
-                        child: Row(
-                          children: [
-                            Container(
-                              width: 40.w,
-                              height: 40.h,
-                              decoration: BoxDecoration(
-                                color: AppColors.primaryColor,
-                                borderRadius: BorderRadius.circular(8.r),
+                      return GestureDetector(
+                        onTap: () {
+                          Navigator.pushNamed(
+                            context,
+                            '/inspection-details',
+                            arguments: {'inspectionId': inspection.id},
+                          );
+                        },
+                        child: Container(
+                          margin: EdgeInsets.only(bottom: 12.h),
+                          padding: EdgeInsets.all(16.r),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(12.r),
+                            border: Border.all(color: Colors.grey.shade200),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.05),
+                                blurRadius: 4,
+                                offset: const Offset(0, 2),
                               ),
-                              child: Stack(
-                                alignment: Alignment.center,
-                                children: [
-                                  Icon(
-                                    Icons.description,
-                                    color: Colors.white,
-                                    size: 18.sp,
-                                  ),
-                                  Positioned(
-                                    left: 6.w,
-                                    top: 6.h,
-                                    child: Icon(
+                            ],
+                          ),
+                          child: Row(
+                            children: [
+                              Container(
+                                width: 40.w,
+                                height: 40.h,
+                                decoration: BoxDecoration(
+                                  color: AppColors.primaryColor,
+                                  borderRadius: BorderRadius.circular(8.r),
+                                ),
+                                child: Stack(
+                                  alignment: Alignment.center,
+                                  children: [
+                                    Icon(
                                       Icons.description,
-                                      color: Colors.white.withOpacity(0.7),
-                                      size: 14.sp,
+                                      color: Colors.white,
+                                      size: 18.sp,
                                     ),
-                                  ),
-                                ],
+                                    Positioned(
+                                      left: 6.w,
+                                      top: 6.h,
+                                      child: Icon(
+                                        Icons.description,
+                                        color: Colors.white.withOpacity(0.7),
+                                        size: 14.sp,
+                                      ),
+                                    ),
+                                  ],
+                                ),
                               ),
-                            ),
-                            SizedBox(width: 12.w),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    _formatDate(inspection.date),
-                                    style: TextStyle(
-                                      fontSize: 13.sp,
-                                      fontWeight: FontWeight.w600,
-                                      color: const Color(0xFF111827),
+                              SizedBox(width: 12.w),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      _formatDate(inspection.date),
+                                      style: TextStyle(
+                                        fontSize: 13.sp,
+                                        fontWeight: FontWeight.w600,
+                                        color: const Color(0xFF111827),
+                                      ),
                                     ),
-                                  ),
-                                  SizedBox(height: 4.h),
-                                  Text(
-                                    inspection.villageName,
-                                    style: TextStyle(
-                                      fontSize: 11.sp,
-                                      fontWeight: FontWeight.w400,
-                                      color: const Color(0xFF6B7280),
+                                    SizedBox(height: 4.h),
+                                    Text(
+                                      inspection.villageName,
+                                      style: TextStyle(
+                                        fontSize: 11.sp,
+                                        fontWeight: FontWeight.w400,
+                                        color: const Color(0xFF6B7280),
+                                      ),
                                     ),
-                                  ),
-                                ],
+                                  ],
+                                ),
                               ),
-                            ),
-                            Icon(
-                              Icons.arrow_forward_ios,
-                              color: Colors.grey.shade400,
-                              size: 14.sp,
-                            ),
-                          ],
+                              Icon(
+                                Icons.arrow_forward_ios,
+                                color: Colors.grey.shade400,
+                                size: 14.sp,
+                              ),
+                            ],
+                          ),
                         ),
                       );
                     },

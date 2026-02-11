@@ -9,7 +9,10 @@ import '../../providers/supervisor_attendance_provider.dart';
 import '../../l10n/app_localizations.dart';
 
 class SupervisorAttendanceScreen extends StatefulWidget {
-  const SupervisorAttendanceScreen({super.key});
+  /// When true, this screen is shown inside [SupervisorShellScreen]; bottom nav is provided by the shell.
+  final bool isEmbeddedInShell;
+
+  const SupervisorAttendanceScreen({super.key, this.isEmbeddedInShell = false});
 
   @override
   State<SupervisorAttendanceScreen> createState() =>
@@ -35,8 +38,9 @@ class _SupervisorAttendanceScreenState
     String? lat,
     String? long,
   ) async {
+    final l10n = AppLocalizations.of(context)!;
     if (lat == null || long == null || lat.isEmpty || long.isEmpty) {
-      return 'Unknown Location';
+      return l10n.unknownLocation;
     }
 
     // Create cache key
@@ -54,12 +58,12 @@ class _SupervisorAttendanceScreenState
       final longitude = double.tryParse(long);
 
       if (latitude == null || longitude == null) {
-        return 'Invalid Coordinates';
+        return l10n.invalidCoordinates;
       }
 
       // Check if coordinates are valid (not dummy/test data)
       if (latitude == 1.0 && longitude == 1.0) {
-        return 'Test Location';
+        return l10n.testLocation;
       }
 
       // Check if coordinates are within valid ranges
@@ -67,7 +71,7 @@ class _SupervisorAttendanceScreenState
           latitude > 90 ||
           longitude < -180 ||
           longitude > 180) {
-        return 'Invalid Coordinates';
+        return l10n.invalidCoordinates;
       }
 
       print('🔍 Reverse geocoding for: $latitude, $longitude');
@@ -111,7 +115,10 @@ class _SupervisorAttendanceScreenState
 
         final address = addressComponents.isNotEmpty
             ? addressComponents.join(', ')
-            : 'Location at ${latitude.toStringAsFixed(4)}, ${longitude.toStringAsFixed(4)}';
+            : l10n.locationAtCoordinates(
+                latitude.toStringAsFixed(4),
+                longitude.toStringAsFixed(4),
+              );
 
         print('📍 Final address: $address');
 
@@ -121,11 +128,14 @@ class _SupervisorAttendanceScreenState
         return address;
       } else {
         print('📍 No placemarks found for coordinates: $latitude, $longitude');
-        return 'Location at ${latitude.toStringAsFixed(4)}, ${longitude.toStringAsFixed(4)}';
+        return l10n.locationAtCoordinates(
+          latitude.toStringAsFixed(4),
+          longitude.toStringAsFixed(4),
+        );
       }
     } catch (e) {
       print('❌ Error in reverse geocoding: $e');
-      return 'Location at $lat, $long';
+      return l10n.locationAtCoordinates(lat, long);
     }
   }
 
@@ -152,7 +162,10 @@ class _SupervisorAttendanceScreenState
               ],
             ),
           ),
-          bottomNavigationBar: _buildBottomNavigationBar(),
+          // Bottom nav is provided by SupervisorShellScreen when isEmbeddedInShell
+          bottomNavigationBar: widget.isEmbeddedInShell
+              ? null
+              : _buildBottomNavigationBar(),
         );
       },
     );
@@ -186,12 +199,28 @@ class _SupervisorAttendanceScreenState
     );
   }
 
+  String _localizedFilter(String filter) {
+    final l10n = AppLocalizations.of(context)!;
+    switch (filter) {
+      case 'Month':
+        return l10n.filterMonth;
+      case 'Week':
+        return l10n.filterWeek;
+      case 'Day':
+        return l10n.filterDay;
+      default:
+        return filter;
+    }
+  }
+
   Widget _buildCurrentDayCard(SupervisorAttendanceProvider provider) {
     final now = DateTime.now();
-    final dayName = DateFormat('EEE').format(now);
+    final locale = Localizations.localeOf(context);
+    final dayName = DateFormat('EEE', locale.toString()).format(now);
     final day = now.day;
-    final month = DateFormat('MMM').format(now);
+    final month = DateFormat('MMM', locale.toString()).format(now);
     final year = now.year;
+    final l10n = AppLocalizations.of(context)!;
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -213,7 +242,7 @@ class _SupervisorAttendanceScreenState
               ),
               SizedBox(width: 8.w),
               Text(
-                '$dayName, $day $month $year (today)',
+                '$dayName, $day $month $year ${l10n.todaySuffix}',
                 style: TextStyle(
                   fontFamily: 'Noto Sans',
                   fontSize: 16.sp,
@@ -228,12 +257,12 @@ class _SupervisorAttendanceScreenState
           SizedBox(
             width: double.infinity,
             child: ElevatedButton(
-              onPressed: provider.isLoading
+              onPressed: provider.isLoading || provider.isAttendanceMarkedToday
                   ? null
-                  : () => _handleAttendanceAction(provider),
+                  : () => _markAttendance(provider),
               style: ElevatedButton.styleFrom(
-                backgroundColor: provider.isAttendanceActive
-                    ? const Color(0xFFEF4444)
+                backgroundColor: provider.isAttendanceMarkedToday
+                    ? Colors.grey
                     : const Color(0xFF009B56),
                 foregroundColor: Colors.white,
                 padding: EdgeInsets.symmetric(vertical: 16.h),
@@ -254,15 +283,15 @@ class _SupervisorAttendanceScreenState
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Icon(
-                          provider.isAttendanceActive
-                              ? Icons.stop_circle
+                          provider.isAttendanceMarkedToday
+                              ? Icons.check_circle
                               : Icons.grid_view,
                           size: 20.sp,
                         ),
                         SizedBox(width: 8.w),
                         Text(
-                          provider.isAttendanceActive
-                              ? AppLocalizations.of(context)!.endAttendance
+                          provider.isAttendanceMarkedToday
+                              ? AppLocalizations.of(context)!.attendanceMarked
                               : AppLocalizations.of(context)!.markAttendance,
                           style: const TextStyle(
                             fontFamily: 'Noto Sans',
@@ -270,8 +299,10 @@ class _SupervisorAttendanceScreenState
                             fontWeight: FontWeight.w600,
                           ),
                         ),
-                        SizedBox(width: 8.w),
-                        Icon(Icons.arrow_forward, size: 16.sp),
+                        if (!provider.isAttendanceMarkedToday) ...[
+                          SizedBox(width: 8.w),
+                          Icon(Icons.arrow_forward, size: 16.sp),
+                        ],
                       ],
                     ),
             ),
@@ -291,7 +322,11 @@ class _SupervisorAttendanceScreenState
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                'Attendance log (${provider.presentDays}/${provider.totalAttendances}) - ${provider.selectedFilter}',
+                AppLocalizations.of(context)!.attendanceLogTitle(
+                  provider.presentDays,
+                  provider.totalAttendances,
+                  _localizedFilter(provider.selectedFilter),
+                ),
                 style: const TextStyle(
                   fontFamily: 'Noto Sans',
                   fontSize: 18,
@@ -301,7 +336,8 @@ class _SupervisorAttendanceScreenState
                 ),
               ),
               Text(
-                provider.selectedMonthName,
+                DateFormat('MMMM', Localizations.localeOf(context).toString())
+                    .format(provider.selectedDate),
                 style: TextStyle(
                   fontFamily: 'Noto Sans',
                   fontSize: 14.sp,
@@ -433,19 +469,16 @@ class _SupervisorAttendanceScreenState
     // Parse date
     final dateStr = attendance['date'] as String?;
     final date = dateStr != null ? DateTime.tryParse(dateStr) : null;
+    final locale = Localizations.localeOf(context).toString();
     final day = date != null ? DateFormat('d').format(date) : '?';
-    final month = date != null ? DateFormat('MMM').format(date) : '?';
+    final month = date != null ? DateFormat('MMM', locale).format(date) : '?';
 
     // Get coordinates for reverse geocoding
     final startLat = attendance['start_lat'] as String?;
     final startLong = attendance['start_long'] as String?;
 
-    // Determine status
-    final endTime = attendance['end_time'];
-    final isPresent = endTime != null;
-    final status = isPresent
-        ? AppLocalizations.of(context)!.present
-        : AppLocalizations.of(context)!.incomplete;
+    // Determine status: single punch - if record exists, user scanned QR = Present
+    final status = AppLocalizations.of(context)!.present;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
@@ -503,12 +536,13 @@ class _SupervisorAttendanceScreenState
             child: FutureBuilder<String>(
               future: _getAddressFromCoordinates(provider, startLat, startLong),
               builder: (context, snapshot) {
-                String displayAddress = 'Loading...';
+                final l10n = AppLocalizations.of(context)!;
+                String displayAddress = l10n.loading;
 
                 if (snapshot.hasData) {
                   displayAddress = snapshot.data!;
                 } else if (snapshot.hasError) {
-                  displayAddress = 'Unknown Location';
+                  displayAddress = l10n.unknownLocation;
                 }
 
                 return Text(
@@ -524,13 +558,11 @@ class _SupervisorAttendanceScreenState
             ),
           ),
 
-          // Status Badge
+          // Status Badge (single punch: all records = Present)
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
             decoration: BoxDecoration(
-              color: isPresent
-                  ? const Color(0xFFD1FAE5)
-                  : const Color(0xFFFFF4E6),
+              color: const Color(0xFFD1FAE5),
               borderRadius: BorderRadius.circular(16.r),
             ),
             child: Text(
@@ -539,9 +571,7 @@ class _SupervisorAttendanceScreenState
                 fontFamily: 'Noto Sans',
                 fontSize: 12.sp,
                 fontWeight: FontWeight.w500,
-                color: isPresent
-                    ? const Color(0xFF009B56)
-                    : const Color(0xFFF59E0B),
+                color: const Color(0xFF009B56),
               ),
             ),
           ),
@@ -646,14 +676,6 @@ class _SupervisorAttendanceScreenState
     );
   }
 
-  void _handleAttendanceAction(SupervisorAttendanceProvider provider) {
-    if (provider.isAttendanceActive) {
-      _endAttendance(provider);
-    } else {
-      _markAttendance(provider);
-    }
-  }
-
   Future<void> _markAttendance(SupervisorAttendanceProvider provider) async {
     final result = await Navigator.push<Map<String, String>>(
       context,
@@ -675,46 +697,14 @@ class _SupervisorAttendanceScreenState
           // Reload attendance logs to show latest data
           await provider.fetchAttendanceLogs();
 
+          final l10n = AppLocalizations.of(context)!;
           _showSuccessDialog(
-            'Attendance Marked',
-            response['message'] ??
-                'Your attendance has been successfully marked.',
+            l10n.attendanceMarked,
+            response['message'] ?? l10n.attendanceMarkedDescription,
           );
         } else {
-          _showErrorDialog(response['message'] ?? 'Failed to mark attendance');
-        }
-      }
-    }
-  }
-
-  Future<void> _endAttendance(SupervisorAttendanceProvider provider) async {
-    if (provider.currentAttendanceId == null ||
-        provider.startLat == null ||
-        provider.startLong == null) {
-      _showErrorDialog('No active attendance session found');
-      return;
-    }
-
-    final result = await Navigator.push<Map<String, String>>(
-      context,
-      MaterialPageRoute(builder: (context) => const QRScannerScreen()),
-    );
-
-    if (result != null && mounted) {
-      final lat = result['lat'] as String;
-      final long = result['long'] as String;
-
-      final response = await provider.endAttendance(lat, long);
-
-      if (mounted) {
-        if (response['success']) {
-          _showSuccessDialog(
-            'Attendance Ended',
-            response['message'] ??
-                'Your attendance has been successfully ended.',
-          );
-        } else {
-          _showErrorDialog(response['message'] ?? 'Failed to end attendance');
+          final l10n = AppLocalizations.of(context)!;
+          _showErrorDialog(response['message'] ?? l10n.failedToMarkAttendance);
         }
       }
     }
@@ -755,7 +745,7 @@ class _SupervisorAttendanceScreenState
           TextButton(
             onPressed: () => Navigator.pop(context),
             child: Text(
-              'OK',
+              AppLocalizations.of(context)!.ok,
               style: TextStyle(
                 fontFamily: 'Noto Sans',
                 fontSize: 16.sp,
@@ -781,7 +771,7 @@ class _SupervisorAttendanceScreenState
             Icon(Icons.error_outline, color: Colors.red, size: 24.sp),
             SizedBox(width: 8.w),
             Text(
-              'Error',
+              AppLocalizations.of(context)!.error,
               style: TextStyle(
                 fontFamily: 'Noto Sans',
                 fontSize: 18.sp,
@@ -804,7 +794,7 @@ class _SupervisorAttendanceScreenState
           TextButton(
             onPressed: () => Navigator.pop(context),
             child: Text(
-              'OK',
+              AppLocalizations.of(context)!.ok,
               style: TextStyle(
                 fontFamily: 'Noto Sans',
                 fontSize: 16.sp,

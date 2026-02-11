@@ -3,7 +3,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:provider/provider.dart';
 import '../../config/connstants.dart';
 import '../../providers/citizen_schemes_provider.dart';
-import '../../providers/citizen_bookmarks_provider.dart';
+import '../../providers/bookmarks_provider.dart';
 import '../../models/scheme_model.dart';
 import '../../widgets/common/custom_bottom_navigation.dart';
 import '../../l10n/app_localizations.dart';
@@ -12,7 +12,10 @@ import '../../services/auth_services.dart';
 import 'scheme_details_screen.dart';
 
 class SchemesScreen extends StatefulWidget {
-  const SchemesScreen({super.key});
+  /// When true, this screen is shown inside [CitizenShellScreen]; bottom nav and app bar back are omitted.
+  final bool isEmbeddedInShell;
+
+  const SchemesScreen({super.key, this.isEmbeddedInShell = false});
 
   @override
   State<SchemesScreen> createState() => _SchemesScreenState();
@@ -171,11 +174,57 @@ class _SchemesScreenState extends State<SchemesScreen> {
                         scheme.id,
                       );
                       return GestureDetector(
-                        onTap: () {
-                          bookmarksProvider.toggleSchemeBookmark(
-                            scheme.id,
-                            !isBookmarked,
-                          );
+                        onTap: () async {
+                          // Check if user is logged in
+                          final authService = AuthService();
+                          final isLoggedIn = await authService.isLoggedIn();
+                          
+                          if (!isLoggedIn) {
+                            // Show login required message
+                            if (mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(
+                                    'Please login to bookmark schemes',
+                                  ),
+                                  backgroundColor: Colors.orange,
+                                  duration: const Duration(seconds: 3),
+                                  action: SnackBarAction(
+                                    label: 'Login',
+                                    textColor: Colors.white,
+                                    onPressed: () {
+                                      Navigator.pushNamed(
+                                        context,
+                                        '/citizen-login',
+                                        arguments: {'redirectTo': '/schemes'},
+                                      );
+                                    },
+                                  ),
+                                ),
+                              );
+                            }
+                            return;
+                          }
+
+                          try {
+                            await bookmarksProvider.toggleSchemeBookmark(
+                              scheme.id,
+                              !isBookmarked,
+                            );
+                          } catch (e) {
+                            // Show error message
+                            if (mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(
+                                    e.toString().replaceAll('Exception: ', ''),
+                                  ),
+                                  backgroundColor: Colors.red,
+                                  duration: const Duration(seconds: 3),
+                                ),
+                              );
+                            }
+                          }
                         },
                         child: Container(
                           padding: EdgeInsets.all(8.w),
@@ -255,20 +304,21 @@ class _SchemesScreenState extends State<SchemesScreen> {
       appBar: AppBar(
         backgroundColor: CitizenColors.surface(context),
         elevation: 0,
-        leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: primaryTextColor),
-          onPressed: () {
-            final dashboardRoute = _getDashboardRoute();
-            if (dashboardRoute != null) {
-              Navigator.pop(context);
-            } else {
-              // Fallback: just pop if no valid route
-              Navigator.pop(context);
-            }
-          },
-        ),
+        leading: widget.isEmbeddedInShell
+            ? null
+            : IconButton(
+                icon: Icon(Icons.arrow_back, color: primaryTextColor),
+                onPressed: () {
+                  if (Navigator.canPop(context)) {
+                    Navigator.pop(context);
+                  } else {
+                    final route = _getDashboardRoute() ?? '/citizen-dashboard';
+                    Navigator.pushReplacementNamed(context, route);
+                  }
+                },
+              ),
         title: Text(
-          'Schemes',
+          AppLocalizations.of(context)!.schemes,
           style: TextStyle(color: primaryTextColor, fontSize: 18, fontWeight: FontWeight.w600),
         ),
         centerTitle: false,
@@ -344,51 +394,48 @@ class _SchemesScreenState extends State<SchemesScreen> {
         },
       ),
 
-      // Bottom Navigation Bar (only for citizen role)
-      bottomNavigationBar: _isCitizenRole
-          ? CustomBottomNavigationBar(
-        currentIndex: _selectedIndex,
-        onTap: (index) {
-          setState(() {
-            _selectedIndex = index;
-          });
-
-          // Navigate to different screens based on selection
-          switch (index) {
-            case 0:
-              Navigator.pushReplacementNamed(context, '/citizen-dashboard');
-              break;
-            case 1:
-              Navigator.pushNamed(context, '/my-complaints');
-              break;
-            case 2:
-              // Already on Schemes
-              break;
-            case 3:
-              Navigator.pushReplacementNamed(context, '/settings');
-              break;
-          }
-        },
-        items: [
-          BottomNavItem(
-            iconPath: 'assets/icons/bottombar/home.png',
-            label: AppLocalizations.of(context)!.home,
-          ),
-          BottomNavItem(
-            iconPath: 'assets/icons/bottombar/complaints.png',
-            label: AppLocalizations.of(context)!.myComplaint,
-          ),
-          BottomNavItem(
-            iconPath: 'assets/icons/bottombar/schemes.png',
-            label: AppLocalizations.of(context)!.schemes,
-          ),
-          BottomNavItem(
-            iconPath: 'assets/icons/bottombar/settings.png',
-            label: AppLocalizations.of(context)!.settings,
-          ),
-        ],
-      )
-          : null,
+      // Bottom nav: when embedded in shell it's provided by shell; when standalone citizen, show nav
+      bottomNavigationBar: widget.isEmbeddedInShell
+          ? null
+          : (_isCitizenRole
+              ? CustomBottomNavigationBar(
+                  currentIndex: _selectedIndex,
+                  onTap: (index) {
+                    setState(() => _selectedIndex = index);
+                    switch (index) {
+                      case 0:
+                        Navigator.pushReplacementNamed(context, '/citizen-dashboard');
+                        break;
+                      case 1:
+                        Navigator.pushNamed(context, '/my-complaints');
+                        break;
+                      case 2:
+                        break;
+                      case 3:
+                        Navigator.pushReplacementNamed(context, '/settings');
+                        break;
+                    }
+                  },
+                  items: [
+                    BottomNavItem(
+                      iconPath: 'assets/icons/bottombar/home.png',
+                      label: AppLocalizations.of(context)!.home,
+                    ),
+                    BottomNavItem(
+                      iconPath: 'assets/icons/bottombar/complaints.png',
+                      label: AppLocalizations.of(context)!.myComplaint,
+                    ),
+                    BottomNavItem(
+                      iconPath: 'assets/icons/bottombar/schemes.png',
+                      label: AppLocalizations.of(context)!.schemes,
+                    ),
+                    BottomNavItem(
+                      iconPath: 'assets/icons/bottombar/settings.png',
+                      label: AppLocalizations.of(context)!.settings,
+                    ),
+                  ],
+                )
+              : null),
     );
   }
 }

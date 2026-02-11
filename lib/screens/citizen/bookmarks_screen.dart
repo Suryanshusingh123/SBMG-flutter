@@ -1,15 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:provider/provider.dart';
-import 'package:intl/intl.dart';
 import '../../config/connstants.dart';
-import '../../providers/citizen_bookmarks_provider.dart';
-import '../../providers/citizen_schemes_provider.dart';
-import '../../providers/citizen_events_provider.dart';
+import '../../providers/bookmarks_provider.dart';
 import '../../models/scheme_model.dart';
-import '../../models/event_model.dart';
 import '../../l10n/app_localizations.dart';
 import '../../theme/citizen_colors.dart';
+import '../../services/auth_services.dart';
 
 class BookmarksScreen extends StatefulWidget {
   const BookmarksScreen({super.key});
@@ -19,8 +16,15 @@ class BookmarksScreen extends StatefulWidget {
 }
 
 class _BookmarksScreenState extends State<BookmarksScreen> {
-  int _selectedTabIndex = 0; // 0: Schemes, 1: Events
-
+  @override
+  void initState() {
+    super.initState();
+    // Load bookmarked schemes from API when screen opens so bookmarks
+    // added from scheme details page show up without visiting schemes list.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<BookmarksProvider>().loadBookmarkedSchemesList();
+    });
+  }
   String _getMediaUrl(String? mediaUrl) {
     if (mediaUrl == null || mediaUrl.isEmpty) {
       return '';
@@ -107,11 +111,55 @@ class _BookmarksScreenState extends State<BookmarksScreen> {
                       scheme.id,
                     );
                     return GestureDetector(
-                      onTap: () {
-                        bookmarksProvider.toggleSchemeBookmark(
-                          scheme.id,
-                          !isBookmarked,
-                        );
+                      onTap: () async {
+                        // Check if user is logged in
+                        final authService = AuthService();
+                        final isLoggedIn = await authService.isLoggedIn();
+                        
+                        if (!isLoggedIn) {
+                          // Show login required message
+                          if (mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(
+                                  'Please login to bookmark schemes',
+                                ),
+                                backgroundColor: Colors.orange,
+                                action: SnackBarAction(
+                                  label: 'Login',
+                                  textColor: Colors.white,
+                                  onPressed: () {
+                                    Navigator.pushNamed(
+                                      context,
+                                      '/citizen-login',
+                                      arguments: {'redirectTo': '/schemes'},
+                                    );
+                                  },
+                                ),
+                              ),
+                            );
+                          }
+                          return;
+                        }
+
+                        try {
+                          await bookmarksProvider.toggleSchemeBookmark(
+                            scheme.id,
+                            !isBookmarked,
+                          );
+                        } catch (e) {
+                          // Show error message
+                          if (mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(
+                                  e.toString().replaceAll('Exception: ', ''),
+                                ),
+                                backgroundColor: Colors.red,
+                              ),
+                            );
+                          }
+                        }
                       },
                       child: Container(
                         padding: EdgeInsets.all(8.w),
@@ -181,62 +229,11 @@ class _BookmarksScreenState extends State<BookmarksScreen> {
     );
   }
 
-  Widget _buildTab(String label, int count, int index, Color inactiveColor) {
-    final isSelected = _selectedTabIndex == index;
-
-    return Expanded(
-      child: GestureDetector(
-        onTap: () {
-          setState(() {
-            _selectedTabIndex = index;
-          });
-        },
-        child: Container(
-          padding: EdgeInsets.symmetric(vertical: 12.h),
-          decoration: BoxDecoration(
-            border: Border(
-              bottom: BorderSide(
-                color: isSelected ? AppColors.primaryColor : Colors.transparent,
-                width: 2,
-              ),
-            ),
-          ),
-          child: Text(
-            '$label ($count)',
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: 16.sp,
-              fontWeight: FontWeight.w600,
-              color: isSelected ? AppColors.primaryColor : inactiveColor,
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
-    return Consumer<BookmarksProvider>(
-      builder: (context, bookmarksProvider, child) {
-        // Get actual counts from provider
-        final schemesCount = bookmarksProvider.bookmarkedSchemesCount;
-        final eventsCount = bookmarksProvider.bookmarkedEventsCount;
-
-        return _buildContent(context, schemesCount, eventsCount);
-      },
-    );
-  }
-
-  Widget _buildContent(
-    BuildContext context,
-    int schemesCount,
-    int eventsCount,
-  ) {
     final l10n = AppLocalizations.of(context)!;
     final surfaceColor = CitizenColors.surface(context);
     final primaryTextColor = CitizenColors.textPrimary(context);
-    final secondaryTextColor = CitizenColors.textSecondary(context);
     return Scaffold(
       backgroundColor: CitizenColors.background(context),
       appBar: AppBar(
@@ -247,7 +244,7 @@ class _BookmarksScreenState extends State<BookmarksScreen> {
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
-          l10n.bookmarks,
+          l10n.myCollection,
           style: TextStyle(
             color: primaryTextColor,
             fontSize: 18,
@@ -255,296 +252,104 @@ class _BookmarksScreenState extends State<BookmarksScreen> {
           ),
         ),
       ),
-      body: Column(
-        children: [
-          // Tabs
-          Row(
-            children: [
-              _buildTab(l10n.schemes, schemesCount, 0, secondaryTextColor),
-              _buildTab(l10n.events, eventsCount, 1, secondaryTextColor),
-            ],
-          ),
-
-          // Content based on selected tab
-          Expanded(
-            child: _selectedTabIndex == 0
-                ? _buildSchemesList()
-                : _buildEventsList(),
-          ),
-        ],
-      ),
+      body: _buildSchemesList(),
     );
   }
 
   Widget _buildSchemesList() {
     final l10n = AppLocalizations.of(context)!;
     final secondaryTextColor = CitizenColors.textSecondary(context);
-    return Consumer2<BookmarksProvider, SchemesProvider>(
-      builder: (context, bookmarksProvider, schemesProvider, child) {
-        // Get bookmarked scheme IDs
-        final bookmarkedIds = bookmarksProvider.bookmarkedSchemeIds;
+    return Consumer<BookmarksProvider>(
+      builder: (context, bookmarksProvider, child) {
+        // Check if user is logged in
+        return FutureBuilder<bool>(
+          future: AuthService().isLoggedIn(),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return Center(
+                child: CircularProgressIndicator(),
+              );
+            }
 
-        // Filter schemes to show only bookmarked ones
-        final bookmarkedSchemes = schemesProvider.schemes
-            .where((scheme) => bookmarkedIds.contains(scheme.id))
-            .toList();
+            final isLoggedIn = snapshot.data ?? false;
 
-        if (bookmarkedSchemes.isEmpty) {
-          return Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(
-                  Icons.bookmark_border,
-                  size: 64.sp,
-                  color: secondaryTextColor,
-                ),
-                SizedBox(height: 16.h),
-                Text(
-                  l10n.noBookmarkedSchemes,
-                  style: TextStyle(fontSize: 16.sp, color: secondaryTextColor),
-                ),
-              ],
-            ),
-          );
-        }
-
-        return ListView.builder(
-          padding: EdgeInsets.symmetric(vertical: 8.h),
-          itemCount: bookmarkedSchemes.length,
-          itemBuilder: (context, index) {
-            return _buildBookmarkCard(bookmarkedSchemes[index]);
-          },
-        );
-      },
-    );
-  }
-
-  Widget _buildEventsList() {
-    final l10n = AppLocalizations.of(context)!;
-    final secondaryTextColor = CitizenColors.textSecondary(context);
-    return Consumer2<BookmarksProvider, EventsProvider>(
-      builder: (context, bookmarksProvider, eventsProvider, child) {
-        // Get bookmarked event IDs
-        final bookmarkedIds = bookmarksProvider.bookmarkedEventIds;
-
-        // Filter events to show only bookmarked ones
-        final bookmarkedEvents = eventsProvider.events
-            .where((event) => bookmarkedIds.contains(event.id))
-            .toList();
-
-        if (bookmarkedEvents.isEmpty) {
-          return Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(
-                  Icons.bookmark_border,
-                  size: 64.sp,
-                  color: secondaryTextColor,
-                ),
-                SizedBox(height: 16.h),
-                Text(
-                  l10n.noBookmarkedEvents,
-                  style: TextStyle(fontSize: 16.sp, color: secondaryTextColor),
-                ),
-              ],
-            ),
-          );
-        }
-
-        return ListView.builder(
-          padding: EdgeInsets.symmetric(vertical: 8.h),
-          itemCount: bookmarkedEvents.length,
-          itemBuilder: (context, index) {
-            return _buildEventCard(bookmarkedEvents[index]);
-          },
-        );
-      },
-    );
-  }
-
-  Widget _buildEventCard(Event event) {
-    final surfaceColor = CitizenColors.surface(context);
-    final primaryTextColor = CitizenColors.textPrimary(context);
-    final secondaryTextColor = CitizenColors.textSecondary(context);
-    return Container(
-      margin: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(12.r),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Event Banner
-          Container(
-            height: 120,
-            decoration: BoxDecoration(
-              borderRadius: const BorderRadius.only(
-                topLeft: Radius.circular(12),
-                topRight: Radius.circular(12),
-              ),
-            ),
-            child: ClipRRect(
-              borderRadius: const BorderRadius.only(
-                topLeft: Radius.circular(12),
-                topRight: Radius.circular(12),
-              ),
-              child: Stack(
-                children: [
-                  // Background Image
-                  Positioned.fill(
-                    child: event.media.isNotEmpty
-                        ? Image.network(
-                            ApiConstants.getMediaUrl(
-                              event.media.first.mediaUrl,
-                            ),
-                            fit: BoxFit.cover,
-                            errorBuilder: (context, error, stackTrace) {
-                              return Image.asset(
-                                'assets/images/eventbanner.png',
-                                fit: BoxFit.cover,
-                              );
-                            },
-                          )
-                        : Image.asset(
-                            'assets/images/eventbanner.png',
-                            fit: BoxFit.cover,
-                          ),
-                  ),
-
-                  // Bookmark Button
-                  Positioned(
-                    top: 12,
-                    right: 12,
-                    child: Consumer<BookmarksProvider>(
-                      builder: (context, bookmarksProvider, child) {
-                        final isBookmarked = bookmarksProvider
-                            .isEventBookmarked(event.id);
-                        return GestureDetector(
-                          onTap: () {
-                            bookmarksProvider.toggleEventBookmark(
-                              event.id,
-                              !isBookmarked,
-                            );
-                          },
-                          child: Container(
-                            width: 40,
-                            height: 40,
-                            decoration: BoxDecoration(
-                              color: isBookmarked
-                                  ? const Color(0xFF009B56)
-                                  : surfaceColor.withOpacity(0.9),
-                              borderRadius: BorderRadius.circular(8.r),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withOpacity(0.2),
-                                  blurRadius: 4,
-                                  offset: const Offset(0, 2),
-                                ),
-                              ],
-                            ),
-                            child: Icon(
-                              isBookmarked
-                                  ? Icons.bookmark
-                                  : Icons.bookmark_border,
-                              color: isBookmarked
-                                  ? CitizenColors.light
-                                  : const Color(0xFF4CAF50),
-                              size: 20.sp,
-                            ),
-                          ),
+            // If not logged in, show login prompt
+            if (!isLoggedIn) {
+              return Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      Icons.lock_outline,
+                      size: 64.sp,
+                      color: secondaryTextColor,
+                    ),
+                    SizedBox(height: 16.h),
+                    Text(
+                      'Please login to view your bookmarks',
+                      style: TextStyle(fontSize: 16.sp, color: secondaryTextColor),
+                    ),
+                    SizedBox(height: 24.h),
+                    ElevatedButton(
+                      onPressed: () {
+                        Navigator.pushNamed(
+                          context,
+                          '/citizen-login',
+                          arguments: {'redirectTo': '/schemes'},
                         );
                       },
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-
-          // Event Details
-          Container(
-            padding: EdgeInsets.all(12.r),
-            decoration: BoxDecoration(
-              color: surfaceColor,
-              borderRadius: const BorderRadius.only(
-                bottomLeft: Radius.circular(12),
-                bottomRight: Radius.circular(12),
-              ),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Expanded(
-                      child: Text(
-                        event.title,
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                          color: primaryTextColor,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primaryColor,
+                        foregroundColor: CitizenColors.light,
+                        padding: EdgeInsets.symmetric(horizontal: 32.w, vertical: 12.h),
                       ),
-                    ),
-                    SizedBox(width: 110.w),
-                    Expanded(
-                      child: Row(
-                        children: [
-                          const Icon(
-                            Icons.calendar_today,
-                            size: 16,
-                            color: Color(0xFF009B56),
-                          ),
-                          SizedBox(width: 4.w),
-                          Expanded(
-                            child: Text(
-                              '${_formatDate(event.startTime, includeYear: false)} - ${_formatDate(event.endTime)}',
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: secondaryTextColor,
-                              ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                        ],
-                      ),
+                      child: Text('Login'),
                     ),
                   ],
                 ),
-                SizedBox(height: 8.h),
-                if (event.description != null)
-                  Text(
-                    event.description!,
-                    style: TextStyle(fontSize: 14, color: secondaryTextColor),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+              );
+            }
 
-  String _formatDate(DateTime date, {bool includeYear = true}) {
-    if (includeYear) {
-      return DateFormat('MMM d yyyy').format(date);
-    } else {
-      return DateFormat('MMM d').format(date);
-    }
+            // Show loading while fetching bookmarked schemes from API
+            if (bookmarksProvider.isLoadingBookmarkedList) {
+              return Center(
+                child: CircularProgressIndicator(),
+              );
+            }
+
+            // Use list from API so bookmarks added from scheme details page show up
+            final bookmarkedSchemes = bookmarksProvider.bookmarkedSchemeList;
+
+            if (bookmarkedSchemes.isEmpty) {
+              return Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      Icons.bookmark_border,
+                      size: 64.sp,
+                      color: secondaryTextColor,
+                    ),
+                    SizedBox(height: 16.h),
+                    Text(
+                      l10n.noBookmarkedSchemes,
+                      style: TextStyle(fontSize: 16.sp, color: secondaryTextColor),
+                    ),
+                  ],
+                ),
+              );
+            }
+
+            return ListView.builder(
+              padding: EdgeInsets.symmetric(vertical: 8.h),
+              itemCount: bookmarkedSchemes.length,
+              itemBuilder: (context, index) {
+                return _buildBookmarkCard(bookmarkedSchemes[index]);
+              },
+            );
+          },
+        );
+      },
+    );
   }
 }

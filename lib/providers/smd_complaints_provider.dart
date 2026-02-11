@@ -2,12 +2,15 @@ import 'package:flutter/material.dart';
 import '../models/api_complaint_model.dart';
 import '../services/complaints_service.dart';
 import '../services/auth_services.dart';
+import '../services/api_services.dart';
 
 class SmdComplaintsProvider extends ChangeNotifier {
   final ComplaintsService _complaintsService = ComplaintsService();
   final AuthService _authService = AuthService();
+  final ApiService _apiService = ApiService();
 
   List<ApiComplaintModel> _complaints = [];
+  Map<int, String> _complaintTypeNames = {};
   bool _isLoading = true;
   String? _errorMessage;
   String _villageName = 'Gram Panchayat';
@@ -38,8 +41,25 @@ class SmdComplaintsProvider extends ChangeNotifier {
       _errorMessage = null;
       notifyListeners();
 
-      // Get district ID from SMD selected district (similar to CEO)
-      final districtId = await _authService.getSmdSelectedDistrictId();
+      // Get saved location for COMPLAINTS page (includes district, block, and GP)
+      // Fallback to old inspection location or district storage for backward compatibility
+      var savedLocation = await _authService.getPageLocation('smd', 'complaints');
+      if (savedLocation == null) {
+        // Fallback to old inspection location
+        savedLocation = await _authService.getInspectionLocation('smd');
+      }
+      
+      // Get district ID from saved location, fallback to old storage method
+      int? districtId;
+      if (savedLocation != null && savedLocation['districtId'] != null) {
+        districtId = savedLocation['districtId'] as int?;
+        print('📍 Using district ID from saved COMPLAINTS page location: $districtId');
+      } else {
+        // Fallback to old storage method for backward compatibility
+        districtId = await _authService.getSmdSelectedDistrictId();
+        print('📍 Using district ID from old storage method: $districtId');
+      }
+      
       if (districtId == null) {
         _errorMessage = 'District information not found';
         _isLoading = false;
@@ -47,26 +67,99 @@ class SmdComplaintsProvider extends ChangeNotifier {
         return;
       }
 
-      // Use getComplaintsForBdo to load complaints by district (same as CEO)
-      // Use a very high limit to ensure we get all complaints for accurate counts
-      final response = await _complaintsService.getComplaintsForBdo(
+      // Get saved Block/GP selection if available
+      final blockId = savedLocation?['blockId'] as int?;
+      final gpId = savedLocation?['gpId'] as int?;
+
+      print('📡 SMD Complaints Provider Parameters:');
+      print('   - District ID: $districtId');
+      if (blockId != null) print('   - Block ID: $blockId');
+      if (gpId != null) print('   - GP ID: $gpId');
+
+      // Use getComplaintsWithAnalytics to support Block/GP filtering
+      final response = await _complaintsService.getComplaintsWithAnalytics(
         districtId: districtId,
-        blockId: null, // Load all complaints for the district
+        blockId: blockId,
+        gpId: gpId,
         limit: 10000, // High limit to get all complaints for accurate total count
+        orderBy: 'newest',
       );
 
       if (response['success'] == true) {
-        final complaints = response['complaints'] as List<ApiComplaintModel>;
-
-        String villageName = 'Gram Panchayat';
-        if (complaints.isNotEmpty) {
-          villageName = complaints[0].villageName;
+        // Convert raw complaints to ApiComplaintModel
+        final rawComplaints = response['complaints'] as List<dynamic>;
+        final complaints = rawComplaints
+            .map((json) => ApiComplaintModel.fromJson(json as Map<String, dynamic>))
+            .toList();
+        
+        // Apply client-side filtering if GP ID is specified
+        // This ensures we only show complaints for the selected GP, even if API returns wrong data
+        List<ApiComplaintModel> filteredComplaints = complaints;
+        if (gpId != null) {
+          final beforeCount = filteredComplaints.length;
+          
+          // Filter by GP name if available (since ApiComplaintModel doesn't have villageId)
+          // Use the same savedLocation we already loaded above
+          final gpName = savedLocation?['gpName'] as String?;
+          if (gpName != null && gpName.isNotEmpty) {
+            filteredComplaints = filteredComplaints.where((complaint) {
+              return complaint.villageName.toLowerCase().trim() == gpName.toLowerCase().trim();
+            }).toList();
+          } else if (blockId != null) {
+            // If only block is selected, filter by block name
+            final blockName = savedLocation?['blockName'] as String?;
+            if (blockName != null && blockName.isNotEmpty) {
+              filteredComplaints = filteredComplaints.where((complaint) {
+                return complaint.blockName.toLowerCase().trim() == blockName.toLowerCase().trim();
+              }).toList();
+            }
+          }
+          
+          final afterCount = filteredComplaints.length;
+          if (beforeCount != afterCount) {
+            print('⚠️ API returned ${beforeCount} complaints, but only ${afterCount} match selected location');
+            print('   Filtered out ${beforeCount - afterCount} complaints that don\'t match the selected location');
+          }
+        } else if (blockId != null) {
+          // If only block is selected (no GP), filter by block name
+          // Use the same savedLocation we already loaded above
+          final blockName = savedLocation?['blockName'] as String?;
+          if (blockName != null && blockName.isNotEmpty) {
+            final beforeCount = filteredComplaints.length;
+            filteredComplaints = filteredComplaints.where((complaint) {
+              return complaint.blockName.toLowerCase().trim() == blockName.toLowerCase().trim();
+            }).toList();
+            final afterCount = filteredComplaints.length;
+            if (beforeCount != afterCount) {
+              print('⚠️ Filtered by block name: ${beforeCount} -> ${afterCount} complaints');
+            }
+          }
         }
 
-        _complaints = complaints;
-        _villageName = villageName;
+        // Determine location name for display
+        String locationName = 'District';
+        if (savedLocation != null) {
+          if (savedLocation['gpName'] != null) {
+            locationName = savedLocation['gpName'] as String;
+          } else if (savedLocation['blockName'] != null) {
+            locationName = savedLocation['blockName'] as String;
+          } else if (savedLocation['districtName'] != null) {
+            locationName = savedLocation['districtName'] as String;
+          }
+        } else if (filteredComplaints.isNotEmpty) {
+          locationName = filteredComplaints[0].villageName;
+        }
+
+        _complaints = filteredComplaints;
+        _villageName = locationName;
+        try {
+          final types = await _apiService.getComplaintTypes();
+          _complaintTypeNames = {for (var t in types) t.id: t.name};
+        } catch (_) {}
         _isLoading = false;
         notifyListeners();
+        
+        print('✅ Loaded ${filteredComplaints.length} complaints (filtered from ${complaints.length})');
       } else {
         _errorMessage = response['message'] ?? 'Failed to load complaints';
         _isLoading = false;
@@ -108,4 +201,15 @@ class SmdComplaintsProvider extends ChangeNotifier {
         return 'Open';
     }
   }
+
+  /// Display title for list card: use complaint type name by ID when available so list matches details page.
+  String getComplaintTypeDisplayName(ApiComplaintModel complaint) {
+    if (complaint.complaintTypeId != 0 && _complaintTypeNames.containsKey(complaint.complaintTypeId)) {
+      return _complaintTypeNames[complaint.complaintTypeId]!;
+    }
+    return complaint.complaintType.isNotEmpty ? complaint.complaintType : 'Complaint';
+  }
+
+  /// Resolve complaint type name by ID (for details screen when API returns id but not type name).
+  String? getComplaintTypeNameById(int id) => _complaintTypeNames[id];
 }

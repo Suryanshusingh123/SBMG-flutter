@@ -71,6 +71,16 @@ class ComplaintModel {
     };
   }
 
+  /// Parses complaint_type from API which can be either a String or an object with 'name'.
+  static String _complaintTypeNameFromJson(dynamic value) {
+    if (value == null) return '';
+    if (value is String) return value.trim().isEmpty ? '' : value;
+    if (value is Map && value['name'] != null) {
+      return value['name'].toString().trim();
+    }
+    return '';
+  }
+
   factory ComplaintModel.fromJson(Map<String, dynamic> json) {
     // Helper function to parse date strings as UTC
     DateTime parseUTC(String dateString) {
@@ -86,9 +96,12 @@ class ComplaintModel {
       return dateTime.isUtc ? dateTime : dateTime.toUtc();
     }
 
+    final typeName = _complaintTypeNameFromJson(json['complaint_type']);
+    final fallback = json['complaint_type']?.toString() ?? json['type']?.toString() ?? 'Unknown';
+
     return ComplaintModel(
       id: json['id'].toString(),
-      type: json['complaint_type'] ?? json['type'] ?? 'Unknown',
+      type: typeName.isNotEmpty ? typeName : fallback,
       description: json['description'],
       imagePaths: json['media_urls'] != null
           ? List<String>.from(json['media_urls'])

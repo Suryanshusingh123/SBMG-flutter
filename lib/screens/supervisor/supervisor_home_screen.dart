@@ -5,9 +5,9 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:sbmg/screens/citizen/scheme_details_screen.dart';
 import '../../config/connstants.dart';
 import '../../models/scheme_model.dart';
+import '../../utils/date_time_utils.dart';
 import '../../models/event_model.dart';
 import '../../services/api_services.dart';
-import '../../services/bookmark_service.dart';
 import '../../services/complaints_service.dart';
 import '../../services/auth_services.dart';
 import '../../widgets/common/banner_carousel.dart';
@@ -17,7 +17,11 @@ import '../citizen/language_screen.dart';
 import '../citizen/notifications_screen.dart';
 
 class SupervisorHomeScreen extends StatefulWidget {
-  const SupervisorHomeScreen({super.key});
+  /// When true, this screen is shown inside [SupervisorShellScreen]. Bottom nav
+  /// and PopScope are provided by the shell.
+  final bool isEmbeddedInShell;
+
+  const SupervisorHomeScreen({super.key, this.isEmbeddedInShell = false});
 
   @override
   State<SupervisorHomeScreen> createState() => _SupervisorHomeScreenState();
@@ -30,7 +34,6 @@ class _SupervisorHomeScreenState extends State<SupervisorHomeScreen> {
   bool _isSchemesLoading = true;
   bool _isEventsLoading = true;
   bool _isComplaintsLoading = true;
-  final BookmarkService _bookmarkService = BookmarkService();
   final ComplaintsService _complaintsService = ComplaintsService();
 
   // Analytics data from API
@@ -130,7 +133,7 @@ class _SupervisorHomeScreenState extends State<SupervisorHomeScreen> {
       print('❌ Error loading GP name: $e');
       setState(() => _isLoadingGpName = false);
       // Set a default placeholder if loading fails
-      _gpName = 'Gram Panchayat';
+      _gpName = AppLocalizations.of(context)!.gramPanchayat;
     }
   }
 
@@ -172,78 +175,82 @@ class _SupervisorHomeScreenState extends State<SupervisorHomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final scaffold = Scaffold(
+      backgroundColor: Colors.white,
+      body: SafeArea(
+        child: Column(
+          children: [
+            // Top Header
+            _buildTopHeader(),
+
+            // Main Content
+            Expanded(
+              child: RefreshIndicator(
+                onRefresh: () async {
+                  await _loadComplaintsAnalytics();
+                },
+                child: SingleChildScrollView(
+                  child: Column(
+                    children: [
+                      const BannerCarousel(
+                        imagePaths: [
+                          'assets/images/dash1.jpeg',
+                          'assets/images/dash2.jpeg',
+                          'assets/images/dash3.jpeg',
+                          'assets/images/dash4.jpeg',
+                          'assets/images/dash5.jpeg',
+                        ],
+                      ),
+                      Image.asset('assets/images/Group.png'),
+
+                      SizedBox(height: 24.h),
+
+                      // Overview Section
+                      _buildOverviewSection(),
+
+                      SizedBox(height: 24.h),
+
+                      // Today's Complaints Section
+                      _buildTodaysComplaintsSection(),
+
+                      SizedBox(height: 24.h),
+
+                      // Featured Schemes Section
+                      _buildFeaturedSchemesSection(),
+
+                      SizedBox(height: 24.h),
+
+                      // Events Section
+                      _buildEventsSection(),
+
+                      SizedBox(height: 24.h),
+
+                      // Social Media Icons
+                      _buildSocialMediaSection(),
+
+                      SizedBox(height: 20.h),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+      // Bottom nav is provided by SupervisorShellScreen when isEmbeddedInShell
+      bottomNavigationBar: widget.isEmbeddedInShell
+          ? null
+          : _buildBottomNavigationBar(),
+    );
+
+    if (widget.isEmbeddedInShell) return scaffold;
     return PopScope(
       canPop: false,
       onPopInvoked: (didPop) {
         if (didPop) return;
-        // Prevent back navigation - user should logout instead
         _showExitDialog();
       },
-      child: Scaffold(
-        backgroundColor: Colors.white,
-        body: SafeArea(
-          child: Column(
-            children: [
-              // Top Header
-              _buildTopHeader(),
-
-              // Main Content
-              Expanded(
-                child: RefreshIndicator(
-                  onRefresh: () async {
-                    await _loadComplaintsAnalytics();
-                  },
-                  child: SingleChildScrollView(
-                    child: Column(
-                      children: [
-                        const BannerCarousel(
-                          imagePaths: [
-                            'assets/images/dash1.jpeg',
-                            'assets/images/dash2.jpeg',
-                            'assets/images/dash3.jpeg',
-                            'assets/images/dash4.jpeg',
-                            'assets/images/dash5.jpeg',
-                          ],
-                        ),
-                        Image.asset('assets/images/Group.png'),
-
-                        SizedBox(height: 24.h),
-
-                        // Overview Section
-                        _buildOverviewSection(),
-
-                        SizedBox(height: 24.h),
-
-                        // Today's Complaints Section
-                        _buildTodaysComplaintsSection(),
-
-                        SizedBox(height: 24.h),
-
-                        // Featured Schemes Section
-                        _buildFeaturedSchemesSection(),
-
-                        SizedBox(height: 24.h),
-
-                        // Events Section
-                        _buildEventsSection(),
-
-                        SizedBox(height: 24.h),
-
-                        // Social Media Icons
-                        _buildSocialMediaSection(),
-
-                        SizedBox(height: 20.h),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-        // Bottom Navigation Bar
-        bottomNavigationBar: _buildBottomNavigationBar(),
-      ),
+      child: scaffold,
     );
   }
 
@@ -272,7 +279,7 @@ class _SupervisorHomeScreenState extends State<SupervisorHomeScreen> {
               Text(
                 _isLoadingGpName
                     ? l10n.loading
-                    : (_gpName ?? 'Gram Panchayat Name'),
+                    : (_gpName ?? l10n.gramPanchayatName),
                 style: TextStyle(
                   fontFamily: 'Noto Sans',
                   fontSize: 12.sp,
@@ -381,10 +388,20 @@ class _SupervisorHomeScreenState extends State<SupervisorHomeScreen> {
                           ),
                         ),
                         SizedBox(width: 8.w),
-                        Icon(
-                          Icons.info_outline,
-                          size: 16.sp,
-                          color: const Color(0xFF6B7280),
+                        Tooltip(
+                          message: l10n.tooltipTotalReportedComplaintDescription,
+                          child: GestureDetector(
+                            onTap: () => _showInfoDialog(
+                              context,
+                              l10n.totalReportedComplaint,
+                              l10n.tooltipTotalReportedComplaintDescription,
+                            ),
+                            child: Icon(
+                              Icons.info_outline,
+                              size: 16.sp,
+                              color: const Color(0xFF6B7280),
+                            ),
+                          ),
                         ),
                       ],
                     ),
@@ -472,10 +489,20 @@ class _SupervisorHomeScreenState extends State<SupervisorHomeScreen> {
                             ),
                           ),
                           SizedBox(width: 8.w),
-                          Icon(
-                            Icons.info_outline,
-                            size: 16.sp,
-                            color: const Color(0xFF6B7280),
+                          Tooltip(
+                            message: l10n.tooltipTodayComplaintsDescription,
+                            child: GestureDetector(
+                              onTap: () => _showInfoDialog(
+                                context,
+                                l10n.todayComplaints,
+                                l10n.tooltipTodayComplaintsDescription,
+                              ),
+                              child: Icon(
+                                Icons.info_outline,
+                                size: 16.sp,
+                                color: const Color(0xFF6B7280),
+                              ),
+                            ),
                           ),
                         ],
                       ),
@@ -510,15 +537,74 @@ class _SupervisorHomeScreenState extends State<SupervisorHomeScreen> {
     );
   }
 
+  void _showInfoDialog(BuildContext context, String title, String message) {
+    final l10n = AppLocalizations.of(context)!;
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12.r),
+        ),
+        title: Row(
+          children: [
+            Icon(
+              Icons.info_outline,
+              color: const Color(0xFF6B7280),
+              size: 20.sp,
+            ),
+            SizedBox(width: 8.w),
+            Expanded(
+              child: Text(
+                title,
+                style: TextStyle(
+                  fontSize: 16.sp,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ],
+        ),
+        content: Text(
+          message,
+          style: TextStyle(
+            fontSize: 14.sp,
+            color: const Color(0xFF6B7280),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: Text(
+              l10n.ok,
+              style: TextStyle(
+                fontSize: 14.sp,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildOverviewCard(
     String title,
     String value,
     dynamic icon, // Can be IconData or String (asset path)
     Color color,
   ) {
-    final bool isResolvedCard = title.toLowerCase().contains('resolved') || 
-                                 title.toLowerCase().contains('disposed');
-    
+    final l10n = AppLocalizations.of(context)!;
+    final bool isResolvedCard = title.toLowerCase().contains('resolved') ||
+        title.toLowerCase().contains('disposed');
+    final bool isOpenCard = title.toLowerCase().contains('open');
+
+    String tooltipMessage = '';
+    if (isResolvedCard) {
+      tooltipMessage = l10n.tooltipResolvedComplaintsDescription;
+    } else if (isOpenCard) {
+      tooltipMessage = l10n.tooltipOpenComplaintDescription;
+    }
+
     return Container(
       height: 100, // Fixed height for consistent sizing
       decoration: BoxDecoration(
@@ -555,15 +641,18 @@ class _SupervisorHomeScreenState extends State<SupervisorHomeScreen> {
                         ),
                       ),
                     ),
-                    if (isResolvedCard) ...[
+                    if (tooltipMessage.isNotEmpty) ...[
                       SizedBox(width: 4.w),
                       Tooltip(
-                        message: 'Resolved count includes: Resolved + Verified + Closed complaints',
-                        preferBelow: false,
-                        child: Icon(
-                          Icons.info_outline,
-                          size: 14.sp,
-                          color: const Color(0xFF6B7280),
+                        message: tooltipMessage,
+                        child: GestureDetector(
+                          onTap: () =>
+                              _showInfoDialog(context, title, tooltipMessage),
+                          child: Icon(
+                            Icons.info_outline,
+                            size: 14.sp,
+                            color: const Color(0xFF6B7280),
+                          ),
                         ),
                       ),
                     ],
@@ -663,8 +752,9 @@ class _SupervisorHomeScreenState extends State<SupervisorHomeScreen> {
 
   Widget _buildComplaintCardFromData(Map<String, dynamic> complaint) {
     // Extract data from API response
-    final complaintType = complaint['complaint_type'] ?? 'Unknown';
-    final description = complaint['description'] ?? 'No description';
+    final l10n = AppLocalizations.of(context)!;
+    final complaintType = complaint['complaint_type'] ?? l10n.unknown;
+    final description = complaint['description'] ?? l10n.noDescription;
     final villageName = complaint['village_name'] ?? '';
     final blockName = complaint['block_name'] ?? '';
     final districtName = complaint['district_name'] ?? '';
@@ -672,16 +762,10 @@ class _SupervisorHomeScreenState extends State<SupervisorHomeScreen> {
         .replaceAll(RegExp(r',\s*,'), ',')
         .trim();
 
-    // Format date
-    String formattedDate = 'Today';
-    if (complaint['created_at'] != null) {
-      try {
-        final createdAt = DateTime.parse(complaint['created_at']);
-        formattedDate = '${createdAt.day}/${createdAt.month}/${createdAt.year}';
-      } catch (e) {
-        formattedDate = 'Today';
-      }
-    }
+    // Format date (dd/MM/yyyy, IST)
+    final String formattedDate = DateTimeUtils.formatComplaintListIST(
+      complaint['created_at'] as String?,
+    );
 
     // Get first media URL or use default
     String imageUrl = 'assets/images/road.png';
@@ -948,7 +1032,6 @@ class _SupervisorHomeScreenState extends State<SupervisorHomeScreen> {
                         ApiConstants.getMediaUrl(scheme.media.first.mediaUrl),
                         fit: BoxFit.cover,
                         errorBuilder: (context, error, stackTrace) {
-                          print('❌ Error loading home scheme image: $error');
                           return Image.asset(
                             'assets/images/schemes.png',
                             fit: BoxFit.cover,
@@ -1013,16 +1096,33 @@ class _SupervisorHomeScreenState extends State<SupervisorHomeScreen> {
       children: [
         Padding(
           padding: EdgeInsets.symmetric(horizontal: 16.w),
-          child: Text(
-            '${_events.length} ${_events.length != 1 ? l10n.eventsPlural : l10n.events}',
-            style: TextStyle(
-              fontFamily: 'Noto Sans',
-              fontSize: 18.sp,
-              fontWeight: FontWeight.w500,
-              color: Color(0xFF111827),
-              letterSpacing: 0,
-              height: 1.0,
-            ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                '${_events.length} ${_events.length != 1 ? l10n.eventsPlural : l10n.events}',
+                style: TextStyle(
+                  fontFamily: 'Noto Sans',
+                  fontSize: 18.sp,
+                  fontWeight: FontWeight.w500,
+                  color: const Color(0xFF111827),
+                  letterSpacing: 0,
+                  height: 1.0,
+                ),
+              ),
+              TextButton(
+                onPressed: () {
+                  Navigator.pushNamed(context, '/events');
+                },
+                child: Text(
+                  l10n.viewAll,
+                  style: const TextStyle(
+                    color: Color(0xFF009B56),
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
 
@@ -1107,7 +1207,6 @@ class _SupervisorHomeScreenState extends State<SupervisorHomeScreen> {
                             ),
                             fit: BoxFit.cover,
                             errorBuilder: (context, error, stackTrace) {
-                              print('❌ Error loading event image: $error');
                               return Image.asset(
                                 'assets/images/eventbanner.png',
                                 fit: BoxFit.cover,
@@ -1118,45 +1217,6 @@ class _SupervisorHomeScreenState extends State<SupervisorHomeScreen> {
                             'assets/images/eventbanner.png',
                             fit: BoxFit.cover,
                           ),
-                  ),
-
-                  // Bookmark Button
-                  Positioned(
-                    top: 12,
-                    right: 12,
-                    child: GestureDetector(
-                      onTap: () {
-                        setState(() {
-                          _bookmarkService.toggleEventBookmark(event);
-                        });
-                      },
-                      child: Container(
-                        width: 40,
-                        height: 40,
-                        decoration: BoxDecoration(
-                          color: _bookmarkService.isEventBookmarked(event.id)
-                              ? const Color(0xFF009B56)
-                              : Colors.white.withOpacity(0.9),
-                          borderRadius: BorderRadius.circular(8.r),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withOpacity(0.2),
-                              blurRadius: 4,
-                              offset: const Offset(0, 2),
-                            ),
-                          ],
-                        ),
-                        child: Icon(
-                          _bookmarkService.isEventBookmarked(event.id)
-                              ? Icons.bookmark
-                              : Icons.bookmark_border,
-                          color: _bookmarkService.isEventBookmarked(event.id)
-                              ? Colors.white
-                              : const Color(0xFF4CAF50),
-                          size: 20.sp,
-                        ),
-                      ),
-                    ),
                   ),
                 ],
               ),

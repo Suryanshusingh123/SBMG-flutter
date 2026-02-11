@@ -15,7 +15,10 @@ import '../../utils/date_time_utils.dart';
 import 'complaint_details_screen.dart';
 
 class MyComplaintsScreen extends StatefulWidget {
-  const MyComplaintsScreen({super.key});
+  /// When true, this screen is shown inside [CitizenShellScreen]; bottom nav is provided by the shell.
+  final bool isEmbeddedInShell;
+
+  const MyComplaintsScreen({super.key, this.isEmbeddedInShell = false});
 
   @override
   State<MyComplaintsScreen> createState() => _MyComplaintsScreenState();
@@ -105,6 +108,7 @@ class _MyComplaintsScreenState extends State<MyComplaintsScreen> {
           return AuthRequiredScreen(
             title: AppLocalizations.of(context)!.myComplaint,
             message: AppLocalizations.of(context)!.toViewYourComplaintStatus,
+            returnRoute: '/my-complaints',
           );
         }
 
@@ -225,49 +229,46 @@ class _MyComplaintsScreenState extends State<MyComplaintsScreen> {
         ),
       ),
 
-      // Bottom Navigation Bar
-      bottomNavigationBar: CustomBottomNavigationBar(
-        currentIndex: _selectedIndex,
-        onTap: (index) {
-          setState(() {
-            _selectedIndex = index;
-          });
-
-          // Navigate to different screens based on selection
-          switch (index) {
-            case 0:
-              Navigator.pushReplacementNamed(context, '/citizen-dashboard');
-              break;
-            case 1:
-              // Already on My Complaints
-              break;
-            case 2:
-              Navigator.pushReplacementNamed(context, '/schemes');
-              break;
-            case 3:
-              Navigator.pushReplacementNamed(context, '/settings');
-              break;
-          }
-        },
-        items: [
-          BottomNavItem(
-            iconPath: 'assets/icons/bottombar/home.png',
-            label: AppLocalizations.of(context)!.home,
-          ),
-          BottomNavItem(
-            iconPath: 'assets/icons/bottombar/complaints.png',
-            label: AppLocalizations.of(context)!.myComplaint,
-          ),
-          BottomNavItem(
-            iconPath: 'assets/icons/bottombar/schemes.png',
-            label: AppLocalizations.of(context)!.schemes,
-          ),
-          BottomNavItem(
-            iconPath: 'assets/icons/bottombar/settings.png',
-            label: AppLocalizations.of(context)!.settings,
-          ),
-        ],
-      ),
+      // Bottom nav is provided by CitizenShellScreen when isEmbeddedInShell
+      bottomNavigationBar: widget.isEmbeddedInShell
+          ? null
+          : CustomBottomNavigationBar(
+              currentIndex: _selectedIndex,
+              onTap: (index) {
+                setState(() => _selectedIndex = index);
+                switch (index) {
+                  case 0:
+                    Navigator.pushReplacementNamed(context, '/citizen-dashboard');
+                    break;
+                  case 1:
+                    break;
+                  case 2:
+                    Navigator.pushReplacementNamed(context, '/schemes');
+                    break;
+                  case 3:
+                    Navigator.pushReplacementNamed(context, '/settings');
+                    break;
+                }
+              },
+              items: [
+                BottomNavItem(
+                  iconPath: 'assets/icons/bottombar/home.png',
+                  label: AppLocalizations.of(context)!.home,
+                ),
+                BottomNavItem(
+                  iconPath: 'assets/icons/bottombar/complaints.png',
+                  label: AppLocalizations.of(context)!.myComplaint,
+                ),
+                BottomNavItem(
+                  iconPath: 'assets/icons/bottombar/schemes.png',
+                  label: AppLocalizations.of(context)!.schemes,
+                ),
+                BottomNavItem(
+                  iconPath: 'assets/icons/bottombar/settings.png',
+                  label: AppLocalizations.of(context)!.settings,
+                ),
+              ],
+            ),
     );
   }
 
@@ -325,7 +326,12 @@ class _MyComplaintsScreenState extends State<MyComplaintsScreen> {
       // Filter by date if single date filter is applied (Day)
       if (_filterDate != null) {
         final complaintDate = complaint.createdAt.toUtc();
-        final filterDate = _filterDate!.toUtc();
+        // Create UTC date using just the year, month, day components to avoid timezone issues
+        final filterDate = DateTime.utc(
+          _filterDate!.year,
+          _filterDate!.month,
+          _filterDate!.day,
+        );
         return complaintDate.year == filterDate.year &&
             complaintDate.month == filterDate.month &&
             complaintDate.day == filterDate.day;
@@ -659,7 +665,9 @@ class _MyComplaintsScreenState extends State<MyComplaintsScreen> {
   /// Formats date and time in IST (Indian Standard Time)
   /// Format: "MMM d, yyyy, h:mm a" (e.g., "Jan 15, 2024, 2:30 PM")
   String _formatDate(DateTime date) {
-    return DateTimeUtils.formatDateTimeIST(date);
+    return DateTimeUtils.formatComplaintListIST(
+      date.toUtc().toIso8601String(),
+    );
   }
 
   int _getUpdateCount(ComplaintModel complaint) {

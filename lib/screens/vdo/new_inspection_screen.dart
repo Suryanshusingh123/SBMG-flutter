@@ -161,6 +161,7 @@ class _NewInspectionScreenState extends State<NewInspectionScreen> {
                           selectedValue: _wasteCollectionInterval,
                           onChanged: (value) =>
                               setState(() => _wasteCollectionInterval = value),
+                          includeFortnight: false,
                         ),
                         SizedBox(height: 16.h),
                         _buildYesNoRadioGroup(
@@ -217,6 +218,7 @@ class _NewInspectionScreenState extends State<NewInspectionScreen> {
                           selectedValue: _roadCleaningInterval,
                           onChanged: (value) =>
                               setState(() => _roadCleaningInterval = value),
+                          includeDaily: false, // API: WEEKLY, FORTNIGHTLY, MONTHLY, NONE only
                         ),
                         SizedBox(height: 16.h),
                         _buildImageUploadSection(
@@ -241,6 +243,7 @@ class _NewInspectionScreenState extends State<NewInspectionScreen> {
                           selectedValue: _drainCleaningInterval,
                           onChanged: (value) =>
                               setState(() => _drainCleaningInterval = value),
+                          includeDaily: false, // API: WEEKLY, FORTNIGHTLY, MONTHLY, NONE only
                         ),
                         SizedBox(height: 16.h),
                         _buildYesNoRadioGroup(
@@ -282,6 +285,7 @@ class _NewInspectionScreenState extends State<NewInspectionScreen> {
                           selectedValue: _cscCleaningInterval,
                           onChanged: (value) =>
                               setState(() => _cscCleaningInterval = value),
+                          includeFortnight: false,
                         ),
                         SizedBox(height: 16.h),
                         _buildYesNoRadioGroup(
@@ -605,7 +609,15 @@ class _NewInspectionScreenState extends State<NewInspectionScreen> {
     required String label,
     required String? selectedValue,
     required ValueChanged<String?> onChanged,
+    bool includeFortnight = true,
+    bool includeDaily = true,
   }) {
+    final options = <Widget>[
+      if (includeDaily) _buildRadioOption(value: 'Daily', groupValue: selectedValue, onChanged: onChanged),
+      _buildRadioOption(value: 'Weekly', groupValue: selectedValue, onChanged: onChanged),
+      if (includeFortnight) _buildRadioOption(value: 'Fortnight', groupValue: selectedValue, onChanged: onChanged),
+      _buildRadioOption(value: 'None', groupValue: selectedValue, onChanged: onChanged),
+    ];
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -621,28 +633,7 @@ class _NewInspectionScreenState extends State<NewInspectionScreen> {
         Wrap(
           spacing: 16.w,
           runSpacing: 8.h,
-          children: [
-            _buildRadioOption(
-              value: 'Daily',
-              groupValue: selectedValue,
-              onChanged: onChanged,
-            ),
-            _buildRadioOption(
-              value: 'Weekly',
-              groupValue: selectedValue,
-              onChanged: onChanged,
-            ),
-            _buildRadioOption(
-              value: 'Fortnight',
-              groupValue: selectedValue,
-              onChanged: onChanged,
-            ),
-            _buildRadioOption(
-              value: 'None',
-              groupValue: selectedValue,
-              onChanged: onChanged,
-            ),
-          ],
+          children: options,
         ),
       ],
     );
@@ -906,7 +897,7 @@ class _NewInspectionScreenState extends State<NewInspectionScreen> {
   }
 
   // Helper method to convert string values to API format
-  String? _convertIntervalToApi(String? value, {bool allowDaily = true}) {
+  String? _convertIntervalToApi(String? value, {bool allowDaily = true, bool allowFortnight = false}) {
     if (value == null) return null;
     switch (value) {
       case 'Daily':
@@ -916,7 +907,7 @@ class _NewInspectionScreenState extends State<NewInspectionScreen> {
       case 'Weekly':
         return 'WEEKLY';
       case 'Fortnight':
-        return 'FORTNIGHTLY';
+        return allowFortnight ? 'FORTNIGHTLY' : 'WEEKLY';
       case 'None':
         return 'NONE';
       default:
@@ -924,12 +915,10 @@ class _NewInspectionScreenState extends State<NewInspectionScreen> {
     }
   }
 
-  // Helper method to convert road/drain interval (doesn't allow DAILY)
+  // API only accepts WEEKLY, FORTNIGHTLY, MONTHLY, NONE for road/drain (no DAILY; UI hides Daily for these)
   String? _convertRoadDrainIntervalToApi(String? value) {
     if (value == null) return null;
     switch (value) {
-      case 'Daily':
-        return 'WEEKLY'; // Convert DAILY to WEEKLY for road/drain
       case 'Weekly':
         return 'WEEKLY';
       case 'Fortnight':
@@ -937,12 +926,11 @@ class _NewInspectionScreenState extends State<NewInspectionScreen> {
       case 'None':
         return 'NONE';
       default:
-        // If already uppercase and valid, return as is
         final upper = value.toUpperCase();
         if (['WEEKLY', 'FORTNIGHTLY', 'MONTHLY', 'NONE'].contains(upper)) {
           return upper;
         }
-        return 'WEEKLY'; // Default fallback
+        return 'WEEKLY';
     }
   }
 
@@ -1083,7 +1071,7 @@ class _NewInspectionScreenState extends State<NewInspectionScreen> {
             _convertYesNoToBool(_dailyRegisterMaintained) ?? false,
         'household_waste': {
           'waste_collection_frequency':
-              _convertIntervalToApi(_wasteCollectionInterval) ?? 'DAILY',
+              _convertIntervalToApi(_wasteCollectionInterval, allowFortnight: false) ?? 'DAILY',
           'dry_wet_vehicle_segregation':
               _convertYesNoToBool(_separateCollectionWetDry) ?? false,
           'covered_collection_in_vehicles':
@@ -1108,7 +1096,7 @@ class _NewInspectionScreenState extends State<NewInspectionScreen> {
         },
         'community_sanitation': {
           'csc_cleaning_frequency':
-              _convertIntervalToApi(_cscCleaningInterval) ?? 'DAILY',
+              _convertIntervalToApi(_cscCleaningInterval, allowFortnight: false) ?? 'DAILY',
           'electricity_and_water':
               _convertYesNoToBool(_cscElectricityWaterAvailable) ?? false,
           'csc_used_by_community':

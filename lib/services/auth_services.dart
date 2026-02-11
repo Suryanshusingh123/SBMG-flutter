@@ -460,7 +460,11 @@ class AuthService {
     try {
       final storageKey = 'inspection_location_$role';
       await _storageService.saveString(storageKey, json.encode(location));
-      print('💾 Saved inspection location for $role');
+      print('💾 Saved inspection location for $role: $location');
+      
+      // Verify it was saved correctly
+      final saved = await getInspectionLocation(role);
+      print('✅ Verified saved location: $saved');
     } catch (e) {
       print('❌ Error saving inspection location: $e');
     }
@@ -474,6 +478,47 @@ class AuthService {
       print('🗑️ Cleared inspection location for $role');
     } catch (e) {
       print('❌ Error clearing inspection location: $e');
+    }
+  }
+
+  /// Get page-specific location for a role (home, complaints, inspections)
+  Future<Map<String, dynamic>?> getPageLocation(String role, String page) async {
+    try {
+      final storageKey = 'location_${page}_$role';
+      final locationJson = await _storageService.getString(storageKey);
+      if (locationJson != null) {
+        return json.decode(locationJson) as Map<String, dynamic>;
+      }
+      return null;
+    } catch (e) {
+      print('❌ Error getting page location for $role/$page: $e');
+      return null;
+    }
+  }
+
+  /// Save page-specific location for a role (home, complaints, inspections)
+  Future<void> savePageLocation(String role, String page, Map<String, dynamic> location) async {
+    try {
+      final storageKey = 'location_${page}_$role';
+      await _storageService.saveString(storageKey, json.encode(location));
+      print('💾 Saved location for $role/$page: $location');
+      
+      // Verify it was saved correctly
+      final saved = await getPageLocation(role, page);
+      print('✅ Verified saved location for $role/$page: $saved');
+    } catch (e) {
+      print('❌ Error saving page location for $role/$page: $e');
+    }
+  }
+
+  /// Clear page-specific location for a role
+  Future<void> clearPageLocation(String role, String page) async {
+    try {
+      final storageKey = 'location_${page}_$role';
+      await _storageService.remove(storageKey);
+      print('🗑️ Cleared location for $role/$page');
+    } catch (e) {
+      print('❌ Error clearing page location for $role/$page: $e');
     }
   }
 

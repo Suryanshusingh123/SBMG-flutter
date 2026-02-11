@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:sbmg/services/auth_services.dart';
 import '../../config/connstants.dart';
@@ -7,7 +8,11 @@ import '../../theme/citizen_colors.dart';
 import 'citizen_otp_verification_screen.dart';
 
 class LoginScreen extends StatefulWidget {
-  const LoginScreen({super.key});
+  /// Route to navigate to after successful login (e.g. '/my-complaints', '/create-complaint').
+  /// If null, defaults to '/create-complaint' in the OTP screen.
+  final String? redirectTo;
+
+  const LoginScreen({super.key, this.redirectTo});
 
   @override
   State<LoginScreen> createState() => _LoginScreenState();
@@ -70,6 +75,7 @@ class _LoginScreenState extends State<LoginScreen> {
         MaterialPageRoute(
           builder: (context) => CitizenOtpVerificationScreen(
             mobileNumber: _mobileController.text.trim(),
+            redirectTo: widget.redirectTo,
           ),
         ),
       );
@@ -149,6 +155,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       controller: _mobileController,
                       keyboardType: TextInputType.phone,
                       maxLength: 10,
+                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                       onChanged: (value) {
                         setState(
                           () {},
@@ -210,10 +217,10 @@ class _LoginScreenState extends State<LoginScreen> {
                           ),
                           validator: (value) {
                             if (value == null || value.isEmpty) {
-                          return '';
-                        }
-                        if (value.length != 10) {
-                          return '';
+                              return l10n.pleaseEnterMobileNumber;
+                            }
+                            if (value.length != 10) {
+                              return l10n.mobileNumberMustBe10Digits;
                             }
                             return null;
                           },
