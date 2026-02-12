@@ -72,7 +72,9 @@ class _CeoHomeScreenState extends State<CeoHomeScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(AppLocalizations.of(context)!.pleaseSelectDateRangeFirst),
+            content: Text(
+              AppLocalizations.of(context)!.pleaseSelectDateRangeFirst,
+            ),
             backgroundColor: const Color(0xFF6B7280),
           ),
         );
@@ -139,7 +141,9 @@ class _CeoHomeScreenState extends State<CeoHomeScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(AppLocalizations.of(context)!.errorExportingCsv(e.toString())),
+            content: Text(
+              AppLocalizations.of(context)!.errorExportingCsv(e.toString()),
+            ),
             backgroundColor: Colors.red,
             duration: const Duration(seconds: 3),
           ),
@@ -180,14 +184,12 @@ class _CeoHomeScreenState extends State<CeoHomeScreen> {
 
                           SizedBox(height: 24.h),
 
-                         
                           // Inspection Section
                           _buildInspectionSection(provider),
- // View GP Master Data
+                          // View GP Master Data
                           _buildGpMasterDataSection(),
 
                           SizedBox(height: 24.h),
-
 
                           // Featured Schemes Section
                           _buildFeaturedSchemesSection(provider),
@@ -234,10 +236,22 @@ class _CeoHomeScreenState extends State<CeoHomeScreen> {
                     }
                   },
                   items: [
-                    BottomNavItem(iconPath: 'assets/icons/bottombar/home.png', label: AppLocalizations.of(context)!.home),
-                    BottomNavItem(iconPath: 'assets/icons/bottombar/complaints.png', label: AppLocalizations.of(context)!.complaints),
-                    BottomNavItem(iconPath: 'assets/icons/bottombar/inspection.png', label: AppLocalizations.of(context)!.inspection),
-                    BottomNavItem(iconPath: 'assets/icons/bottombar/settings.png', label: AppLocalizations.of(context)!.settings),
+                    BottomNavItem(
+                      iconPath: 'assets/icons/bottombar/home.png',
+                      label: AppLocalizations.of(context)!.home,
+                    ),
+                    BottomNavItem(
+                      iconPath: 'assets/icons/bottombar/complaints.png',
+                      label: AppLocalizations.of(context)!.complaints,
+                    ),
+                    BottomNavItem(
+                      iconPath: 'assets/icons/bottombar/inspection.png',
+                      label: AppLocalizations.of(context)!.inspection,
+                    ),
+                    BottomNavItem(
+                      iconPath: 'assets/icons/bottombar/settings.png',
+                      label: AppLocalizations.of(context)!.settings,
+                    ),
                   ],
                 ),
         );
@@ -266,7 +280,9 @@ class _CeoHomeScreenState extends State<CeoHomeScreen> {
               ),
               SizedBox(height: 2.h),
               Text(
-                provider.locationPath.isNotEmpty ? provider.locationPath : provider.districtName,
+                provider.locationPath.isNotEmpty
+                    ? provider.locationPath
+                    : provider.districtName,
                 style: TextStyle(
                   fontFamily: 'Noto Sans',
                   fontSize: 12.sp,
@@ -286,12 +302,13 @@ class _CeoHomeScreenState extends State<CeoHomeScreen> {
                   final result = await Navigator.push<Map<String, dynamic>>(
                     context,
                     MaterialPageRoute(
-                      builder: (_) => const UnifiedSelectLocationScreen(userRole: 'ceo'),
+                      builder: (_) =>
+                          const UnifiedSelectLocationScreen(userRole: 'ceo'),
                     ),
                   );
 
-                  if (result != null && result['blockId'] != null && result['gpId'] != null) {
-                    // Save the location for HOME page
+                  if (result != null) {
+                    // Save the location for HOME page (block/GP optional for CEO)
                     final authService = AuthService();
                     await authService.savePageLocation('ceo', 'home', result);
                     // Reload data based on new location
@@ -311,7 +328,10 @@ class _CeoHomeScreenState extends State<CeoHomeScreen> {
               ),
               IconButton(
                 onPressed: () {
-                  final locale = Provider.of<LocaleProvider>(context, listen: false).locale;
+                  final locale = Provider.of<LocaleProvider>(
+                    context,
+                    listen: false,
+                  ).locale;
                   Navigator.push(
                     context,
                     MaterialPageRoute(
@@ -337,7 +357,10 @@ class _CeoHomeScreenState extends State<CeoHomeScreen> {
               ),
               IconButton(
                 onPressed: () {
-                  final locale = Provider.of<LocaleProvider>(context, listen: false).locale;
+                  final locale = Provider.of<LocaleProvider>(
+                    context,
+                    listen: false,
+                  ).locale;
                   Navigator.push(
                     context,
                     MaterialPageRoute(
@@ -437,12 +460,13 @@ class _CeoHomeScreenState extends State<CeoHomeScreen> {
               Tooltip(
                 message: provider.fromDate != null && provider.toDate != null
                     ? AppLocalizations.of(context)!.export
-                    : AppLocalizations.of(context)!.selectDateRangeToEnableExport,
+                    : AppLocalizations.of(
+                        context,
+                      )!.selectDateRangeToEnableExport,
                 child: Opacity(
-                  opacity:
-                      provider.fromDate != null && provider.toDate != null
-                          ? 1.0
-                          : 0.5,
+                  opacity: provider.fromDate != null && provider.toDate != null
+                      ? 1.0
+                      : 0.5,
                   child: GestureDetector(
                     onTap: () {
                       if (provider.fromDate == null ||
@@ -450,7 +474,10 @@ class _CeoHomeScreenState extends State<CeoHomeScreen> {
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
                             content: Text(
-                                AppLocalizations.of(context)!.pleaseSelectDateRangeFirst),
+                              AppLocalizations.of(
+                                context,
+                              )!.pleaseSelectDateRangeFirst,
+                            ),
                             backgroundColor: const Color(0xFF6B7280),
                           ),
                         );
@@ -470,8 +497,11 @@ class _CeoHomeScreenState extends State<CeoHomeScreen> {
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Icon(Icons.download,
-                              size: 16.sp, color: Colors.white),
+                          Icon(
+                            Icons.download,
+                            size: 16.sp,
+                            color: Colors.white,
+                          ),
                           SizedBox(width: 8.w),
                           Text(
                             AppLocalizations.of(context)!.export,
@@ -528,7 +558,9 @@ class _CeoHomeScreenState extends State<CeoHomeScreen> {
                         ),
                         SizedBox(width: 8.w),
                         Tooltip(
-                          message: AppLocalizations.of(context)!.tooltipTotalReportedComplaintDescription,
+                          message: AppLocalizations.of(
+                            context,
+                          )!.tooltipTotalReportedComplaintDescription,
                           child: GestureDetector(
                             onTap: () {
                               final l10n = AppLocalizations.of(context)!;
@@ -605,7 +637,6 @@ class _CeoHomeScreenState extends State<CeoHomeScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-       
           GestureDetector(
             onTap: () {
               Navigator.push(
@@ -632,7 +663,11 @@ class _CeoHomeScreenState extends State<CeoHomeScreen> {
               ),
               child: Row(
                 children: [
-                  Icon(Icons.visibility_outlined, size: 22.sp, color: Colors.white),
+                  Icon(
+                    Icons.visibility_outlined,
+                    size: 22.sp,
+                    color: Colors.white,
+                  ),
                   SizedBox(width: 12.w),
                   Expanded(
                     child: Text(
@@ -666,7 +701,9 @@ class _CeoHomeScreenState extends State<CeoHomeScreen> {
             children: [
               Expanded(
                 child: _buildInspectionActionCard(
-                  AppLocalizations.of(context)!.checkContractorSupervisorAttendance,
+                  AppLocalizations.of(
+                    context,
+                  )!.checkContractorSupervisorAttendance,
                   Icons.calendar_today,
                   'attendance',
                 ),
@@ -903,30 +940,21 @@ class _CeoHomeScreenState extends State<CeoHomeScreen> {
             Expanded(
               child: Text(
                 title,
-                style: TextStyle(
-                  fontSize: 16.sp,
-                  fontWeight: FontWeight.w600,
-                ),
+                style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.w600),
               ),
             ),
           ],
         ),
         content: Text(
           message,
-          style: TextStyle(
-            fontSize: 14.sp,
-            color: const Color(0xFF6B7280),
-          ),
+          style: TextStyle(fontSize: 14.sp, color: const Color(0xFF6B7280)),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(),
             child: Text(
               l10n.ok,
-              style: TextStyle(
-                fontSize: 14.sp,
-                fontWeight: FontWeight.w600,
-              ),
+              style: TextStyle(fontSize: 14.sp, fontWeight: FontWeight.w600),
             ),
           ),
         ],
@@ -941,7 +969,8 @@ class _CeoHomeScreenState extends State<CeoHomeScreen> {
     Color color,
   ) {
     final l10n = AppLocalizations.of(context)!;
-    final bool isResolvedCard = title.toLowerCase().contains('resolved') ||
+    final bool isResolvedCard =
+        title.toLowerCase().contains('resolved') ||
         title.toLowerCase().contains('disposed');
     final bool isOpenCard = title.toLowerCase().contains('open');
 
@@ -1106,9 +1135,7 @@ class _CeoHomeScreenState extends State<CeoHomeScreen> {
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (context) => SchemeDetailsScreen(
-              scheme: scheme,
-            ),
+            builder: (context) => SchemeDetailsScreen(scheme: scheme),
           ),
         );
       },
@@ -1266,135 +1293,135 @@ class _CeoHomeScreenState extends State<CeoHomeScreen> {
       },
       child: Container(
         margin: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(12.r),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Event Banner with eventbanner.png
-          Container(
-            height: 120.h,
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.only(
-                topLeft: Radius.circular(12.r),
-                topRight: Radius.circular(12.r),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(12.r),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 10,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Event Banner with eventbanner.png
+            Container(
+              height: 120.h,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.only(
+                  topLeft: Radius.circular(12.r),
+                  topRight: Radius.circular(12.r),
+                ),
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.only(
+                  topLeft: Radius.circular(12.r),
+                  topRight: Radius.circular(12.r),
+                ),
+                child: Stack(
+                  children: [
+                    // Background Image
+                    Positioned.fill(
+                      child: event.media.isNotEmpty
+                          ? Image.network(
+                              ApiConstants.getMediaUrl(
+                                event.media.first.mediaUrl,
+                              ),
+                              fit: BoxFit.cover,
+                              errorBuilder: (context, error, stackTrace) {
+                                // Suppress error logs for 404s since we have fallback
+                                return Image.asset(
+                                  'assets/images/eventbanner.png',
+                                  fit: BoxFit.cover,
+                                );
+                              },
+                            )
+                          : Image.asset(
+                              'assets/images/eventbanner.png',
+                              fit: BoxFit.cover,
+                            ),
+                    ),
+                  ],
+                ),
               ),
             ),
-            child: ClipRRect(
-              borderRadius: BorderRadius.only(
-                topLeft: Radius.circular(12.r),
-                topRight: Radius.circular(12.r),
+
+            // Event Details
+            Container(
+              padding: EdgeInsets.all(12.r),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.only(
+                  bottomLeft: Radius.circular(12.r),
+                  bottomRight: Radius.circular(12.r),
+                ),
               ),
-              child: Stack(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Background Image
-                  Positioned.fill(
-                    child: event.media.isNotEmpty
-                        ? Image.network(
-                            ApiConstants.getMediaUrl(
-                              event.media.first.mediaUrl,
-                            ),
-                            fit: BoxFit.cover,
-                            errorBuilder: (context, error, stackTrace) {
-                              // Suppress error logs for 404s since we have fallback
-                              return Image.asset(
-                                'assets/images/eventbanner.png',
-                                fit: BoxFit.cover,
-                              );
-                            },
-                          )
-                        : Image.asset(
-                            'assets/images/eventbanner.png',
-                            fit: BoxFit.cover,
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Expanded(
+                        child: Text(
+                          event.title,
+                          style: TextStyle(
+                            fontSize: 16.sp,
+                            fontWeight: FontWeight.w600,
+                            color: const Color(0xFF2C3E50),
                           ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      SizedBox(width: 110.w),
+                      Expanded(
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.calendar_today,
+                              size: 16.sp,
+                              color: const Color(0xFF009B56),
+                            ),
+                            SizedBox(width: 4.w),
+                            Expanded(
+                              child: Text(
+                                '${_formatDate(event.startTime, includeYear: false)} - ${_formatDate(event.endTime)}',
+                                style: TextStyle(
+                                  fontFamily: 'Noto Sans',
+                                  fontSize: 12.sp,
+                                  fontWeight: FontWeight.w500,
+                                  color: const Color(0xFF6B7280),
+                                  letterSpacing: 0.5,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: 8.h),
+                  Text(
+                    event.description ?? '',
+                    style: TextStyle(
+                      fontFamily: 'Noto Sans',
+                      fontSize: 12.sp,
+                      fontWeight: FontWeight.w500,
+                      color: const Color(0xFF6B7280),
+                      letterSpacing: 0.5,
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ],
               ),
             ),
-          ),
-
-          // Event Details
-          Container(
-            padding: EdgeInsets.all(12.r),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.only(
-                bottomLeft: Radius.circular(12.r),
-                bottomRight: Radius.circular(12.r),
-              ),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Expanded(
-                      child: Text(
-                        event.title,
-                        style: TextStyle(
-                          fontSize: 16.sp,
-                          fontWeight: FontWeight.w600,
-                          color: const Color(0xFF2C3E50),
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                    SizedBox(width: 110.w),
-                    Expanded(
-                      child: Row(
-                        children: [
-                          Icon(
-                            Icons.calendar_today,
-                            size: 16.sp,
-                            color: const Color(0xFF009B56),
-                          ),
-                          SizedBox(width: 4.w),
-                          Expanded(
-                            child: Text(
-                              '${_formatDate(event.startTime, includeYear: false)} - ${_formatDate(event.endTime)}',
-                              style: TextStyle(
-                                fontFamily: 'Noto Sans',
-                                fontSize: 12.sp,
-                                fontWeight: FontWeight.w500,
-                                color: const Color(0xFF6B7280),
-                                letterSpacing: 0.5,
-                              ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-                SizedBox(height: 8.h),
-                Text(
-                  event.description ?? '',
-                  style: TextStyle(
-                    fontFamily: 'Noto Sans',
-                    fontSize: 12.sp,
-                    fontWeight: FontWeight.w500,
-                    color: const Color(0xFF6B7280),
-                    letterSpacing: 0.5,
-                  ),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ],
-            ),
-          ),
-        ],
+          ],
         ),
       ),
     );
@@ -1409,7 +1436,9 @@ class _CeoHomeScreenState extends State<CeoHomeScreen> {
             borderRadius: BorderRadius.circular(16.r),
           ),
           child: Container(
-            constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.8),
+            constraints: BoxConstraints(
+              maxHeight: MediaQuery.of(context).size.height * 0.8,
+            ),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -1430,7 +1459,9 @@ class _CeoHomeScreenState extends State<CeoHomeScreen> {
                     ),
                     child: event.media.isNotEmpty
                         ? Image.network(
-                            ApiConstants.getMediaUrl(event.media.first.mediaUrl),
+                            ApiConstants.getMediaUrl(
+                              event.media.first.mediaUrl,
+                            ),
                             fit: BoxFit.cover,
                             errorBuilder: (context, error, stackTrace) {
                               return Image.asset(
@@ -1466,7 +1497,10 @@ class _CeoHomeScreenState extends State<CeoHomeScreen> {
                               ),
                             ),
                             IconButton(
-                              icon: Icon(Icons.close, color: Colors.grey.shade600),
+                              icon: Icon(
+                                Icons.close,
+                                color: Colors.grey.shade600,
+                              ),
                               onPressed: () => Navigator.pop(context),
                             ),
                           ],
@@ -1491,7 +1525,8 @@ class _CeoHomeScreenState extends State<CeoHomeScreen> {
                             ),
                           ],
                         ),
-                        if (event.description != null && event.description!.isNotEmpty) ...[
+                        if (event.description != null &&
+                            event.description!.isNotEmpty) ...[
                           SizedBox(height: 16.h),
                           Text(
                             event.description!,
@@ -1797,14 +1832,23 @@ class _GPContractorDetailsBottomSheet extends StatelessWidget {
 
               if (contractorDetails != null) ...[
                 if (gpName != null && gpName!.isNotEmpty) ...[
-                  _buildDetailRow(AppLocalizations.of(context)!.gramPanchayat, gpName!),
+                  _buildDetailRow(
+                    AppLocalizations.of(context)!.gramPanchayat,
+                    gpName!,
+                  ),
                   SizedBox(height: 16.h),
                 ],
-                _buildDetailRow(l10n.agencyName, contractorDetails!.agency.name),
+                _buildDetailRow(
+                  l10n.agencyName,
+                  contractorDetails!.agency.name,
+                ),
                 SizedBox(height: 16.h),
                 _buildDetailRow(l10n.personName, contractorDetails!.personName),
                 SizedBox(height: 16.h),
-                _buildDetailRow(l10n.personPhone, contractorDetails!.personPhone),
+                _buildDetailRow(
+                  l10n.personPhone,
+                  contractorDetails!.personPhone,
+                ),
                 SizedBox(height: 16.h),
                 _buildDetailRow(
                   l10n.workOrderDate,
@@ -1826,7 +1870,8 @@ class _GPContractorDetailsBottomSheet extends StatelessWidget {
                 SizedBox(height: 16.h),
                 _buildDetailRow(
                   l10n.frequencyOfWork,
-                  contractorDetails!.cleaningFrequency.toUpperCase() == 'FORTNIGHTLY'
+                  contractorDetails!.cleaningFrequency.toUpperCase() ==
+                          'FORTNIGHTLY'
                       ? '—'
                       : contractorDetails!.cleaningFrequency,
                 ),

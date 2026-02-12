@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:provider/provider.dart';
 import 'qr_scanner_screen.dart';
+import '../../utils/date_time_utils.dart';
 import '../../widgets/common/date_filter_bottom_sheet.dart';
 import '../../providers/supervisor_attendance_provider.dart';
 import '../../l10n/app_localizations.dart';
@@ -336,8 +337,10 @@ class _SupervisorAttendanceScreenState
                 ),
               ),
               Text(
-                DateFormat('MMMM', Localizations.localeOf(context).toString())
-                    .format(provider.selectedDate),
+                DateFormat(
+                  'MMMM',
+                  Localizations.localeOf(context).toString(),
+                ).format(provider.selectedDate),
                 style: TextStyle(
                   fontFamily: 'Noto Sans',
                   fontSize: 14.sp,
@@ -466,12 +469,19 @@ class _SupervisorAttendanceScreenState
     Map<String, dynamic> attendance,
     SupervisorAttendanceProvider provider,
   ) {
-    // Parse date
+    // Parse date and use local date-only so display matches filter
     final dateStr = attendance['date'] as String?;
     final date = dateStr != null ? DateTime.tryParse(dateStr) : null;
+    final localDateOnly = date != null
+        ? DateTimeUtils.toLocalDateOnly(date)
+        : null;
     final locale = Localizations.localeOf(context).toString();
-    final day = date != null ? DateFormat('d').format(date) : '?';
-    final month = date != null ? DateFormat('MMM', locale).format(date) : '?';
+    final day = localDateOnly != null
+        ? DateFormat('d').format(localDateOnly)
+        : '?';
+    final month = localDateOnly != null
+        ? DateFormat('MMM', locale).format(localDateOnly)
+        : '?';
 
     // Get coordinates for reverse geocoding
     final startLat = attendance['start_lat'] as String?;
@@ -590,7 +600,11 @@ class _SupervisorAttendanceScreenState
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
-          _buildNavItem('assets/icons/bottombar/home.png', AppLocalizations.of(context)!.home, 0),
+          _buildNavItem(
+            'assets/icons/bottombar/home.png',
+            AppLocalizations.of(context)!.home,
+            0,
+          ),
           _buildNavItem(
             'assets/icons/bottombar/complaints.png',
             AppLocalizations.of(context)!.complaints,

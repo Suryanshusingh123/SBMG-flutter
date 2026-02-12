@@ -265,13 +265,17 @@ class _VdoInspectionScreenState extends State<VdoInspectionScreen> {
           SizedBox(
             width: double.infinity,
             child: ElevatedButton(
-              onPressed: () {
-                Navigator.push(
+              onPressed: () async {
+                await Navigator.push(
                   context,
                   MaterialPageRoute(
                     builder: (context) => const NewInspectionScreen(),
                   ),
                 );
+                // Reload list when returning so the new inspection appears without manual refresh
+                if (mounted) {
+                  context.read<VdoInspectionProvider>().loadInspections();
+                }
               },
               style: ElevatedButton.styleFrom(
                 padding: EdgeInsets.symmetric(vertical: 12.h),

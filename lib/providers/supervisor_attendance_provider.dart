@@ -3,6 +3,7 @@ import 'package:intl/intl.dart';
 import '../services/attendance_service.dart';
 import '../services/storage_service.dart';
 import '../services/auth_services.dart';
+import '../utils/date_time_utils.dart';
 
 class SupervisorAttendanceProvider with ChangeNotifier {
   final AttendanceService _attendanceService = AttendanceService();
@@ -46,12 +47,14 @@ class SupervisorAttendanceProvider with ChangeNotifier {
   String? get startLong => _startLong;
   int? get villageId => _villageId;
   bool get isLoading => _isLoading;
+
   /// True if user has already marked attendance today (one scan per day).
   bool get isAttendanceMarkedToday {
     if (_attendanceMarkedDate == null) return false;
     final today = DateFormat('yyyy-MM-dd').format(DateTime.now());
     return _attendanceMarkedDate == today;
   }
+
   List<Map<String, dynamic>> get attendanceLog => _attendanceLog;
   List<Map<String, dynamic>> get filteredAttendanceLog =>
       _filteredAttendanceLog;
@@ -107,7 +110,9 @@ class SupervisorAttendanceProvider with ChangeNotifier {
     final startLat = await _storageService.getString(_startLatKey);
     final startLong = await _storageService.getString(_startLongKey);
     final villageId = await _storageService.getInt(_villageIdKey);
-    final markedDate = await _storageService.getString(_attendanceMarkedDateKey);
+    final markedDate = await _storageService.getString(
+      _attendanceMarkedDateKey,
+    );
 
     _isAttendanceActive = isActive ?? false;
     _currentAttendanceId = attendanceId;
@@ -142,7 +147,10 @@ class SupervisorAttendanceProvider with ChangeNotifier {
       await _storageService.remove(_villageIdKey);
     }
     if (_attendanceMarkedDate != null) {
-      await _storageService.saveString(_attendanceMarkedDateKey, _attendanceMarkedDate!);
+      await _storageService.saveString(
+        _attendanceMarkedDateKey,
+        _attendanceMarkedDate!,
+      );
     }
   }
 
@@ -336,14 +344,13 @@ class SupervisorAttendanceProvider with ChangeNotifier {
       '📅 Filter Range: ${DateFormat('yyyy-MM-dd').format(startDate)} to ${DateFormat('yyyy-MM-dd').format(endDate)}',
     );
 
-    // Filter attendance data
+    // Filter attendance data (use local date so filter and display match)
     _filteredAttendanceLog = _attendanceLog.where((attendance) {
-      final attendanceDate = DateTime.parse(attendance['date']);
-      final attendanceDateOnly = DateTime(
-        attendanceDate.year,
-        attendanceDate.month,
-        attendanceDate.day,
+      final attendanceDate = DateTime.tryParse(
+        attendance['date']?.toString() ?? '',
       );
+      if (attendanceDate == null) return false;
+      final attendanceDateOnly = DateTimeUtils.toLocalDateOnly(attendanceDate);
       final startDateOnly = DateTime(
         startDate.year,
         startDate.month,
@@ -450,14 +457,13 @@ class SupervisorAttendanceProvider with ChangeNotifier {
       '📅 Filter Range: ${DateFormat('yyyy-MM-dd').format(startDate)} to ${DateFormat('yyyy-MM-dd').format(endDate)}',
     );
 
-    // Filter attendance data
+    // Filter attendance data (use local date so filter and display match)
     _filteredAttendanceLog = _attendanceLog.where((attendance) {
-      final attendanceDate = DateTime.parse(attendance['date']);
-      final attendanceDateOnly = DateTime(
-        attendanceDate.year,
-        attendanceDate.month,
-        attendanceDate.day,
+      final attendanceDate = DateTime.tryParse(
+        attendance['date']?.toString() ?? '',
       );
+      if (attendanceDate == null) return false;
+      final attendanceDateOnly = DateTimeUtils.toLocalDateOnly(attendanceDate);
       final startDateOnly = DateTime(
         startDate.year,
         startDate.month,

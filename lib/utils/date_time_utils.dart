@@ -21,7 +21,7 @@ class DateTimeUtils {
     } else {
       utcDateTime = dateTime.toUtc();
     }
-    
+
     // Add IST offset (UTC+5:30)
     return utcDateTime.add(istOffset);
   }
@@ -31,19 +31,21 @@ class DateTimeUtils {
   static DateTime parseToIST(String dateString) {
     // Backend always UTC; assume UTC if no timezone info
     DateTime dateTime;
-    if (dateString.endsWith('Z') || dateString.contains('+') || dateString.contains('-', dateString.indexOf('T'))) {
+    if (dateString.endsWith('Z') ||
+        dateString.contains('+') ||
+        dateString.contains('-', dateString.indexOf('T'))) {
       // Has timezone info, parse as is
       dateTime = DateTime.parse(dateString);
     } else {
       // No timezone info, assume UTC and add 'Z'
       dateTime = DateTime.parse('${dateString}Z');
     }
-    
+
     // Ensure it's in UTC
     if (!dateTime.isUtc) {
       dateTime = dateTime.toUtc();
     }
-    
+
     // Convert to IST
     return toIST(dateTime);
   }
@@ -53,24 +55,38 @@ class DateTimeUtils {
     return toIST(DateTime.now().toUtc());
   }
 
+  /// Returns a date-only DateTime in local timezone for comparison and display.
+  /// Use this for attendance "date" from API so filtering and display use the
+  /// same calendar day (avoids present/absent showing on wrong day across timezones).
+  static DateTime toLocalDateOnly(DateTime dateTime) {
+    final local = dateTime.isUtc ? dateTime.toLocal() : dateTime;
+    return DateTime(local.year, local.month, local.day);
+  }
+
   /// Formats a DateTime in IST for display with date and time
   /// Format: "MMM d, yyyy, h:mm a" (e.g., "Jan 15, 2024, 2:30 PM")
   static String formatDateTimeIST(DateTime dateTime) {
-    final istDateTime = dateTime.isUtc ? toIST(dateTime) : toIST(dateTime.toUtc());
+    final istDateTime = dateTime.isUtc
+        ? toIST(dateTime)
+        : toIST(dateTime.toUtc());
     return DateFormat('MMM d, yyyy, h:mm a').format(istDateTime);
   }
 
   /// Formats a DateTime in IST for display with date only
   /// Format: "MMM d, yyyy" (e.g., "Jan 15, 2024")
   static String formatDateIST(DateTime dateTime) {
-    final istDateTime = dateTime.isUtc ? toIST(dateTime) : toIST(dateTime.toUtc());
+    final istDateTime = dateTime.isUtc
+        ? toIST(dateTime)
+        : toIST(dateTime.toUtc());
     return DateFormat('MMM d, yyyy').format(istDateTime);
   }
 
   /// Formats a DateTime in IST for display with time only
   /// Format: "h:mm a" (e.g., "2:30 PM")
   static String formatTimeIST(DateTime dateTime) {
-    final istDateTime = dateTime.isUtc ? toIST(dateTime) : toIST(dateTime.toUtc());
+    final istDateTime = dateTime.isUtc
+        ? toIST(dateTime)
+        : toIST(dateTime.toUtc());
     return DateFormat('h:mm a').format(istDateTime);
   }
 
@@ -119,7 +135,9 @@ class DateTimeUtils {
   /// Converts a DateTime to UTC ISO8601 for API submission.
   /// Backend always expects UTC.
   static String formatForAPI(DateTime dateTime) {
-    final istDateTime = dateTime.isUtc ? toIST(dateTime) : toIST(dateTime.toUtc());
+    final istDateTime = dateTime.isUtc
+        ? toIST(dateTime)
+        : toIST(dateTime.toUtc());
     final utcForAPI = istDateTime.subtract(istOffset);
     return utcForAPI.toIso8601String();
   }

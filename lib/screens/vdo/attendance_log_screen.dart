@@ -3,6 +3,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:intl/intl.dart';
 import '../../services/api_services.dart';
 import '../../services/auth_services.dart';
+import '../../utils/date_time_utils.dart';
 import '../../widgets/common/date_filter_bottom_sheet.dart';
 
 class VdoAttendanceLogScreen extends StatefulWidget {
@@ -219,11 +220,12 @@ class _VdoAttendanceLogScreenState extends State<VdoAttendanceLogScreen> {
       _selectedDate = startDate;
       _selectedMonthName = DateFormat('MMMM').format(startDate);
       _filteredAttendanceList = _attendanceList.where((attendance) {
-        final attendanceDate = DateTime.parse(attendance['date'] as String);
-        final attendanceDateOnly = DateTime(
-          attendanceDate.year,
-          attendanceDate.month,
-          attendanceDate.day,
+        final attendanceDate = DateTime.tryParse(
+          attendance['date']?.toString() ?? '',
+        );
+        if (attendanceDate == null) return false;
+        final attendanceDateOnly = DateTimeUtils.toLocalDateOnly(
+          attendanceDate,
         );
         final startDateOnly = DateTime(
           startDate.year,
@@ -501,11 +503,18 @@ class _VdoAttendanceLogScreenState extends State<VdoAttendanceLogScreen> {
   }
 
   Widget _buildAttendanceItem(Map<String, dynamic> attendance) {
-    // Parse date
+    // Parse date and use local date-only so display matches filter (avoids timezone mismatch)
     final dateStr = attendance['date'] as String?;
     final date = dateStr != null ? DateTime.tryParse(dateStr) : null;
-    final day = date != null ? DateFormat('d').format(date) : '?';
-    final month = date != null ? DateFormat('MMM').format(date) : '?';
+    final localDateOnly = date != null
+        ? DateTimeUtils.toLocalDateOnly(date)
+        : null;
+    final day = localDateOnly != null
+        ? DateFormat('d').format(localDateOnly)
+        : '?';
+    final month = localDateOnly != null
+        ? DateFormat('MMM').format(localDateOnly)
+        : '?';
 
     // Determine status
     final endTime = attendance['end_time'];

@@ -50,8 +50,8 @@ class _CeoInspectionScreenState extends State<CeoInspectionScreen> {
       location = await _authService.getInspectionLocation('ceo');
     }
     
-    if (location == null || location['blockId'] == null || location['gpId'] == null) {
-      // Show location selection screen once
+    if (location == null) {
+      // Show location selection screen once (Block and GP optional for CEO)
       if (!mounted) return;
       final result = await Navigator.push(
         context,
@@ -60,10 +60,9 @@ class _CeoInspectionScreenState extends State<CeoInspectionScreen> {
         ),
       );
 
-      if (result is Map<String, dynamic> && result['blockId'] != null && result['gpId'] != null) {
-        // Save the location for INSPECTIONS page
+      if (result is Map<String, dynamic>) {
+        // Save the location for INSPECTIONS page (block/GP may be null for CEO)
         await _authService.savePageLocation('ceo', 'inspections', result);
-        
         setState(() {
           _inspectionLocation = result;
         });
@@ -208,31 +207,23 @@ class _CeoInspectionScreenState extends State<CeoInspectionScreen> {
                             builder: (_) => const UnifiedSelectLocationScreen(userRole: 'ceo'),
                           ),
                         );
-                        if (result is Map<String, dynamic> && result['blockId'] != null && result['gpId'] != null) {
+                        if (result is Map<String, dynamic>) {
                           print('📍 Location changed - New location: $result');
                           print('   - District ID: ${result['districtId']}');
                           print('   - Block ID: ${result['blockId']}');
                           print('   - GP ID: ${result['gpId']}');
-                          
-                          // Save the location for INSPECTIONS page
+                          // Save the location for INSPECTIONS page (block/GP optional for CEO)
                           await _authService.savePageLocation('ceo', 'inspections', result);
-                          
-                          // Verify it was saved correctly
                           final saved = await _authService.getPageLocation('ceo', 'inspections');
                           print('💾 Verified saved location: $saved');
                           if (saved == null) {
                             print('❌ ERROR: Location was not saved correctly!');
                             return;
                           }
-                          
-                          // Update state
                           setState(() {
                             _inspectionLocation = result;
                           });
-                          
-                          // Reload inspections with new location
                           if (mounted) {
-                            // Clear provider state first to show loading
                             context.read<CeoInspectionProvider>().loadInspections();
                           }
                         } else {
@@ -309,17 +300,22 @@ class _CeoInspectionScreenState extends State<CeoInspectionScreen> {
             SizedBox(
             width: double.infinity,
             child: ElevatedButton(
-              onPressed: _inspectionLocation == null ? null : () {
-                // Use stored location for new inspection
-                Navigator.pushNamed(
-                  context,
-                  '/ceo-new-inspection',
-                  arguments: {
-                    'gpId': _inspectionLocation!['gpId'],
-                    'gpName': _inspectionLocation!['gpName'] ?? '',
-                  },
-                );
-              },
+              onPressed: (_inspectionLocation != null && _inspectionLocation!['gpId'] != null)
+                  ? () async {
+                      await Navigator.pushNamed(
+                        context,
+                        '/ceo-new-inspection',
+                        arguments: {
+                          'gpId': _inspectionLocation!['gpId'],
+                          'gpName': _inspectionLocation!['gpName'] ?? '',
+                        },
+                      );
+                      // Reload list when returning so the new inspection appears without manual refresh
+                      if (mounted) {
+                        context.read<CeoInspectionProvider>().loadInspections();
+                      }
+                    }
+                  : null,
               style: ElevatedButton.styleFrom(
                 padding: EdgeInsets.symmetric(vertical: 12.h),
                 backgroundColor: AppColors.primaryColor,
@@ -565,24 +561,26 @@ class _CeoInspectionScreenState extends State<CeoInspectionScreen> {
   }
 
   Widget _buildViewGpsInspectionButton(BuildContext context) {
+    final gpId = _inspectionLocation?['gpId'] as int?;
+    final gpName = _inspectionLocation?['gpName'] as String?;
+    final blockId = _inspectionLocation?['blockId'] as int?;
+    final canView = gpId != null && (gpName != null && gpName.isNotEmpty);
     return GestureDetector(
-      onTap: _inspectionLocation == null ? null : () async {
-        // Use stored location
-        final int gpId = _inspectionLocation!['gpId'] as int;
-        final String gpName = _inspectionLocation!['gpName'] as String;
-        final int? blockId = _inspectionLocation!['blockId'] as int?;
-        if (!mounted) return;
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (_) => _CeoGpInspectionScreen(
-              gpId: gpId,
-              gpName: gpName,
-              blockId: blockId,
-            ),
-          ),
-        );
-      },
+      onTap: canView
+          ? () async {
+              if (!mounted) return;
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => _CeoGpInspectionScreen(
+                    gpId: gpId,
+                    gpName: gpName,
+                    blockId: blockId,
+                  ),
+                ),
+              );
+            }
+          : null,
       child: Container(
         padding: EdgeInsets.all(16.r),
         decoration: BoxDecoration(

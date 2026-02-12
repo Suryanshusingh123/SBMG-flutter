@@ -4,6 +4,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:intl/intl.dart';
 import '../../services/api_services.dart';
 import '../../services/auth_services.dart';
+import '../../utils/date_time_utils.dart';
 import '../../widgets/common/date_filter_bottom_sheet.dart';
 
 class SmdGpAttendanceScreen extends StatefulWidget {
@@ -53,7 +54,10 @@ class _SmdGpAttendanceScreenState extends State<SmdGpAttendanceScreen> {
     await _fetchAttendanceData();
   }
 
-  Future<void> _fetchAttendanceData({DateTime? startDate, DateTime? endDate}) async {
+  Future<void> _fetchAttendanceData({
+    DateTime? startDate,
+    DateTime? endDate,
+  }) async {
     setState(() => _isLoading = true);
 
     String? start;
@@ -76,7 +80,9 @@ class _SmdGpAttendanceScreenState extends State<SmdGpAttendanceScreen> {
 
       if (response['success'] == true) {
         final data = response['data'] as Map<String, dynamic>;
-        final items = List<Map<String, dynamic>>.from(data['attendances'] ?? []);
+        final items = List<Map<String, dynamic>>.from(
+          data['attendances'] ?? [],
+        );
         setState(() {
           _attendanceList = items;
           _filteredAttendanceList = List.from(items);
@@ -87,7 +93,10 @@ class _SmdGpAttendanceScreenState extends State<SmdGpAttendanceScreen> {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text(response['message'] ?? AppLocalizations.of(context)!.failedToLoadAttendance),
+              content: Text(
+                response['message'] ??
+                    AppLocalizations.of(context)!.failedToLoadAttendance,
+              ),
               backgroundColor: Colors.red,
             ),
           );
@@ -98,7 +107,11 @@ class _SmdGpAttendanceScreenState extends State<SmdGpAttendanceScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(AppLocalizations.of(context)!.errorLoadingAttendance(e.toString())),
+            content: Text(
+              AppLocalizations.of(
+                context,
+              )!.errorLoadingAttendance(e.toString()),
+            ),
             backgroundColor: Colors.red,
           ),
         );
@@ -113,7 +126,7 @@ class _SmdGpAttendanceScreenState extends State<SmdGpAttendanceScreen> {
       _filteredAttendanceList = _attendanceList.where((attendance) {
         final d = DateTime.tryParse(attendance['date']?.toString() ?? '');
         if (d == null) return false;
-        final dOnly = DateTime(d.year, d.month, d.day);
+        final dOnly = DateTimeUtils.toLocalDateOnly(d);
         final sOnly = DateTime(startDate.year, startDate.month, startDate.day);
         final eOnly = DateTime(endDate.year, endDate.month, endDate.day);
         return (dOnly.isAtSameMomentAs(sOnly) || dOnly.isAfter(sOnly)) &&
@@ -187,7 +200,9 @@ class _SmdGpAttendanceScreenState extends State<SmdGpAttendanceScreen> {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
-                        AppLocalizations.of(context)!.attendanceLogPresentTotal(present, total),
+                        AppLocalizations.of(
+                          context,
+                        )!.attendanceLogPresentTotal(present, total),
                         style: TextStyle(
                           fontSize: 16.sp,
                           fontWeight: FontWeight.w500,
@@ -210,15 +225,24 @@ class _SmdGpAttendanceScreenState extends State<SmdGpAttendanceScreen> {
                   child: Row(
                     children: [
                       Expanded(
-                        child: _summaryCard(AppLocalizations.of(context)!.totalDays, total.toString()),
+                        child: _summaryCard(
+                          AppLocalizations.of(context)!.totalDays,
+                          total.toString(),
+                        ),
                       ),
                       SizedBox(width: 12.w),
                       Expanded(
-                        child: _summaryCard(AppLocalizations.of(context)!.present, present.toString()),
+                        child: _summaryCard(
+                          AppLocalizations.of(context)!.present,
+                          present.toString(),
+                        ),
                       ),
                       SizedBox(width: 12.w),
                       Expanded(
-                        child: _summaryCard(AppLocalizations.of(context)!.absent, absent.toString()),
+                        child: _summaryCard(
+                          AppLocalizations.of(context)!.absent,
+                          absent.toString(),
+                        ),
                       ),
                     ],
                   ),
@@ -228,7 +252,9 @@ class _SmdGpAttendanceScreenState extends State<SmdGpAttendanceScreen> {
                   child: _filteredAttendanceList.isEmpty
                       ? Center(
                           child: Text(
-                            AppLocalizations.of(context)!.noAttendanceRecordsFound,
+                            AppLocalizations.of(
+                              context,
+                            )!.noAttendanceRecordsFound,
                             style: TextStyle(
                               fontSize: 16.sp,
                               color: Colors.grey.shade600,
@@ -282,10 +308,19 @@ class _SmdGpAttendanceScreenState extends State<SmdGpAttendanceScreen> {
   Widget _attendanceTile(Map<String, dynamic> attendance) {
     final dateStr = attendance['date'] as String?;
     final date = dateStr != null ? DateTime.tryParse(dateStr) : null;
-    final day = date != null ? DateFormat('d').format(date) : '?';
-    final month = date != null ? DateFormat('MMM').format(date) : '?';
+    final localDateOnly = date != null
+        ? DateTimeUtils.toLocalDateOnly(date)
+        : null;
+    final day = localDateOnly != null
+        ? DateFormat('d').format(localDateOnly)
+        : '?';
+    final month = localDateOnly != null
+        ? DateFormat('MMM').format(localDateOnly)
+        : '?';
     final isPresent = attendance['end_time'] != null;
-    final statusText = isPresent ? AppLocalizations.of(context)!.present : AppLocalizations.of(context)!.absent;
+    final statusText = isPresent
+        ? AppLocalizations.of(context)!.present
+        : AppLocalizations.of(context)!.absent;
     final statusColor = isPresent ? const Color(0xFF009B56) : Colors.red;
     final villageName = attendance['village_name'] as String? ?? widget.gpName;
 
@@ -352,4 +387,3 @@ class _SmdGpAttendanceScreenState extends State<SmdGpAttendanceScreen> {
     );
   }
 }
-

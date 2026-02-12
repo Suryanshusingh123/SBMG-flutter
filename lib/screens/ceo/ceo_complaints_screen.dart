@@ -77,7 +77,9 @@ class _CeoComplaintsScreenState extends State<CeoComplaintsScreen> {
       final districtId = await authService.getDistrictId();
       if (districtId == null) {
         if (mounted) {
-          setState(() => _districtName = AppLocalizations.of(context)!.district);
+          setState(
+            () => _districtName = AppLocalizations.of(context)!.district,
+          );
         }
         return;
       }
@@ -207,37 +209,43 @@ class _CeoComplaintsScreenState extends State<CeoComplaintsScreen> {
                       final result = await Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (_) => const UnifiedSelectLocationScreen(userRole: 'ceo'),
+                          builder: (_) => const UnifiedSelectLocationScreen(
+                            userRole: 'ceo',
+                          ),
                         ),
                       );
-                      if (result is Map<String, dynamic> && result['blockId'] != null && result['gpId'] != null) {
+                      if (result is Map<String, dynamic>) {
                         print('📍 Location changed - New location: $result');
                         print('   - District ID: ${result['districtId']}');
                         print('   - Block ID: ${result['blockId']}');
                         print('   - GP ID: ${result['gpId']}');
-                        
-                        // Save the location for COMPLAINTS page
-                        await _authService.savePageLocation('ceo', 'complaints', result);
-                        
-                        // Verify it was saved correctly
-                        final saved = await _authService.getPageLocation('ceo', 'complaints');
+                        // Save the location for COMPLAINTS page (block/GP optional for CEO)
+                        await _authService.savePageLocation(
+                          'ceo',
+                          'complaints',
+                          result,
+                        );
+                        final saved = await _authService.getPageLocation(
+                          'ceo',
+                          'complaints',
+                        );
                         print('💾 Verified saved location: $saved');
                         if (saved == null) {
                           print('❌ ERROR: Location was not saved correctly!');
                           return;
                         }
-                        
-                        // Update state
                         setState(() {
                           _complaintLocation = result;
                         });
-                        
-                        // Reload complaints with new location
                         if (mounted) {
-                          context.read<CeoComplaintsProvider>().loadComplaints();
+                          context
+                              .read<CeoComplaintsProvider>()
+                              .loadComplaints();
                         }
                       } else {
-                        print('⚠️ Location change cancelled or invalid result: $result');
+                        print(
+                          '⚠️ Location change cancelled or invalid result: $result',
+                        );
                       }
                     },
                     child: Padding(
@@ -285,16 +293,21 @@ class _CeoComplaintsScreenState extends State<CeoComplaintsScreen> {
                 if (_complaintLocation!['gpName'] != null) {
                   parts.add(_complaintLocation!['gpName'] as String);
                 }
-                locationText = parts.isNotEmpty ? parts.join(' • ') : ceoProvider.locationPath;
+                locationText = parts.isNotEmpty
+                    ? parts.join(' • ')
+                    : ceoProvider.locationPath;
               } else {
-                locationText = ceoProvider.locationPath.isNotEmpty 
-                    ? ceoProvider.locationPath 
+                locationText = ceoProvider.locationPath.isNotEmpty
+                    ? ceoProvider.locationPath
                     : (_districtName ?? 'District');
               }
-              
+
               return Text(
                 '$locationText • ${_getDisplayMonth(context)}',
-                style: TextStyle(fontSize: 11.sp, color: const Color(0xFF6B7280)),
+                style: TextStyle(
+                  fontSize: 11.sp,
+                  color: const Color(0xFF6B7280),
+                ),
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
               );
@@ -343,7 +356,9 @@ class _CeoComplaintsScreenState extends State<CeoComplaintsScreen> {
             59,
             59,
           );
-          return (complaintDate.isAfter(startDate.subtract(const Duration(seconds: 1))) ||
+          return (complaintDate.isAfter(
+                    startDate.subtract(const Duration(seconds: 1)),
+                  ) ||
                   complaintDate.isAtSameMomentAs(startDate)) &&
               (complaintDate.isBefore(endDate) ||
                   complaintDate.isAtSameMomentAs(endDate));
@@ -559,7 +574,9 @@ class _CeoComplaintsScreenState extends State<CeoComplaintsScreen> {
             59,
             59,
           );
-          return (complaintDate.isAfter(startDate.subtract(const Duration(seconds: 1))) ||
+          return (complaintDate.isAfter(
+                    startDate.subtract(const Duration(seconds: 1)),
+                  ) ||
                   complaintDate.isAtSameMomentAs(startDate)) &&
               (complaintDate.isBefore(endDate) ||
                   complaintDate.isAtSameMomentAs(endDate));
@@ -577,7 +594,9 @@ class _CeoComplaintsScreenState extends State<CeoComplaintsScreen> {
           final dateB = DateTime.parse(b.createdAt).toUtc();
           return dateB.compareTo(dateA); // Newest first (descending)
         } catch (e) {
-          return b.createdAt.compareTo(a.createdAt); // Fallback to string comparison
+          return b.createdAt.compareTo(
+            a.createdAt,
+          ); // Fallback to string comparison
         }
       });
     } else {
@@ -587,7 +606,9 @@ class _CeoComplaintsScreenState extends State<CeoComplaintsScreen> {
           final dateB = DateTime.parse(b.createdAt).toUtc();
           return dateA.compareTo(dateB); // Oldest first (ascending)
         } catch (e) {
-          return a.createdAt.compareTo(b.createdAt); // Fallback to string comparison
+          return a.createdAt.compareTo(
+            b.createdAt,
+          ); // Fallback to string comparison
         }
       });
     }

@@ -174,7 +174,7 @@ class _CeoSelectLocationScreenState extends State<CeoSelectLocationScreen> {
                   ),
                   SizedBox(height: 16.h),
                   _buildLocationField(
-                    label: 'Block',
+                    label: 'Block (Optional)',
                     value: _selectedBlock?.name,
                     onTap: (_districtId == null || _isLoadingBlocks)
                         ? null
@@ -184,9 +184,12 @@ class _CeoSelectLocationScreenState extends State<CeoSelectLocationScreen> {
                   if (_requiresGpSelection) ...[
                     SizedBox(height: 16.h),
                     _buildLocationField(
-                      label: 'Gram Panchayat',
+                      label: 'Gram Panchayat (Optional)',
                       value: _selectedGP?.name,
-                      onTap: (_selectedBlock == null || _districtId == null || _isLoadingGPs)
+                      onTap:
+                          (_selectedBlock == null ||
+                              _districtId == null ||
+                              _isLoadingGPs)
                           ? null
                           : () => _showGpBottomSheet(),
                       isLoading: _isLoadingGPs,
@@ -332,13 +335,8 @@ class _CeoSelectLocationScreenState extends State<CeoSelectLocationScreen> {
   }
 
   bool _canApply() {
-    if (_selectedBlock == null) {
-      return false;
-    }
-    if (_requiresGpSelection) {
-      return _selectedGP != null;
-    }
-    return true;
+    // Block and GP are optional for CEO; district is always set
+    return _districtId != null;
   }
 
   void _applySelection() {

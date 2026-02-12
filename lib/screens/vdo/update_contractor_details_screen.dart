@@ -91,7 +91,9 @@ class _UpdateContractorDetailsScreenState
     try {
       final agencies = await ApiService().getAgencies(limit: 1000);
       // Sort alphabetically
-      agencies.sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
+      agencies.sort(
+        (a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()),
+      );
 
       setState(() {
         _agencies = agencies;
@@ -131,7 +133,10 @@ class _UpdateContractorDetailsScreenState
         surfaceTintColor: Colors.white,
         title: const Text(
           'Add New Agency',
-          style: TextStyle(fontFamily: 'Noto Sans', fontWeight: FontWeight.bold),
+          style: TextStyle(
+            fontFamily: 'Noto Sans',
+            fontWeight: FontWeight.bold,
+          ),
         ),
         content: SingleChildScrollView(
           child: Form(
@@ -144,7 +149,9 @@ class _UpdateContractorDetailsScreenState
                   decoration: InputDecoration(
                     labelText: 'Agency Name*',
                     hintText: 'Enter agency name',
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(8.r)),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8.r),
+                    ),
                   ),
                   validator: (v) => v == null || v.isEmpty ? 'Required' : null,
                 ),
@@ -154,7 +161,9 @@ class _UpdateContractorDetailsScreenState
                   decoration: InputDecoration(
                     labelText: 'Phone',
                     hintText: 'Enter phone number',
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(8.r)),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8.r),
+                    ),
                   ),
                   keyboardType: TextInputType.phone,
                   inputFormatters: [
@@ -174,7 +183,9 @@ class _UpdateContractorDetailsScreenState
                   decoration: InputDecoration(
                     labelText: 'Email',
                     hintText: 'Enter email address',
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(8.r)),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8.r),
+                    ),
                   ),
                   keyboardType: TextInputType.emailAddress,
                 ),
@@ -184,7 +195,9 @@ class _UpdateContractorDetailsScreenState
                   decoration: InputDecoration(
                     labelText: 'Address',
                     hintText: 'Enter address',
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(8.r)),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8.r),
+                    ),
                   ),
                   maxLines: 2,
                 ),
@@ -237,7 +250,9 @@ class _UpdateContractorDetailsScreenState
             // Also add to the list if missing (e.g. pagination limit reached)
             if (!_agencies.any((a) => a.id == newAgency.id)) {
               _agencies.add(newAgency);
-              _agencies.sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
+              _agencies.sort(
+                (a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()),
+              );
             }
           }
         });
@@ -289,7 +304,9 @@ class _UpdateContractorDetailsScreenState
         _selectedFrequency = freq;
       } else {
         final workFreq = details.workFrequency.toUpperCase();
-        _selectedFrequency = _frequencyOptions.contains(workFreq) ? workFreq : null;
+        _selectedFrequency = _frequencyOptions.contains(workFreq)
+            ? workFreq
+            : null;
       }
       // FORTNIGHTLY not accepted by backend; do not pre-select
 
@@ -319,7 +336,6 @@ class _UpdateContractorDetailsScreenState
           _selectedDuration = _findClosestDurationOption(months);
         }
       }
-
     }
   }
 
@@ -350,7 +366,9 @@ class _UpdateContractorDetailsScreenState
                 height: 20,
                 child: CircularProgressIndicator(
                   strokeWidth: 2,
-                  valueColor: AlwaysStoppedAnimation<Color>(const Color(0xFF009B56)),
+                  valueColor: AlwaysStoppedAnimation<Color>(
+                    const Color(0xFF009B56),
+                  ),
                 ),
               ),
             ),
@@ -361,45 +379,52 @@ class _UpdateContractorDetailsScreenState
 
     // Top 6 agencies sorted alphabetically
     final List<Agency> quickAgencies = _agencies.take(6).toList();
-    
+
     // Create menu items
     final List<DropdownMenuItem<String>> menuItems = [];
 
     for (final agency in quickAgencies) {
-      menuItems.add(DropdownMenuItem(
-        value: agency.id.toString(),
-        child: Text(
-          agency.name,
-          overflow: TextOverflow.ellipsis,
-          style: TextStyle(fontSize: 14.sp),
+      menuItems.add(
+        DropdownMenuItem(
+          value: agency.id.toString(),
+          child: Text(
+            agency.name,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(fontSize: 14.sp),
+          ),
         ),
-      ));
+      );
     }
 
     // Add currently selected if not in top 6
-    if (_selectedAgency != null && !quickAgencies.any((a) => a.id == _selectedAgency!.id)) {
-      menuItems.add(DropdownMenuItem(
-        value: _selectedAgency!.id.toString(),
-        child: Text(
-          _selectedAgency!.name,
-          overflow: TextOverflow.ellipsis,
-          style: TextStyle(fontSize: 14.sp),
+    if (_selectedAgency != null &&
+        !quickAgencies.any((a) => a.id == _selectedAgency!.id)) {
+      menuItems.add(
+        DropdownMenuItem(
+          value: _selectedAgency!.id.toString(),
+          child: Text(
+            _selectedAgency!.name,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(fontSize: 14.sp),
+          ),
         ),
-      ));
+      );
     }
 
     // Add "Other..."
-    menuItems.add(DropdownMenuItem(
-      value: 'OTHER',
-      child: Text(
-        'Other...',
-        style: TextStyle(
-          fontSize: 14.sp,
-          color: const Color(0xFF009B56),
-          fontWeight: FontWeight.bold,
+    menuItems.add(
+      DropdownMenuItem(
+        value: 'OTHER',
+        child: Text(
+          'Other...',
+          style: TextStyle(
+            fontSize: 14.sp,
+            color: const Color(0xFF009B56),
+            fontWeight: FontWeight.bold,
+          ),
         ),
       ),
-    ));
+    );
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -419,16 +444,20 @@ class _UpdateContractorDetailsScreenState
               onTap: _showAddAgencyDialog,
               child: Row(
                 children: [
-                   Icon(Icons.add_circle_outline, size: 16.sp, color: const Color(0xFF009B56)),
-                   SizedBox(width: 4.w),
-                   Text(
-                     'Add New',
-                     style: TextStyle(
-                       fontSize: 12.sp,
-                       fontWeight: FontWeight.w600,
-                       color: const Color(0xFF009B56),
-                     ),
-                   ),
+                  Icon(
+                    Icons.add_circle_outline,
+                    size: 16.sp,
+                    color: const Color(0xFF009B56),
+                  ),
+                  SizedBox(width: 4.w),
+                  Text(
+                    'Add New',
+                    style: TextStyle(
+                      fontSize: 12.sp,
+                      fontWeight: FontWeight.w600,
+                      color: const Color(0xFF009B56),
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -455,7 +484,10 @@ class _UpdateContractorDetailsScreenState
               borderRadius: BorderRadius.circular(8.r),
               borderSide: const BorderSide(color: Color(0xFF009B56)),
             ),
-            contentPadding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 12.h),
+            contentPadding: EdgeInsets.symmetric(
+              horizontal: 12.w,
+              vertical: 12.h,
+            ),
           ),
           items: menuItems,
           onChanged: (value) {
@@ -463,7 +495,9 @@ class _UpdateContractorDetailsScreenState
               _showFullAgencyPicker();
             } else if (value != null) {
               setState(() {
-                _selectedAgency = _agencies.firstWhere((a) => a.id.toString() == value);
+                _selectedAgency = _agencies.firstWhere(
+                  (a) => a.id.toString() == value,
+                );
               });
             }
           },
@@ -564,6 +598,23 @@ class _UpdateContractorDetailsScreenState
                             controller: _workOrderAmountController,
                             placeholder: 'Enter amount',
                             suffixIcon: Icons.currency_rupee,
+                            keyboardType: TextInputType.numberWithOptions(
+                              decimal: true,
+                            ),
+                            inputFormatters: [
+                              FilteringTextInputFormatter.allow(
+                                RegExp(r'[0-9.]'),
+                              ),
+                              TextInputFormatter.withFunction((
+                                oldValue,
+                                newValue,
+                              ) {
+                                if (newValue.text.isEmpty) return newValue;
+                                if (newValue.text.split('.').length - 1 > 1)
+                                  return oldValue;
+                                return newValue;
+                              }),
+                            ],
                           ),
 
                           SizedBox(height: 20.h),
@@ -720,7 +771,8 @@ class _UpdateContractorDetailsScreenState
                 ? Icon(suffixIcon, color: Colors.grey.shade600, size: 20.sp)
                 : null,
           ),
-          validator: validator ??
+          validator:
+              validator ??
               (value) {
                 if (value == null || value.isEmpty) {
                   return 'This field is required';

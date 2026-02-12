@@ -3,6 +3,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:intl/intl.dart';
 import '../../services/api_services.dart';
 import '../../services/auth_services.dart';
+import '../../utils/date_time_utils.dart';
 import '../../widgets/common/date_filter_bottom_sheet.dart';
 import '../../l10n/app_localizations.dart';
 
@@ -94,7 +95,10 @@ class _CeoGpAttendanceScreenState extends State<CeoGpAttendanceScreen> {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text(response['message'] ?? AppLocalizations.of(context)!.failedToLoadAttendance),
+              content: Text(
+                response['message'] ??
+                    AppLocalizations.of(context)!.failedToLoadAttendance,
+              ),
               backgroundColor: Colors.red,
             ),
           );
@@ -105,7 +109,11 @@ class _CeoGpAttendanceScreenState extends State<CeoGpAttendanceScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(AppLocalizations.of(context)!.errorLoadingAttendance(e.toString())),
+            content: Text(
+              AppLocalizations.of(
+                context,
+              )!.errorLoadingAttendance(e.toString()),
+            ),
             backgroundColor: Colors.red,
           ),
         );
@@ -120,7 +128,7 @@ class _CeoGpAttendanceScreenState extends State<CeoGpAttendanceScreen> {
       _filteredAttendanceList = _attendanceList.where((attendance) {
         final d = DateTime.tryParse(attendance['date']?.toString() ?? '');
         if (d == null) return false;
-        final dOnly = DateTime(d.year, d.month, d.day);
+        final dOnly = DateTimeUtils.toLocalDateOnly(d);
         final sOnly = DateTime(startDate.year, startDate.month, startDate.day);
         final eOnly = DateTime(endDate.year, endDate.month, endDate.day);
         return (dOnly.isAtSameMomentAs(sOnly) || dOnly.isAfter(sOnly)) &&
@@ -289,8 +297,15 @@ class _CeoGpAttendanceScreenState extends State<CeoGpAttendanceScreen> {
   Widget _attendanceTile(Map<String, dynamic> attendance) {
     final dateStr = attendance['date'] as String?;
     final date = dateStr != null ? DateTime.tryParse(dateStr) : null;
-    final day = date != null ? DateFormat('d').format(date) : '?';
-    final month = date != null ? DateFormat('MMM').format(date) : '?';
+    final localDateOnly = date != null
+        ? DateTimeUtils.toLocalDateOnly(date)
+        : null;
+    final day = localDateOnly != null
+        ? DateFormat('d').format(localDateOnly)
+        : '?';
+    final month = localDateOnly != null
+        ? DateFormat('MMM').format(localDateOnly)
+        : '?';
     final isPresent = attendance['end_time'] != null;
     final statusText = isPresent ? 'Present' : 'Absent';
     final statusColor = isPresent ? const Color(0xFF009B56) : Colors.red;

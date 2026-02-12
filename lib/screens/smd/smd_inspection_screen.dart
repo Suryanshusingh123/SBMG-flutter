@@ -326,9 +326,9 @@ class _SmdInspectionScreenState extends State<SmdInspectionScreen> {
           SizedBox(
             width: double.infinity,
             child: ElevatedButton(
-              onPressed: (_inspectionLocation == null || _inspectionLocation!['gpId'] == null) ? null : () {
+              onPressed: (_inspectionLocation == null || _inspectionLocation!['gpId'] == null) ? null : () async {
                 // Use stored location for new inspection
-                Navigator.pushNamed(
+                await Navigator.pushNamed(
                   context,
                   '/smd-new-inspection',
                   arguments: {
@@ -336,6 +336,10 @@ class _SmdInspectionScreenState extends State<SmdInspectionScreen> {
                     'gpName': _inspectionLocation!['gpName'] ?? '',
                   },
                 );
+                // Reload list when returning so the new inspection appears without manual refresh
+                if (mounted) {
+                  context.read<SmdInspectionProvider>().loadInspections();
+                }
               },
               style: ElevatedButton.styleFrom(
                 padding: EdgeInsets.symmetric(vertical: 12.h),

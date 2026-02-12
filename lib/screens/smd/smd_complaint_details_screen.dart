@@ -108,25 +108,28 @@ class _SmdComplaintDetailsScreenState extends State<SmdComplaintDetailsScreen> {
     if (confirmed != true || !mounted) return;
     setState(() => _isClosing = true);
     try {
-      final updated = await _apiService.closeComplaintBySmd(complaintId: complaintId);
+      await _apiService.closeComplaintBySmd(
+        complaintId: complaintId,
+      );
+      if (!mounted) return;
+      // Re-fetch full complaint details so timeline (closed_at) and status update in UI
+      await _fetchComplaintDetails();
       if (!mounted) return;
       setState(() {
-        _complaintData = updated;
         _isClosing = false;
-        _updateCoordinatesFromData(updated);
       });
       context.read<SmdComplaintsProvider>().loadComplaints();
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(l10n.complaintHasBeenClosed)),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(l10n.complaintHasBeenClosed)));
       }
     } catch (e) {
       if (!mounted) return;
       setState(() => _isClosing = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(l10n.somethingWentWrong)),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.somethingWentWrong)));
     }
   }
 
@@ -154,13 +157,24 @@ class _SmdComplaintDetailsScreenState extends State<SmdComplaintDetailsScreen> {
     if (typeId != null && context.mounted) {
       final id = typeId is int ? typeId : int.tryParse(typeId.toString());
       if (id != null) {
-        final resolved = context.read<SmdComplaintsProvider>().getComplaintTypeNameById(id);
+        final resolved = context
+            .read<SmdComplaintsProvider>()
+            .getComplaintTypeNameById(id);
         if (resolved != null && resolved.isNotEmpty) return resolved;
       }
     }
 
     // Fallback to default
     return AppLocalizations.of(context)!.roadMaintenance;
+  }
+
+  /// True when complaint is verified (by VDO) and not yet closed — SMD can close only then.
+  bool get _isVerifiedAndNotClosed {
+    final status = _data['status']?.toString().toUpperCase() ?? 'OPEN';
+    final verifiedAt = _data['verified_at'];
+    final closedAt = _data['closed_at'];
+    if (status == 'CLOSED' || closedAt != null) return false;
+    return status == 'VERIFIED' || verifiedAt != null;
   }
 
   // Dynamic status text based on API fields
@@ -247,9 +261,7 @@ class _SmdComplaintDetailsScreenState extends State<SmdComplaintDetailsScreen> {
       if (!launched && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(
-              AppLocalizations.of(context)!.couldNotOpenGoogleMaps,
-            ),
+            content: Text(AppLocalizations.of(context)!.couldNotOpenGoogleMaps),
           ),
         );
       }
@@ -257,9 +269,7 @@ class _SmdComplaintDetailsScreenState extends State<SmdComplaintDetailsScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(
-              AppLocalizations.of(context)!.couldNotOpenGoogleMaps,
-            ),
+            content: Text(AppLocalizations.of(context)!.couldNotOpenGoogleMaps),
           ),
         );
       }
@@ -350,8 +360,8 @@ class _SmdComplaintDetailsScreenState extends State<SmdComplaintDetailsScreen> {
             // Status Banner
             _buildStatusBanner(),
 
-            // Close complaint button (SMD) - only when not already closed
-            if (_data['status']?.toString().toUpperCase() != 'CLOSED') ...[
+            // Close complaint button (SMD) - only for verified complaints, not yet closed
+            if (_isVerifiedAndNotClosed) ...[
               const SizedBox(height: 16),
               _buildCloseComplaintButton(),
             ],
@@ -707,7 +717,8 @@ class _SmdComplaintDetailsScreenState extends State<SmdComplaintDetailsScreen> {
           const SizedBox(height: 12),
 
           Text(
-            _data['description'] ?? AppLocalizations.of(context)!.noDescriptionAvailable,
+            _data['description'] ??
+                AppLocalizations.of(context)!.noDescriptionAvailable,
             style: const TextStyle(
               fontFamily: 'Noto Sans',
               fontSize: 14,
@@ -725,7 +736,10 @@ class _SmdComplaintDetailsScreenState extends State<SmdComplaintDetailsScreen> {
                 _openGoogleMaps(_latitude, _longitude);
               },
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 14,
+                ),
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(8),

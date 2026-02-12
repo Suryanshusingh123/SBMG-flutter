@@ -17,8 +17,7 @@ import '../citizen/language_screen.dart';
 import '../citizen/notifications_screen.dart';
 import '../citizen/scheme_details_screen.dart';
 import '../../utils/api_error_utils.dart';
-import '../citizen/village_master_data_form_screen.dart'
-    as citizen_master;
+import '../citizen/village_master_data_form_screen.dart' as citizen_master;
 import 'village_master_data_form_screen.dart';
 import 'attendance_log_screen.dart';
 import 'package:intl/intl.dart';
@@ -303,11 +302,15 @@ class _VdoHomeScreenState extends State<VdoHomeScreen> {
                   ),
                   SizedBox(width: 12.w),
                   Tooltip(
-                    message: provider.fromDate != null && provider.toDate != null
+                    message:
+                        provider.fromDate != null && provider.toDate != null
                         ? l10n.export
-                        : AppLocalizations.of(context)!.selectDateRangeToEnableExport,
+                        : AppLocalizations.of(
+                            context,
+                          )!.selectDateRangeToEnableExport,
                     child: ElevatedButton.icon(
-                      onPressed: provider.fromDate != null && provider.toDate != null
+                      onPressed:
+                          provider.fromDate != null && provider.toDate != null
                           ? () async {
                               await _handleExport(context, provider);
                             }
@@ -374,7 +377,8 @@ class _VdoHomeScreenState extends State<VdoHomeScreen> {
                               ),
                               SizedBox(width: 8.w),
                               Tooltip(
-                                message: l10n.tooltipTotalReportedComplaintDescription,
+                                message: l10n
+                                    .tooltipTotalReportedComplaintDescription,
                                 child: GestureDetector(
                                   onTap: () => _showInfoDialog(
                                     context,
@@ -443,30 +447,21 @@ class _VdoHomeScreenState extends State<VdoHomeScreen> {
             Expanded(
               child: Text(
                 title,
-                style: TextStyle(
-                  fontSize: 16.sp,
-                  fontWeight: FontWeight.w600,
-                ),
+                style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.w600),
               ),
             ),
           ],
         ),
         content: Text(
           message,
-          style: TextStyle(
-            fontSize: 14.sp,
-            color: const Color(0xFF6B7280),
-          ),
+          style: TextStyle(fontSize: 14.sp, color: const Color(0xFF6B7280)),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(),
             child: Text(
               l10n.ok,
-              style: TextStyle(
-                fontSize: 14.sp,
-                fontWeight: FontWeight.w600,
-              ),
+              style: TextStyle(fontSize: 14.sp, fontWeight: FontWeight.w600),
             ),
           ),
         ],
@@ -535,7 +530,10 @@ class _VdoHomeScreenState extends State<VdoHomeScreen> {
                             message: tooltipMessage,
                             child: GestureDetector(
                               onTap: () => _showInfoDialog(
-                                  context, title, tooltipMessage),
+                                context,
+                                title,
+                                tooltipMessage,
+                              ),
                               child: Icon(
                                 Icons.info_outline,
                                 size: 14.sp,
@@ -874,7 +872,11 @@ class _VdoHomeScreenState extends State<VdoHomeScreen> {
         ),
         child: Row(
           children: [
-            Icon(icon, size: 22.sp, color: backgroundColor != null ? Colors.black : Colors.white),
+            Icon(
+              icon,
+              size: 22.sp,
+              color: backgroundColor != null ? Colors.black : Colors.white,
+            ),
             SizedBox(width: 12.w),
             Expanded(
               child: Text(
@@ -1020,9 +1022,7 @@ class _VdoHomeScreenState extends State<VdoHomeScreen> {
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (context) => SchemeDetailsScreen(
-              scheme: scheme,
-            ),
+            builder: (context) => SchemeDetailsScreen(scheme: scheme),
           ),
         );
       },
@@ -1188,128 +1188,128 @@ class _VdoHomeScreenState extends State<VdoHomeScreen> {
         _showEventDetails(event);
       },
       child: Container(
-      margin: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(12.r),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Event Banner
-          Container(
-            height: 120,
-            decoration: const BoxDecoration(
-              borderRadius: BorderRadius.only(
-                topLeft: Radius.circular(12),
-                topRight: Radius.circular(12),
-              ),
+        margin: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(12.r),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 10,
+              offset: const Offset(0, 2),
             ),
-            child: ClipRRect(
-              borderRadius: const BorderRadius.only(
-                topLeft: Radius.circular(12),
-                topRight: Radius.circular(12),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Event Banner
+            Container(
+              height: 120,
+              decoration: const BoxDecoration(
+                borderRadius: BorderRadius.only(
+                  topLeft: Radius.circular(12),
+                  topRight: Radius.circular(12),
+                ),
               ),
-              child: Stack(
-                children: [
-                  Positioned.fill(
-                    child: event.media.isNotEmpty
-                        ? Image.network(
-                            ApiConstants.getMediaUrl(
-                              event.media.first.mediaUrl,
-                            ),
-                            fit: BoxFit.cover,
-                            errorBuilder: (context, error, stackTrace) {
-                              return Image.asset(
-                                'assets/images/eventbanner.png',
-                                fit: BoxFit.cover,
-                              );
-                            },
-                          )
-                        : Image.asset(
-                            'assets/images/eventbanner.png',
-                            fit: BoxFit.cover,
-                          ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          // Event Details
-          Container(
-            padding: EdgeInsets.all(12.r),
-            decoration: const BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.only(
-                bottomLeft: Radius.circular(12),
-                bottomRight: Radius.circular(12),
-              ),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              child: ClipRRect(
+                borderRadius: const BorderRadius.only(
+                  topLeft: Radius.circular(12),
+                  topRight: Radius.circular(12),
+                ),
+                child: Stack(
                   children: [
-                    Expanded(
-                      child: Text(
-                        event.title,
-                        style: TextStyle(
-                          fontSize: 16.sp,
-                          fontWeight: FontWeight.w600,
-                          color: const Color(0xFF2C3E50),
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                    SizedBox(width: 110.w),
-                    Expanded(
-                      child: Row(
-                        children: [
-                          const Icon(
-                            Icons.calendar_today,
-                            size: 16,
-                            color: Color(0xFF009B56),
-                          ),
-                          SizedBox(width: 4.w),
-                          Expanded(
-                            child: Text(
-                              '${_formatDate(event.startTime, includeYear: false)} - ${_formatDate(event.endTime)}',
-                              style: TextStyle(
-                                fontSize: 12.sp,
-                                color: Colors.grey.shade600,
+                    Positioned.fill(
+                      child: event.media.isNotEmpty
+                          ? Image.network(
+                              ApiConstants.getMediaUrl(
+                                event.media.first.mediaUrl,
                               ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
+                              fit: BoxFit.cover,
+                              errorBuilder: (context, error, stackTrace) {
+                                return Image.asset(
+                                  'assets/images/eventbanner.png',
+                                  fit: BoxFit.cover,
+                                );
+                              },
+                            )
+                          : Image.asset(
+                              'assets/images/eventbanner.png',
+                              fit: BoxFit.cover,
                             ),
-                          ),
-                        ],
-                      ),
                     ),
                   ],
                 ),
-                SizedBox(height: 8.h),
-                if (event.description != null)
-                  Text(
-                    event.description!,
-                    style: TextStyle(
-                      fontSize: 14.sp,
-                      color: Colors.grey.shade500,
-                    ),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-              ],
+              ),
             ),
-          ),
-        ],
+            // Event Details
+            Container(
+              padding: EdgeInsets.all(12.r),
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.only(
+                  bottomLeft: Radius.circular(12),
+                  bottomRight: Radius.circular(12),
+                ),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Expanded(
+                        child: Text(
+                          event.title,
+                          style: TextStyle(
+                            fontSize: 16.sp,
+                            fontWeight: FontWeight.w600,
+                            color: const Color(0xFF2C3E50),
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      SizedBox(width: 110.w),
+                      Expanded(
+                        child: Row(
+                          children: [
+                            const Icon(
+                              Icons.calendar_today,
+                              size: 16,
+                              color: Color(0xFF009B56),
+                            ),
+                            SizedBox(width: 4.w),
+                            Expanded(
+                              child: Text(
+                                '${_formatDate(event.startTime, includeYear: false)} - ${_formatDate(event.endTime)}',
+                                style: TextStyle(
+                                  fontSize: 12.sp,
+                                  color: Colors.grey.shade600,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: 8.h),
+                  if (event.description != null)
+                    Text(
+                      event.description!,
+                      style: TextStyle(
+                        fontSize: 14.sp,
+                        color: Colors.grey.shade500,
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                ],
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -1324,7 +1324,9 @@ class _VdoHomeScreenState extends State<VdoHomeScreen> {
             borderRadius: BorderRadius.circular(16.r),
           ),
           child: Container(
-            constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.8),
+            constraints: BoxConstraints(
+              maxHeight: MediaQuery.of(context).size.height * 0.8,
+            ),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -1345,7 +1347,9 @@ class _VdoHomeScreenState extends State<VdoHomeScreen> {
                     ),
                     child: event.media.isNotEmpty
                         ? Image.network(
-                            ApiConstants.getMediaUrl(event.media.first.mediaUrl),
+                            ApiConstants.getMediaUrl(
+                              event.media.first.mediaUrl,
+                            ),
                             fit: BoxFit.cover,
                             errorBuilder: (context, error, stackTrace) {
                               return Image.asset(
@@ -1381,7 +1385,10 @@ class _VdoHomeScreenState extends State<VdoHomeScreen> {
                               ),
                             ),
                             IconButton(
-                              icon: Icon(Icons.close, color: Colors.grey.shade600),
+                              icon: Icon(
+                                Icons.close,
+                                color: Colors.grey.shade600,
+                              ),
                               onPressed: () => Navigator.pop(context),
                             ),
                           ],
@@ -1406,7 +1413,8 @@ class _VdoHomeScreenState extends State<VdoHomeScreen> {
                             ),
                           ],
                         ),
-                        if (event.description != null && event.description!.isNotEmpty) ...[
+                        if (event.description != null &&
+                            event.description!.isNotEmpty) ...[
                           SizedBox(height: 16.h),
                           Text(
                             event.description!,
@@ -1498,7 +1506,9 @@ class _VdoHomeScreenState extends State<VdoHomeScreen> {
       ..hideCurrentSnackBar()
       ..showSnackBar(
         SnackBar(
-          content: Text(AppLocalizations.of(context)!.couldNotOpenLink(platform)),
+          content: Text(
+            AppLocalizations.of(context)!.couldNotOpenLink(platform),
+          ),
           backgroundColor: Colors.red,
         ),
       );
@@ -1528,10 +1538,22 @@ class _VdoHomeScreenState extends State<VdoHomeScreen> {
         }
       },
       items: [
-        BottomNavItem(iconPath: 'assets/icons/bottombar/home.png', label: l10n.home),
-        BottomNavItem(iconPath: 'assets/icons/bottombar/complaints.png', label: l10n.complaints),
-        BottomNavItem(iconPath: 'assets/icons/bottombar/inspection.png', label: l10n.inspection),
-        BottomNavItem(iconPath: 'assets/icons/bottombar/settings.png', label: l10n.settings),
+        BottomNavItem(
+          iconPath: 'assets/icons/bottombar/home.png',
+          label: l10n.home,
+        ),
+        BottomNavItem(
+          iconPath: 'assets/icons/bottombar/complaints.png',
+          label: l10n.complaints,
+        ),
+        BottomNavItem(
+          iconPath: 'assets/icons/bottombar/inspection.png',
+          label: l10n.inspection,
+        ),
+        BottomNavItem(
+          iconPath: 'assets/icons/bottombar/settings.png',
+          label: l10n.settings,
+        ),
       ],
     );
   }
@@ -1631,7 +1653,9 @@ class _VdoHomeScreenState extends State<VdoHomeScreen> {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(AppLocalizations.of(context)!.pleaseSelectDateRangeFirst),
+            content: Text(
+              AppLocalizations.of(context)!.pleaseSelectDateRangeFirst,
+            ),
             backgroundColor: const Color(0xFF6B7280),
           ),
         );
@@ -1976,11 +2000,11 @@ class _VdoContractorDetailsBottomSheetState
       _workOrderAmountController.text = details.workOrderAmount.toString();
       _agencyIdController.text = details.agency.id.toString();
       _selectedAgency = details.agency;
-      
+
       try {
         _startDate = DateTime.parse(details.contractStartDate);
         _workOrderDateController.text = _formatDateForDisplay(_startDate!);
-        
+
         if (details.contractEndDate != null) {
           _endDate = DateTime.parse(details.contractEndDate!);
           final duration = _endDate!.difference(_startDate!);
@@ -2013,7 +2037,9 @@ class _VdoContractorDetailsBottomSheetState
     try {
       final agencies = await ApiService().getAgencies(limit: 1000);
       // Sort alphabetically
-      agencies.sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
+      agencies.sort(
+        (a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()),
+      );
 
       setState(() {
         _agencies = agencies;
@@ -2052,7 +2078,10 @@ class _VdoContractorDetailsBottomSheetState
         surfaceTintColor: Colors.white,
         title: Text(
           AppLocalizations.of(context)!.addNewAgency,
-          style: const TextStyle(fontFamily: 'Noto Sans', fontWeight: FontWeight.bold),
+          style: const TextStyle(
+            fontFamily: 'Noto Sans',
+            fontWeight: FontWeight.bold,
+          ),
         ),
         content: SingleChildScrollView(
           child: Form(
@@ -2065,17 +2094,25 @@ class _VdoContractorDetailsBottomSheetState
                   decoration: InputDecoration(
                     labelText: AppLocalizations.of(context)!.agencyNameRequired,
                     hintText: AppLocalizations.of(context)!.enterAgencyName,
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(8.r)),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8.r),
+                    ),
                   ),
-                  validator: (v) => v == null || v.isEmpty ? AppLocalizations.of(context)!.required : null,
+                  validator: (v) => v == null || v.isEmpty
+                      ? AppLocalizations.of(context)!.required
+                      : null,
                 ),
                 SizedBox(height: 12.h),
                 TextFormField(
                   controller: phoneController,
                   decoration: InputDecoration(
                     labelText: AppLocalizations.of(context)!.phoneNumberLabel,
-                    hintText: AppLocalizations.of(context)!.enterMobileNumberPlaceholder,
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(8.r)),
+                    hintText: AppLocalizations.of(
+                      context,
+                    )!.enterMobileNumberPlaceholder,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8.r),
+                    ),
                   ),
                   keyboardType: TextInputType.phone,
                   inputFormatters: [
@@ -2095,7 +2132,9 @@ class _VdoContractorDetailsBottomSheetState
                   decoration: InputDecoration(
                     labelText: AppLocalizations.of(context)!.agencyEmail,
                     hintText: AppLocalizations.of(context)!.enterEmailAddress,
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(8.r)),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8.r),
+                    ),
                   ),
                   keyboardType: TextInputType.emailAddress,
                 ),
@@ -2105,7 +2144,9 @@ class _VdoContractorDetailsBottomSheetState
                   decoration: InputDecoration(
                     labelText: AppLocalizations.of(context)!.agencyAddress,
                     hintText: AppLocalizations.of(context)!.enterAddress,
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(8.r)),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8.r),
+                    ),
                   ),
                   maxLines: 2,
                 ),
@@ -2116,7 +2157,10 @@ class _VdoContractorDetailsBottomSheetState
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: Text(AppLocalizations.of(context)!.cancel, style: const TextStyle(color: Colors.grey)),
+            child: Text(
+              AppLocalizations.of(context)!.cancel,
+              style: const TextStyle(color: Colors.grey),
+            ),
           ),
           ElevatedButton(
             onPressed: () {
@@ -2158,7 +2202,9 @@ class _VdoContractorDetailsBottomSheetState
             // Also add to the list if missing (e.g. pagination limit reached)
             if (!_agencies.any((a) => a.id == newAgency.id)) {
               _agencies.add(newAgency);
-              _agencies.sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
+              _agencies.sort(
+                (a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()),
+              );
             }
           }
         });
@@ -2167,7 +2213,9 @@ class _VdoContractorDetailsBottomSheetState
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text(AppLocalizations.of(context)!.failedToAddAgency(e.toString())),
+              content: Text(
+                AppLocalizations.of(context)!.failedToAddAgency(e.toString()),
+              ),
               backgroundColor: Colors.red,
             ),
           );
@@ -2197,7 +2245,6 @@ class _VdoContractorDetailsBottomSheetState
       },
     );
   }
-
 
   String? _findClosestDurationOption(int months) {
     final availableMonths = [3, 6, 12, 18, 24];
@@ -2279,7 +2326,9 @@ class _VdoContractorDetailsBottomSheetState
     if (_startDate == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(AppLocalizations.of(context)!.pleaseSelectWorkOrderDate),
+          content: Text(
+            AppLocalizations.of(context)!.pleaseSelectWorkOrderDate,
+          ),
           backgroundColor: Colors.red,
         ),
       );
@@ -2311,7 +2360,11 @@ class _VdoContractorDetailsBottomSheetState
     if (_endDate == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(AppLocalizations.of(context)!.pleaseSelectDurationToCalculateEndDate),
+          content: Text(
+            AppLocalizations.of(
+              context,
+            )!.pleaseSelectDurationToCalculateEndDate,
+          ),
           backgroundColor: Colors.red,
         ),
       );
@@ -2322,7 +2375,9 @@ class _VdoContractorDetailsBottomSheetState
     if (_selectedAgency == null) return;
     if (_personPhoneController.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(AppLocalizations.of(context)!.phoneNumberRequired)),
+        SnackBar(
+          content: Text(AppLocalizations.of(context)!.phoneNumberRequired),
+        ),
       );
       return;
     }
@@ -2349,7 +2404,8 @@ class _VdoContractorDetailsBottomSheetState
           gpId: gpId,
           contractStartDate: _formatDateForApi(_startDate!),
           contractEndDate: _formatDateForApi(_endDate!),
-          workOrderAmount: double.tryParse(_workOrderAmountController.text) ?? 0.0,
+          workOrderAmount:
+              double.tryParse(_workOrderAmountController.text) ?? 0.0,
           cleaningFrequency: _selectedFrequency ?? 'DAILY',
         );
       } else {
@@ -2361,7 +2417,8 @@ class _VdoContractorDetailsBottomSheetState
           gpId: gpId,
           contractStartDate: _formatDateForApi(_startDate!),
           contractEndDate: _formatDateForApi(_endDate!),
-          workOrderAmount: double.tryParse(_workOrderAmountController.text) ?? 0.0,
+          workOrderAmount:
+              double.tryParse(_workOrderAmountController.text) ?? 0.0,
           cleaningFrequency: _selectedFrequency ?? 'DAILY',
         );
       }
@@ -2402,7 +2459,9 @@ class _VdoContractorDetailsBottomSheetState
           content: Text(
             details == null
                 ? AppLocalizations.of(context)!.contractorAddedSuccessfully
-                : AppLocalizations.of(context)!.contractorDetailsUpdatedSuccessfully,
+                : AppLocalizations.of(
+                    context,
+                  )!.contractorDetailsUpdatedSuccessfully,
           ),
           backgroundColor: const Color(0xFF009B56),
         ),
@@ -2450,7 +2509,9 @@ class _VdoContractorDetailsBottomSheetState
                 height: 20,
                 child: CircularProgressIndicator(
                   strokeWidth: 2,
-                  valueColor: AlwaysStoppedAnimation<Color>(const Color(0xFF009B56)),
+                  valueColor: AlwaysStoppedAnimation<Color>(
+                    const Color(0xFF009B56),
+                  ),
                 ),
               ),
             ),
@@ -2461,45 +2522,52 @@ class _VdoContractorDetailsBottomSheetState
 
     // Top 6 agencies sorted alphabetically
     final List<Agency> quickAgencies = _agencies.take(6).toList();
-    
+
     // Create menu items
     final List<DropdownMenuItem<String>> menuItems = [];
 
     for (final agency in quickAgencies) {
-      menuItems.add(DropdownMenuItem(
-        value: agency.id.toString(),
-        child: Text(
-          agency.name,
-          overflow: TextOverflow.ellipsis,
-          style: TextStyle(fontSize: 14.sp),
+      menuItems.add(
+        DropdownMenuItem(
+          value: agency.id.toString(),
+          child: Text(
+            agency.name,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(fontSize: 14.sp),
+          ),
         ),
-      ));
+      );
     }
 
     // Add currently selected if not in top 6
-    if (_selectedAgency != null && !quickAgencies.any((a) => a.id == _selectedAgency!.id)) {
-      menuItems.add(DropdownMenuItem(
-        value: _selectedAgency!.id.toString(),
-        child: Text(
-          _selectedAgency!.name,
-          overflow: TextOverflow.ellipsis,
-          style: TextStyle(fontSize: 14.sp),
+    if (_selectedAgency != null &&
+        !quickAgencies.any((a) => a.id == _selectedAgency!.id)) {
+      menuItems.add(
+        DropdownMenuItem(
+          value: _selectedAgency!.id.toString(),
+          child: Text(
+            _selectedAgency!.name,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(fontSize: 14.sp),
+          ),
         ),
-      ));
+      );
     }
 
     // Add "Other..."
-    menuItems.add(DropdownMenuItem(
-      value: 'OTHER',
-      child: Text(
-        'Other...',
-        style: TextStyle(
-          fontSize: 14.sp,
-          color: const Color(0xFF009B56),
-          fontWeight: FontWeight.bold,
+    menuItems.add(
+      DropdownMenuItem(
+        value: 'OTHER',
+        child: Text(
+          'Other...',
+          style: TextStyle(
+            fontSize: 14.sp,
+            color: const Color(0xFF009B56),
+            fontWeight: FontWeight.bold,
+          ),
         ),
       ),
-    ));
+    );
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -2519,16 +2587,20 @@ class _VdoContractorDetailsBottomSheetState
               onTap: _showAddAgencyDialog,
               child: Row(
                 children: [
-                   Icon(Icons.add_circle_outline, size: 16.sp, color: const Color(0xFF009B56)),
-                   SizedBox(width: 4.w),
-                   Text(
-                     AppLocalizations.of(context)!.addNew,
-                     style: TextStyle(
-                       fontSize: 12.sp,
-                       fontWeight: FontWeight.w600,
-                       color: const Color(0xFF009B56),
-                     ),
-                   ),
+                  Icon(
+                    Icons.add_circle_outline,
+                    size: 16.sp,
+                    color: const Color(0xFF009B56),
+                  ),
+                  SizedBox(width: 4.w),
+                  Text(
+                    AppLocalizations.of(context)!.addNew,
+                    style: TextStyle(
+                      fontSize: 12.sp,
+                      fontWeight: FontWeight.w600,
+                      color: const Color(0xFF009B56),
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -2555,7 +2627,10 @@ class _VdoContractorDetailsBottomSheetState
               borderRadius: BorderRadius.circular(8.r),
               borderSide: const BorderSide(color: Color(0xFF009B56)),
             ),
-            contentPadding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 12.h),
+            contentPadding: EdgeInsets.symmetric(
+              horizontal: 12.w,
+              vertical: 12.h,
+            ),
           ),
           items: menuItems,
           onChanged: (value) {
@@ -2563,7 +2638,9 @@ class _VdoContractorDetailsBottomSheetState
               _showFullAgencyPicker();
             } else if (value != null) {
               setState(() {
-                _selectedAgency = _agencies.firstWhere((a) => a.id.toString() == value);
+                _selectedAgency = _agencies.firstWhere(
+                  (a) => a.id.toString() == value,
+                );
               });
             }
           },
@@ -2646,9 +2723,7 @@ class _VdoContractorDetailsBottomSheetState
 
                 _buildDetailRow(
                   AppLocalizations.of(context)!.workOrderDate,
-                  _formatDateForDisplay(
-                    _startDate ?? DateTime.now(),
-                  ),
+                  _formatDateForDisplay(_startDate ?? DateTime.now()),
                 ),
                 SizedBox(height: 16.h),
 
@@ -2671,7 +2746,10 @@ class _VdoContractorDetailsBottomSheetState
                   AppLocalizations.of(context)!.frequencyOfWork,
                   details.cleaningFrequency.toUpperCase() == 'FORTNIGHTLY'
                       ? '—'
-                      : _getFrequencyLabel(context, details.cleaningFrequency.toUpperCase()),
+                      : _getFrequencyLabel(
+                          context,
+                          details.cleaningFrequency.toUpperCase(),
+                        ),
                 ),
 
                 SizedBox(height: 30.h),
@@ -2716,7 +2794,9 @@ class _VdoContractorDetailsBottomSheetState
                       _buildFormField(
                         label: AppLocalizations.of(context)!.name,
                         controller: _nameController,
-                        placeholder: AppLocalizations.of(context)!.enterContractorName,
+                        placeholder: AppLocalizations.of(
+                          context,
+                        )!.enterContractorName,
                       ),
 
                       SizedBox(height: 20.h),
@@ -2725,15 +2805,19 @@ class _VdoContractorDetailsBottomSheetState
                       _buildFormField(
                         label: AppLocalizations.of(context)!.phoneNumberLabel,
                         controller: _personPhoneController,
-                        placeholder: AppLocalizations.of(context)!.enterMobileNumberPlaceholder,
+                        placeholder: AppLocalizations.of(
+                          context,
+                        )!.enterMobileNumberPlaceholder,
                         keyboardType: TextInputType.phone,
                         inputFormatters: [
                           FilteringTextInputFormatter.digitsOnly,
                           LengthLimitingTextInputFormatter(10),
                         ],
                         validator: (v) {
-                          if (v == null || v.isEmpty) return AppLocalizations.of(context)!.required;
-                          if (v.length != 10) return AppLocalizations.of(context)!.enter10Digits;
+                          if (v == null || v.isEmpty)
+                            return AppLocalizations.of(context)!.required;
+                          if (v.length != 10)
+                            return AppLocalizations.of(context)!.enter10Digits;
                           return null;
                         },
                       ),
@@ -2744,7 +2828,9 @@ class _VdoContractorDetailsBottomSheetState
                       _buildFormField(
                         label: AppLocalizations.of(context)!.workOrderDate,
                         controller: _workOrderDateController,
-                        placeholder: AppLocalizations.of(context)!.workOrderDatePlaceholder,
+                        placeholder: AppLocalizations.of(
+                          context,
+                        )!.workOrderDatePlaceholder,
                         suffixIcon: Icons.calendar_today,
                         onTap: _selectStartDate,
                       ),
@@ -2757,6 +2843,18 @@ class _VdoContractorDetailsBottomSheetState
                         controller: _workOrderAmountController,
                         placeholder: AppLocalizations.of(context)!.enterAmount,
                         suffixIcon: Icons.currency_rupee,
+                        keyboardType: TextInputType.numberWithOptions(
+                          decimal: true,
+                        ),
+                        inputFormatters: [
+                          FilteringTextInputFormatter.allow(RegExp(r'[0-9.]')),
+                          TextInputFormatter.withFunction((oldValue, newValue) {
+                            if (newValue.text.isEmpty) return newValue;
+                            if (newValue.text.split('.').length - 1 > 1)
+                              return oldValue;
+                            return newValue;
+                          }),
+                        ],
                       ),
 
                       SizedBox(height: 20.h),
@@ -2765,7 +2863,9 @@ class _VdoContractorDetailsBottomSheetState
                       _buildDropdownField(
                         label: AppLocalizations.of(context)!.durationOfWork,
                         value: _selectedDuration,
-                        placeholder: AppLocalizations.of(context)!.selectDuration,
+                        placeholder: AppLocalizations.of(
+                          context,
+                        )!.selectDuration,
                         items: _durationOptions,
                         onChanged: (value) {
                           setState(() {
@@ -2793,7 +2893,9 @@ class _VdoContractorDetailsBottomSheetState
                       _buildDropdownField(
                         label: AppLocalizations.of(context)!.frequencyOfWork,
                         value: _selectedFrequency,
-                        placeholder: AppLocalizations.of(context)!.selectFrequency,
+                        placeholder: AppLocalizations.of(
+                          context,
+                        )!.selectFrequency,
                         items: _frequencyOptions,
                         onChanged: (value) {
                           setState(() {
@@ -2860,7 +2962,9 @@ class _VdoContractorDetailsBottomSheetState
                     _buildFormField(
                       label: AppLocalizations.of(context)!.name,
                       controller: _nameController,
-                      placeholder: AppLocalizations.of(context)!.enterContractorName,
+                      placeholder: AppLocalizations.of(
+                        context,
+                      )!.enterContractorName,
                     ),
 
                     SizedBox(height: 20.h),
@@ -2869,15 +2973,19 @@ class _VdoContractorDetailsBottomSheetState
                     _buildFormField(
                       label: AppLocalizations.of(context)!.phoneNumberLabel,
                       controller: _personPhoneController,
-                      placeholder: AppLocalizations.of(context)!.enterMobileNumberPlaceholder,
+                      placeholder: AppLocalizations.of(
+                        context,
+                      )!.enterMobileNumberPlaceholder,
                       keyboardType: TextInputType.phone,
                       inputFormatters: [
                         FilteringTextInputFormatter.digitsOnly,
                         LengthLimitingTextInputFormatter(10),
                       ],
                       validator: (v) {
-                        if (v == null || v.isEmpty) return AppLocalizations.of(context)!.required;
-                        if (v.length != 10) return AppLocalizations.of(context)!.enter10Digits;
+                        if (v == null || v.isEmpty)
+                          return AppLocalizations.of(context)!.required;
+                        if (v.length != 10)
+                          return AppLocalizations.of(context)!.enter10Digits;
                         return null;
                       },
                     ),
@@ -2888,7 +2996,9 @@ class _VdoContractorDetailsBottomSheetState
                     _buildFormField(
                       label: AppLocalizations.of(context)!.workOrderDate,
                       controller: _workOrderDateController,
-                      placeholder: AppLocalizations.of(context)!.workOrderDatePlaceholder,
+                      placeholder: AppLocalizations.of(
+                        context,
+                      )!.workOrderDatePlaceholder,
                       suffixIcon: Icons.calendar_today,
                       onTap: _selectStartDate,
                     ),
@@ -2901,7 +3011,18 @@ class _VdoContractorDetailsBottomSheetState
                       controller: _workOrderAmountController,
                       placeholder: AppLocalizations.of(context)!.enterAmount,
                       suffixIcon: Icons.currency_rupee,
-                      keyboardType: TextInputType.number,
+                      keyboardType: TextInputType.numberWithOptions(
+                        decimal: true,
+                      ),
+                      inputFormatters: [
+                        FilteringTextInputFormatter.allow(RegExp(r'[0-9.]')),
+                        TextInputFormatter.withFunction((oldValue, newValue) {
+                          if (newValue.text.isEmpty) return newValue;
+                          if (newValue.text.split('.').length - 1 > 1)
+                            return oldValue;
+                          return newValue;
+                        }),
+                      ],
                     ),
 
                     SizedBox(height: 20.h),
@@ -2938,7 +3059,9 @@ class _VdoContractorDetailsBottomSheetState
                     _buildDropdownField(
                       label: AppLocalizations.of(context)!.frequencyOfWork,
                       value: _selectedFrequency,
-                      placeholder: AppLocalizations.of(context)!.selectFrequency,
+                      placeholder: AppLocalizations.of(
+                        context,
+                      )!.selectFrequency,
                       items: _frequencyOptions,
                       onChanged: (value) {
                         setState(() {
@@ -3097,7 +3220,8 @@ class _VdoContractorDetailsBottomSheetState
                 ? Icon(suffixIcon, color: Colors.grey.shade600, size: 20.sp)
                 : null,
           ),
-          validator: validator ??
+          validator:
+              validator ??
               (value) {
                 if (value == null || value.isEmpty) {
                   return AppLocalizations.of(context)!.thisFieldIsRequired;
