@@ -253,6 +253,9 @@ class _ResetPasswordFlowScreenState extends State<ResetPasswordFlowScreen> {
                       child: TextField(
                         controller: _phoneController,
                         keyboardType: TextInputType.phone,
+                        inputFormatters: [
+                          FilteringTextInputFormatter.digitsOnly,
+                        ],
                         decoration: InputDecoration(
                           hintText: l10n.enterMobileNumberPlaceholder,
                           hintStyle: TextStyle(
@@ -670,6 +673,9 @@ class _ResetPasswordFlowScreenState extends State<ResetPasswordFlowScreen> {
           child: TextField(
             controller: controller,
             obscureText: !isVisible,
+            inputFormatters: [
+              FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z0-9]')),
+            ],
             decoration: InputDecoration(
               hintText: label,
               hintStyle: TextStyle(
@@ -786,6 +792,13 @@ class _ResetPasswordFlowScreenState extends State<ResetPasswordFlowScreen> {
     if (_newPasswordController.text.length < 6) {
       setState(() {
         _passwordError = 'Password must be at least 6 characters';
+      });
+      return;
+    }
+
+    if (!RegExp(r'^[a-zA-Z0-9]+$').hasMatch(_newPasswordController.text)) {
+      setState(() {
+        _passwordError = 'Password can only contain letters and numbers';
       });
       return;
     }

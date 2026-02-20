@@ -44,10 +44,7 @@ class SmdComplaintsProvider extends ChangeNotifier {
       // Get saved location for COMPLAINTS page (includes district, block, and GP)
       // Fallback to old inspection location or district storage for backward compatibility
       var savedLocation = await _authService.getPageLocation('smd', 'complaints');
-      if (savedLocation == null) {
-        // Fallback to old inspection location
-        savedLocation = await _authService.getInspectionLocation('smd');
-      }
+      savedLocation ??= await _authService.getInspectionLocation('smd');
       
       // Get district ID from saved location, fallback to old storage method
       int? districtId;
@@ -117,7 +114,7 @@ class SmdComplaintsProvider extends ChangeNotifier {
           
           final afterCount = filteredComplaints.length;
           if (beforeCount != afterCount) {
-            print('⚠️ API returned ${beforeCount} complaints, but only ${afterCount} match selected location');
+            print('⚠️ API returned $beforeCount complaints, but only $afterCount match selected location');
             print('   Filtered out ${beforeCount - afterCount} complaints that don\'t match the selected location');
           }
         } else if (blockId != null) {
@@ -131,7 +128,7 @@ class SmdComplaintsProvider extends ChangeNotifier {
             }).toList();
             final afterCount = filteredComplaints.length;
             if (beforeCount != afterCount) {
-              print('⚠️ Filtered by block name: ${beforeCount} -> ${afterCount} complaints');
+              print('⚠️ Filtered by block name: $beforeCount -> $afterCount complaints');
             }
           }
         }

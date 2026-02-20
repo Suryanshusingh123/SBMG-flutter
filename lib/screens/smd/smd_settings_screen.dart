@@ -6,8 +6,10 @@ import '../../config/connstants.dart';
 import '../../providers/locale_provider.dart';
 import '../../providers/bookmarks_provider.dart';
 import '../../services/auth_services.dart';
+import '../../services/api_services.dart';
 import '../../l10n/app_localizations.dart';
 import '../../widgets/common/custom_bottom_navigation.dart';
+import '../../widgets/common/feedback_form_content.dart';
 import '../supervisor/reset_password_flow_screen.dart';
 import '../citizen/language_screen.dart';
 import '../citizen/bookmarks_screen.dart';
@@ -25,6 +27,7 @@ class SmdSettingsScreen extends StatefulWidget {
 class _SmdSettingsScreenState extends State<SmdSettingsScreen> {
   bool _notificationsEnabled = false;
   int _selectedIndex = 3; // Settings tab is selected
+  bool? _hasExistingFeedback;
 
   @override
   void initState() {
@@ -35,8 +38,23 @@ class _SmdSettingsScreenState extends State<SmdSettingsScreen> {
       if (!mounted) return;
       if (districtId == null) {
         Navigator.pushReplacementNamed(context, '/smd-district-selection');
+        return;
       }
+      _loadFeedbackStatus();
     });
+  }
+
+  Future<void> _loadFeedbackStatus() async {
+    try {
+      final existing = await ApiService().getMyFeedback(isPublicUser: false);
+      if (mounted) {
+        setState(() => _hasExistingFeedback = existing != null);
+      }
+    } catch (_) {
+      if (mounted) {
+        setState(() => _hasExistingFeedback = false);
+      }
+    }
   }
 
   @override
@@ -108,10 +126,12 @@ class _SmdSettingsScreenState extends State<SmdSettingsScreen> {
                     ),
                     _buildDivider(),
 
-                    // Give us Feedback
+                    // Give us Feedback / Update your feedback
                     _buildSettingItem(
                       icon: Icons.thumb_up_outlined,
-                      title: AppLocalizations.of(context)!.giveUsFeedback,
+                      title: _hasExistingFeedback == true
+                          ? AppLocalizations.of(context)!.updateYourFeedback
+                          : AppLocalizations.of(context)!.giveUsFeedback,
                       onTap: () {
                         _showFeedbackBottomSheet(context);
                       },
@@ -426,9 +446,6 @@ class _SmdSettingsScreenState extends State<SmdSettingsScreen> {
 
 
   void _showFeedbackBottomSheet(BuildContext context) {
-    int selectedRating = -1;
-    final feedbackController = TextEditingController();
-
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -438,182 +455,33 @@ class _SmdSettingsScreenState extends State<SmdSettingsScreen> {
           topRight: Radius.circular(20.r),
         ),
       ),
-      builder: (context) => StatefulBuilder(
-        builder: (context, setState) => Padding(
-          padding: EdgeInsets.only(
-            bottom: MediaQuery.of(context).viewInsets.bottom,
-          ),
-          child: Container(
-            color: Colors.white,
-            padding: EdgeInsets.all(20.w),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Header with close button
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      AppLocalizations.of(context)!.giveUsFeedback,
-                      style: TextStyle(
-                        fontSize: 20.sp,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    IconButton(
-                      icon: Icon(Icons.close, size: 24.sp),
-                      onPressed: () => Navigator.pop(context),
-                    ),
-                  ],
-                ),
-                SizedBox(height: 20.h),
-
-                // Question
-                Text(
-                  AppLocalizations.of(context)!.howWasYourExperience,
-                  style: TextStyle(
-                    fontSize: 16.sp,
-                    fontWeight: FontWeight.w500,
-                    color: const Color(0xFF111827),
-                  ),
-                ),
-                SizedBox(height: 16.h),
-
-                // Emoji rating
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceAround,
-                  children: List.generate(5, (index) {
-                    final emojis = ['😢', '😞', '😐', '🙂', '😄'];
-                    final isSelected = selectedRating == index;
-                    return GestureDetector(
-                      onTap: () {
-                        setState(() {
-                          selectedRating = index;
-                        });
-                      },
-                      child: Container(
-                        padding: EdgeInsets.all(8.w),
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(12.r),
-                          color: isSelected
-                              ? const Color(0xFFD1FAE5)
-                              : Colors.transparent,
-                        ),
-                        child: Text(
-                          emojis[index],
-                          style: TextStyle(fontSize: 32.sp),
-                        ),
-                      ),
-                    );
-                  }),
-                ),
-                SizedBox(height: 8.h),
-
-                // Instruction text
-                if (selectedRating == -1)
-                  Text(
-                    AppLocalizations.of(context)!.chooseYourExperience,
-                    style: TextStyle(
-                      fontSize: 14.sp,
-                      color: const Color(0xFF9CA3AF),
-                    ),
-                  ),
-                SizedBox(height: 24.h),
-
-                // Feedback label
-                Text(
-                  AppLocalizations.of(context)!.enterFeedback,
-                  style: TextStyle(
-                    fontSize: 14.sp,
-                    fontWeight: FontWeight.w500,
-                    color: const Color(0xFF111827),
-                  ),
-                ),
-                SizedBox(height: 8.h),
-
-                // Feedback text area
-                Container(
-                  decoration: BoxDecoration(
-                    border: Border.all(color: const Color(0xFFE5E7EB)),
-                    borderRadius: BorderRadius.circular(8.r),
-                  ),
-                  child: TextField(
-                    controller: feedbackController,
-                    maxLines: 4,
-                    maxLength: 100,
-                    decoration: InputDecoration(
-                      hintText: AppLocalizations.of(context)!.enterFeedback,
-                      hintStyle: TextStyle(
-                        fontSize: 14.sp,
-                        color: const Color(0xFF9CA3AF),
-                      ),
-                      border: InputBorder.none,
-                      contentPadding: EdgeInsets.all(12.w),
-                      counterText: '${feedbackController.text.length}/100',
-                    ),
-                    onChanged: (value) {
-                      setState(() {});
-                    },
-                  ),
-                ),
-
-                SizedBox(height: 24.h),
-
-                // Submit button
-                SizedBox(
-                  width: double.infinity,
-                  height: 50.h,
-                  child: ElevatedButton(
-                    onPressed: () {
-                      if (selectedRating == -1) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text(
-                              AppLocalizations.of(
-                                context,
-                              )!.pleaseRateYourExperience,
-                            ),
-                            backgroundColor: Colors.red,
-                          ),
-                        );
-                        return;
-                      }
-
-                      // Show success dialog
-                      Navigator.pop(context);
-                      _showFeedbackSuccessDialog(context);
-
-                      // Clear controllers
-                      feedbackController.clear();
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primaryColor,
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8.r),
-                      ),
-                      elevation: 0,
-                    ),
-                    child: Text(
-                      AppLocalizations.of(context)!.submit,
-                      style: TextStyle(
-                        fontSize: 16.sp,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-                ),
-                SizedBox(height: 16.h),
-              ],
-            ),
-          ),
-        ),
+      builder: (context) => FutureBuilder<Map<String, dynamic>?>(
+        future: ApiService().getMyFeedback(isPublicUser: false),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return Padding(
+              padding: EdgeInsets.all(40.w),
+              child: Center(
+                child: CircularProgressIndicator(),
+              ),
+            );
+          }
+          final existingFeedback = snapshot.data;
+          return FeedbackFormContent(
+            existingFeedback: existingFeedback,
+            isPublicUser: false,
+            onSuccess: (isUpdate) {
+              Navigator.pop(context);
+              setState(() => _hasExistingFeedback = true);
+              _showFeedbackSuccessDialog(context, isUpdate: isUpdate);
+            },
+          );
+        },
       ),
     );
   }
 
-  void _showFeedbackSuccessDialog(BuildContext context) {
+  void _showFeedbackSuccessDialog(BuildContext context, {bool isUpdate = false}) {
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -645,9 +513,11 @@ class _SmdSettingsScreenState extends State<SmdSettingsScreen> {
 
               // Success message
               Text(
-                AppLocalizations.of(
-                  context,
-                )!.yourFeedbackIsSuccessfullySubmitted,
+                isUpdate
+                    ? AppLocalizations.of(context)!.yourFeedbackHasBeenUpdated
+                    : AppLocalizations.of(
+                        context,
+                      )!.yourFeedbackIsSuccessfullySubmitted,
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontSize: 18.sp,
@@ -688,8 +558,9 @@ class _SmdSettingsScreenState extends State<SmdSettingsScreen> {
       ),
     );
   }
+}
 
-  Widget _buildActionTile({
+Widget _buildActionTile({
     required String title,
     IconData? icon,
     Color? iconColor,
@@ -875,4 +746,3 @@ class _SmdSettingsScreenState extends State<SmdSettingsScreen> {
       ),
     );
   }
-}

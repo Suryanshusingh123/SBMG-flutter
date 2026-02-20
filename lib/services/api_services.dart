@@ -1969,6 +1969,129 @@ class ApiService {
     return token;
   }
 
+  /// Submit feedback (comment + rating)
+  /// - Authority users: uses Authorization Bearer token
+  /// - Public users: uses token header
+  Future<Map<String, dynamic>> submitFeedback({
+    required String comment,
+    required int rating,
+    bool isPublicUser = false,
+  }) async {
+    try {
+      final token = await _getAuthToken();
+      final endpoint = ApiConstants.feedbackEndpoint;
+
+      final headers = Map<String, String>.from(ApiConstants.defaultHeaders);
+      if (isPublicUser) {
+        headers['token'] = token;
+      } else {
+        headers['Authorization'] = 'Bearer $token';
+      }
+
+      final body = {
+        'comment': comment,
+        'rating': rating + 1, // API expects 1-5, UI uses 0-4
+      };
+
+      print('🔵 API Request: POST ${ApiConstants.baseUrl}$endpoint');
+      print('📋 Feedback: rating=${body['rating']}, comment=$comment');
+
+      final response = await _makeRequest(
+        endpoint: endpoint,
+        method: 'POST',
+        headers: headers,
+        body: body,
+      );
+
+      print('🟢 API Response: Status ${response.statusCode}');
+      final data = _handleResponse(response);
+      return data as Map<String, dynamic>;
+    } catch (e) {
+      print('❌ Error submitting feedback: $e');
+      rethrow;
+    }
+  }
+
+  /// Get the authenticated user's existing feedback (if any)
+  /// Returns null if user has no feedback (404)
+  Future<Map<String, dynamic>?> getMyFeedback({
+    bool isPublicUser = false,
+  }) async {
+    try {
+      final token = await _getAuthToken();
+      final endpoint = ApiConstants.feedbackMyEndpoint;
+
+      final headers = Map<String, String>.from(ApiConstants.defaultHeaders);
+      if (isPublicUser) {
+        headers['token'] = token;
+      } else {
+        headers['Authorization'] = 'Bearer $token';
+      }
+
+      print('🔵 API Request: GET ${ApiConstants.baseUrl}$endpoint');
+
+      final response = await _makeRequest(
+        endpoint: endpoint,
+        method: 'GET',
+        headers: headers,
+      );
+
+      if (response.statusCode == 404) {
+        print('🟡 No existing feedback (404)');
+        return null;
+      }
+
+      print('🟢 API Response: Status ${response.statusCode}');
+      final data = _handleResponse(response);
+      return data as Map<String, dynamic>;
+    } catch (e) {
+      print('❌ Error fetching my feedback: $e');
+      return null;
+    }
+  }
+
+  /// Update the authenticated user's feedback
+  /// PUT /api/v1/feedback/my
+  Future<Map<String, dynamic>> updateFeedback({
+    required String comment,
+    required int rating,
+    bool isPublicUser = false,
+  }) async {
+    try {
+      final token = await _getAuthToken();
+      final endpoint = ApiConstants.feedbackMyEndpoint;
+
+      final headers = Map<String, String>.from(ApiConstants.defaultHeaders);
+      if (isPublicUser) {
+        headers['token'] = token;
+      } else {
+        headers['Authorization'] = 'Bearer $token';
+      }
+
+      final body = {
+        'comment': comment,
+        'rating': rating + 1, // API expects 1-5, UI uses 0-4
+      };
+
+      print('🔵 API Request: PUT ${ApiConstants.baseUrl}$endpoint');
+      print('📋 Feedback: rating=${body['rating']}, comment=$comment');
+
+      final response = await _makeRequest(
+        endpoint: endpoint,
+        method: 'PUT',
+        headers: headers,
+        body: body,
+      );
+
+      print('🟢 API Response: Status ${response.statusCode}');
+      final data = _handleResponse(response);
+      return data as Map<String, dynamic>;
+    } catch (e) {
+      print('❌ Error updating feedback: $e');
+      rethrow;
+    }
+  }
+
   // Reverse geocoding to get location string from coordinates
   Future<String> _getLocationFromCoordinates(double lat, double long) async {
     try {

@@ -121,6 +121,7 @@ class _BdoNewInspectionScreenState extends State<BdoNewInspectionScreen> {
                       label: l10n.village,
                       controller: _villageController,
                       placeholder: l10n.enterVillageName,
+                      validator: (v) => (v == null || v.trim().isEmpty) ? l10n.thisFieldIsRequired : null,
                     ),
                     SizedBox(height: 20.h),
                     _buildExpandableSection(
@@ -133,6 +134,7 @@ class _BdoNewInspectionScreenState extends State<BdoNewInspectionScreen> {
                           controller: _numberOfWardsController,
                           placeholder: l10n.numberPlaceholder,
                           keyboardType: TextInputType.number,
+                          validator: (v) => (v == null || v.trim().isEmpty) ? l10n.thisFieldIsRequired : null,
                         ),
                         SizedBox(height: 16.h),
                         _buildYesNoRadioGroup(
@@ -393,6 +395,7 @@ class _BdoNewInspectionScreenState extends State<BdoNewInspectionScreen> {
                             controller: _suggestionsController,
                             maxLines: 5,
                             maxLength: 100,
+                            validator: (v) => (v == null || v.trim().isEmpty) ? l10n.thisFieldIsRequired : null,
                             decoration: InputDecoration(
                               hintText: l10n.writeYourCommentHere,
                               hintStyle: TextStyle(color: Colors.grey.shade500),
@@ -459,6 +462,7 @@ class _BdoNewInspectionScreenState extends State<BdoNewInspectionScreen> {
     required TextEditingController controller,
     required String placeholder,
     TextInputType? keyboardType,
+    String? Function(String?)? validator,
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -471,6 +475,7 @@ class _BdoNewInspectionScreenState extends State<BdoNewInspectionScreen> {
         TextFormField(
           controller: controller,
           keyboardType: keyboardType,
+          validator: validator,
           decoration: InputDecoration(
             hintText: placeholder,
             hintStyle: TextStyle(color: Colors.grey.shade500, fontSize: 14),
@@ -860,15 +865,44 @@ class _BdoNewInspectionScreenState extends State<BdoNewInspectionScreen> {
     return value == 'Yes';
   }
 
+  /// Returns null if all required fields (except images) are filled; otherwise returns error message.
+  String? _validateAllRequiredFields(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    if (_villageController.text.trim().isEmpty) return l10n.pleaseFillAllFields;
+    if (_numberOfWardsController.text.trim().isEmpty) return l10n.pleaseFillAllFields;
+    if (_suggestionsController.text.trim().isEmpty) return l10n.pleaseFillAllFields;
+    if (_dailyRegisterMaintained == null) return l10n.pleaseFillAllFields;
+    if (_wasteCollectionInterval == null) return l10n.pleaseFillAllFields;
+    if (_separateCollectionWetDry == null) return l10n.pleaseFillAllFields;
+    if (_wasteDisposalAtRRC == null) return l10n.pleaseFillAllFields;
+    if (_arrangementAtRRC == null) return l10n.pleaseFillAllFields;
+    if (_vehicleProperlyPrepared == null) return l10n.pleaseFillAllFields;
+    if (_roadCleaningInterval == null) return l10n.pleaseFillAllFields;
+    if (_drainCleaningInterval == null) return l10n.pleaseFillAllFields;
+    if (_sludgeDisposalArrangement == null) return l10n.pleaseFillAllFields;
+    if (_drainWasteCollectedRoadside == null) return l10n.pleaseFillAllFields;
+    if (_cscCleaningInterval == null) return l10n.pleaseFillAllFields;
+    if (_cscElectricityWaterAvailable == null) return l10n.pleaseFillAllFields;
+    if (_cscUsedByCommunity == null) return l10n.pleaseFillAllFields;
+    if (_pinkToiletUsedInSchools == null) return l10n.pleaseFillAllFields;
+    if (_firmPaidRegularly == null) return l10n.pleaseFillAllFields;
+    if (_staffPaidRegularly == null) return l10n.pleaseFillAllFields;
+    if (_safetyEquipmentProvided == null) return l10n.pleaseFillAllFields;
+    if (_feedbackRegisterEntry == null) return l10n.pleaseFillAllFields;
+    if (_rateChartPrepared == null) return l10n.pleaseFillAllFields;
+    if (_rateChartDisplayed == null) return l10n.pleaseFillAllFields;
+    return null;
+  }
+
   Future<void> _submitForm() async {
     if (!_formKey.currentState!.validate()) {
       return;
     }
 
-    if (_villageController.text.trim().isEmpty) {
-      final l10n = AppLocalizations.of(context)!;
+    final validationError = _validateAllRequiredFields(context);
+    if (validationError != null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(l10n.pleaseEnterVillageName), backgroundColor: Colors.red),
+        SnackBar(content: Text(validationError), backgroundColor: Colors.red),
       );
       return;
     }

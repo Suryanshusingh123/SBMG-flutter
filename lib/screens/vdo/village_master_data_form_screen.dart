@@ -1078,7 +1078,7 @@ class _VillageMasterDataFormScreenState
         ),
         SizedBox(height: 8.h),
         DropdownButtonFormField<String>(
-          value: _selectedAgency?.id.toString(),
+          initialValue: _selectedAgency?.id.toString(),
           dropdownColor: Colors.white,
           decoration: InputDecoration(
             hintText: AppLocalizations.of(context)!.selectAgency,
@@ -1233,7 +1233,7 @@ class _VillageMasterDataFormScreenState
             border: Border.all(color: Colors.grey.shade300),
           ),
           child: DropdownButtonFormField<String>(
-            value: selectedValue,
+            initialValue: selectedValue,
             decoration: InputDecoration(
               hintText: 'Select frequency',
               hintStyle: TextStyle(color: Colors.grey.shade500, fontSize: 14),

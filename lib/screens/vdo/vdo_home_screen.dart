@@ -35,7 +35,7 @@ class VdoHomeScreen extends StatefulWidget {
 }
 
 class _VdoHomeScreenState extends State<VdoHomeScreen> {
-  int _selectedIndex = 0;
+  final int _selectedIndex = 0;
 
   @override
   void initState() {
@@ -2608,7 +2608,7 @@ class _VdoContractorDetailsBottomSheetState
         ),
         SizedBox(height: 8.h),
         DropdownButtonFormField<String>(
-          value: _selectedAgency?.id.toString(),
+          initialValue: _selectedAgency?.id.toString(),
           dropdownColor: Colors.white,
           decoration: InputDecoration(
             hintText: AppLocalizations.of(context)!.selectAgency,
@@ -2814,10 +2814,12 @@ class _VdoContractorDetailsBottomSheetState
                           LengthLimitingTextInputFormatter(10),
                         ],
                         validator: (v) {
-                          if (v == null || v.isEmpty)
+                          if (v == null || v.isEmpty) {
                             return AppLocalizations.of(context)!.required;
-                          if (v.length != 10)
+                          }
+                          if (v.length != 10) {
                             return AppLocalizations.of(context)!.enter10Digits;
+                          }
                           return null;
                         },
                       ),
@@ -2850,8 +2852,9 @@ class _VdoContractorDetailsBottomSheetState
                           FilteringTextInputFormatter.allow(RegExp(r'[0-9.]')),
                           TextInputFormatter.withFunction((oldValue, newValue) {
                             if (newValue.text.isEmpty) return newValue;
-                            if (newValue.text.split('.').length - 1 > 1)
+                            if (newValue.text.split('.').length - 1 > 1) {
                               return oldValue;
+                            }
                             return newValue;
                           }),
                         ],
@@ -2982,10 +2985,12 @@ class _VdoContractorDetailsBottomSheetState
                         LengthLimitingTextInputFormatter(10),
                       ],
                       validator: (v) {
-                        if (v == null || v.isEmpty)
+                        if (v == null || v.isEmpty) {
                           return AppLocalizations.of(context)!.required;
-                        if (v.length != 10)
+                        }
+                        if (v.length != 10) {
                           return AppLocalizations.of(context)!.enter10Digits;
+                        }
                         return null;
                       },
                     ),
@@ -3018,8 +3023,9 @@ class _VdoContractorDetailsBottomSheetState
                         FilteringTextInputFormatter.allow(RegExp(r'[0-9.]')),
                         TextInputFormatter.withFunction((oldValue, newValue) {
                           if (newValue.text.isEmpty) return newValue;
-                          if (newValue.text.split('.').length - 1 > 1)
+                          if (newValue.text.split('.').length - 1 > 1) {
                             return oldValue;
+                          }
                           return newValue;
                         }),
                       ],
@@ -3254,7 +3260,7 @@ class _VdoContractorDetailsBottomSheetState
         ),
         SizedBox(height: 8.h),
         DropdownButtonFormField<String>(
-          value: value,
+          initialValue: value,
           dropdownColor: Colors.white,
           decoration: InputDecoration(
             hintText: placeholder,

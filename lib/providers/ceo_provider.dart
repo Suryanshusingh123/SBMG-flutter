@@ -108,9 +108,7 @@ class CeoProvider extends ChangeNotifier {
       // Load saved Block/GP selection from HOME page location
       // Fallback to old inspection location for backward compatibility
       var savedLocation = await _authService.getPageLocation('ceo', 'home');
-      if (savedLocation == null) {
-        savedLocation = await _authService.getInspectionLocation('ceo');
-      }
+      savedLocation ??= await _authService.getInspectionLocation('ceo');
       if (savedLocation != null) {
         _blockName = savedLocation['blockName'] as String? ?? '';
         _gpName = savedLocation['gpName'] as String? ?? '';
@@ -170,9 +168,7 @@ class CeoProvider extends ChangeNotifier {
       // Get saved Block/GP selection from HOME page location
       // Fallback to old inspection location for backward compatibility
       var savedLocation = await _authService.getPageLocation('ceo', 'home');
-      if (savedLocation == null) {
-        savedLocation = await _authService.getInspectionLocation('ceo');
-      }
+      savedLocation ??= await _authService.getInspectionLocation('ceo');
       final blockId = savedLocation?['blockId'] as int?;
       final gpId = savedLocation?['gpId'] as int?;
 
@@ -220,9 +216,7 @@ class CeoProvider extends ChangeNotifier {
       // Get saved Block/GP selection from HOME page location
       // Fallback to old inspection location for backward compatibility
       var savedLocation = await _authService.getPageLocation('ceo', 'home');
-      if (savedLocation == null) {
-        savedLocation = await _authService.getInspectionLocation('ceo');
-      }
+      savedLocation ??= await _authService.getInspectionLocation('ceo');
       final blockId = savedLocation?['blockId'] as int?;
       final gpId = savedLocation?['gpId'] as int?;
 

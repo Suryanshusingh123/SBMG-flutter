@@ -8,12 +8,14 @@ import '../../providers/locale_provider.dart';
 import '../../providers/citizen_auth_provider.dart';
 import '../../providers/bookmarks_provider.dart';
 import '../../services/auth_services.dart';
+import '../../services/api_services.dart';
 import '../../screens/auth/admin_login_screen.dart';
 import '../../theme/citizen_colors.dart';
 import 'citizen_reset_password_flow_screen.dart';
 import 'citizen_login_screen.dart';
 import 'profile_screen.dart';
 import 'bookmarks_screen.dart';
+import '../../widgets/common/feedback_form_content.dart';
 
 class SettingsScreen extends StatefulWidget {
   /// When true, this screen is shown inside [CitizenShellScreen]; bottom nav is provided by the shell.
@@ -28,6 +30,27 @@ class SettingsScreen extends StatefulWidget {
 class _SettingsScreenState extends State<SettingsScreen> {
   int _selectedIndex = 3; // Settings tab is selected
   bool _notificationsEnabled = false;
+  bool? _hasExistingFeedback;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _loadFeedbackStatus());
+  }
+
+  Future<void> _loadFeedbackStatus() async {
+    if (!mounted) return;
+    if (!context.read<AuthProvider>().isLoggedIn) {
+      setState(() => _hasExistingFeedback = false);
+      return;
+    }
+    try {
+      final existing = await ApiService().getMyFeedback(isPublicUser: true);
+      if (mounted) setState(() => _hasExistingFeedback = existing != null);
+    } catch (_) {
+      if (mounted) setState(() => _hasExistingFeedback = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -140,10 +163,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     ),
                     _buildDivider(),
 
-                    // Give us Feedback
+                    // Give us Feedback / Update your feedback
                     _buildSettingItem(
                       icon: Icons.thumb_up_outlined,
-                      title: l10n.giveUsFeedback,
+                      title: _hasExistingFeedback == true
+                          ? l10n.updateYourFeedback
+                          : l10n.giveUsFeedback,
                       onTap: () {
                         _showFeedbackBottomSheet(context);
                       },
@@ -674,10 +699,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   void _showFeedbackBottomSheet(BuildContext context) {
-    final l10n = AppLocalizations.of(context)!;
-    final parentContext = context; // Capture parent context for snackbar
-    int selectedRating = -1;
-    final feedbackController = TextEditingController();
+    final parentContext = context;
 
     showModalBottomSheet(
       context: context,
@@ -688,211 +710,52 @@ class _SettingsScreenState extends State<SettingsScreen> {
           topRight: Radius.circular(20.r),
         ),
       ),
-      builder: (context) => StatefulBuilder(
-        builder: (context, setState) {
-          final primaryTextColor = CitizenColors.textPrimary(context);
-          final secondaryTextColor = CitizenColors.textSecondary(context);
-          return Padding(
-            padding: EdgeInsets.only(
-              bottom: MediaQuery.of(context).viewInsets.bottom,
-            ),
-            child: Container(
-              color: CitizenColors.surface(context),
-              padding: EdgeInsets.all(20.w),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Header with close button
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        l10n.giveUsFeedback,
-                        style: TextStyle(
-                          fontSize: 20.sp,
-                          fontWeight: FontWeight.w600,
-                          color: primaryTextColor,
-                        ),
-                      ),
-                      IconButton(
-                        icon: Icon(
-                          Icons.close,
-                          size: 24.sp,
-                          color: secondaryTextColor,
-                        ),
-                        onPressed: () => Navigator.pop(context),
-                      ),
-                    ],
-                  ),
-                  SizedBox(height: 20.h),
-
-                  // Question
-                  Text(
-                    l10n.howWasYourExperience,
-                    style: TextStyle(
-                      fontSize: 16.sp,
-                      fontWeight: FontWeight.w500,
-                      color: primaryTextColor,
+      builder: (context) => FutureBuilder<Map<String, dynamic>?>(
+        future: () async {
+          if (!context.read<AuthProvider>().isLoggedIn) return null;
+          try {
+            return await ApiService().getMyFeedback(isPublicUser: true);
+          } catch (_) {
+            return null;
+          }
+        }(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return Padding(
+              padding: EdgeInsets.all(40.w),
+              child: Center(child: CircularProgressIndicator()),
+            );
+          }
+          return FeedbackFormContent(
+            existingFeedback: snapshot.data,
+            isPublicUser: true,
+            onSuccess: (isUpdate) {
+              Navigator.pop(context);
+              setState(() => _hasExistingFeedback = true);
+              _showFeedbackSuccessDialog(context, isUpdate: isUpdate);
+            },
+            checkAuth: () => parentContext.read<AuthProvider>().isLoggedIn,
+            onAuthRequired: () {
+              Navigator.pop(context);
+              Future.microtask(() {
+                if (parentContext.mounted) {
+                  ScaffoldMessenger.of(parentContext).showSnackBar(
+                    SnackBar(
+                      content: Text('Please login to submit feedback'),
+                      backgroundColor: Colors.red,
+                      duration: const Duration(seconds: 3),
                     ),
-                  ),
-                  SizedBox(height: 16.h),
-
-                  // Emoji rating
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceAround,
-                    children: List.generate(5, (index) {
-                      final emojis = ['😢', '😞', '😐', '🙂', '😄'];
-                      final isSelected = selectedRating == index;
-                      return GestureDetector(
-                        onTap: () {
-                          setState(() {
-                            selectedRating = index;
-                          });
-                        },
-                        child: Container(
-                          padding: EdgeInsets.all(8.w),
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(12.r),
-                            color: isSelected
-                                ? const Color(0xFFD1FAE5)
-                                : Colors.transparent,
-                          ),
-                          child: Text(
-                            emojis[index],
-                            style: TextStyle(fontSize: 32.sp),
-                          ),
-                        ),
-                      );
-                    }),
-                  ),
-                  SizedBox(height: 8.h),
-
-                  // Instruction text
-                  if (selectedRating == -1)
-                    Text(
-                      l10n.chooseYourExperience,
-                      style: TextStyle(
-                        fontSize: 14.sp,
-                        color: secondaryTextColor,
-                      ),
-                    ),
-                  SizedBox(height: 24.h),
-
-                  // Feedback label
-                  Text(
-                    l10n.enterFeedback,
-                    style: TextStyle(
-                      fontSize: 14.sp,
-                      fontWeight: FontWeight.w500,
-                      color: primaryTextColor,
-                    ),
-                  ),
-                  SizedBox(height: 8.h),
-
-                  // Feedback text area
-                  Container(
-                    decoration: BoxDecoration(
-                      border: Border.all(color: const Color(0xFFE5E7EB)),
-                      borderRadius: BorderRadius.circular(8.r),
-                    ),
-                    child: TextField(
-                      controller: feedbackController,
-                      maxLines: 4,
-                      maxLength: 100,
-                      decoration: InputDecoration(
-                        hintText: l10n.enterFeedback,
-                        hintStyle: TextStyle(
-                          fontSize: 14.sp,
-                          color: secondaryTextColor,
-                        ),
-                        border: InputBorder.none,
-                        contentPadding: EdgeInsets.all(12.w),
-                        counterText: '${feedbackController.text.length}/100',
-                      ),
-                      style: TextStyle(
-                        fontSize: 14.sp,
-                        color: primaryTextColor,
-                      ),
-                      onChanged: (value) {
-                        setState(() {});
-                      },
-                    ),
-                  ),
-
-                  SizedBox(height: 24.h),
-
-                  // Submit button
-                  SizedBox(
-                    width: double.infinity,
-                    height: 50.h,
-                    child: ElevatedButton(
-                      onPressed: () {
-                        if (selectedRating == -1) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text(l10n.pleaseRateYourExperience),
-                              backgroundColor: Colors.red,
-                            ),
-                          );
-                          return;
-                        }
-
-                        // Check if user is authenticated
-                        final authProvider = context.read<AuthProvider>();
-                        if (!authProvider.isLoggedIn) {
-                          // Close the bottom sheet first
-                          Navigator.pop(context);
-                          // Show snackbar after bottom sheet is closed using parent context
-                          Future.microtask(() {
-                            if (parentContext.mounted) {
-                              ScaffoldMessenger.of(parentContext).showSnackBar(
-                                SnackBar(
-                                  content: Text('Please login to submit feedback'),
-                                  backgroundColor: Colors.red,
-                                  duration: const Duration(seconds: 3),
-                                ),
-                              );
-                            }
-                          });
-                          return;
-                        }
-
-                        // Show success dialog
-                        Navigator.pop(context);
-                        _showFeedbackSuccessDialog(context);
-
-                        // Clear controllers
-                        feedbackController.clear();
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.primaryColor,
-                        foregroundColor: CitizenColors.light,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8.r),
-                        ),
-                        elevation: 0,
-                      ),
-                      child: Text(
-                        l10n.submit,
-                        style: TextStyle(
-                          fontSize: 16.sp,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                  ),
-                  SizedBox(height: 16.h),
-                ],
-              ),
-            ),
+                  );
+                }
+              });
+            },
           );
         },
       ),
     );
   }
 
-  void _showFeedbackSuccessDialog(BuildContext context) {
+  void _showFeedbackSuccessDialog(BuildContext context, {bool isUpdate = false}) {
     final l10n = AppLocalizations.of(context)!;
     showDialog(
       context: context,
@@ -930,7 +793,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
                 // Success message
                 Text(
-                  l10n.yourFeedbackIsSuccessfullySubmitted,
+                  isUpdate
+                      ? l10n.yourFeedbackHasBeenUpdated
+                      : l10n.yourFeedbackIsSuccessfullySubmitted,
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     fontSize: 18,

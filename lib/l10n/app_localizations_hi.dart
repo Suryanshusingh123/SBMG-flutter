@@ -923,6 +923,12 @@ class AppLocalizationsHi extends AppLocalizations {
   String get logout => 'लॉगआउट';
 
   @override
+  String get updateYourFeedback => 'अपनी प्रतिक्रिया अपडेट करें';
+
+  @override
+  String get yourFeedbackHasBeenUpdated => 'आपकी प्रतिक्रिया अपडेट हो गई है';
+
+  @override
   String get confirm => 'पुष्टि करें';
 
   @override

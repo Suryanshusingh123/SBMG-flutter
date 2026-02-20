@@ -48,6 +48,10 @@ class ApiConstants {
   // Inspection Endpoints
   static const String inspectionsEndpoint = '/api/v1/inspections/';
 
+  // Feedback Endpoints
+  static const String feedbackEndpoint = '/api/v1/feedback/';
+  static const String feedbackMyEndpoint = '/api/v1/feedback/my';
+
   // Attendance Endpoints
   static const String attendanceLogEndpoint = '/api/v1/attendance/log';
   static const String attendanceEndEndpoint = '/api/v1/attendance/end';

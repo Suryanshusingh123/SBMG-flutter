@@ -53,9 +53,7 @@ class _CeoComplaintsScreenState extends State<CeoComplaintsScreen> {
     // Load saved location for COMPLAINTS page if available
     // Fallback to old inspection location for backward compatibility
     var savedLocation = await _authService.getPageLocation('ceo', 'complaints');
-    if (savedLocation == null) {
-      savedLocation = await _authService.getInspectionLocation('ceo');
-    }
+    savedLocation ??= await _authService.getInspectionLocation('ceo');
     if (savedLocation != null && mounted) {
       setState(() {
         _complaintLocation = savedLocation;

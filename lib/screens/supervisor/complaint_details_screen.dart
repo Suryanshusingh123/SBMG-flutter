@@ -1050,7 +1050,7 @@ class _SupervisorComplaintDetailsScreenState
           );
           print('✅ Media uploaded successfully');
           if (_resolutionImageLatitude != null && _resolutionImageLongitude != null) {
-            print('📍 Geotagged at: ${_resolutionImageLatitude}, ${_resolutionImageLongitude}');
+            print('📍 Geotagged at: $_resolutionImageLatitude, $_resolutionImageLongitude');
           }
         } catch (e) {
           print('⚠️ Media upload failed, but continuing with resolve: $e');

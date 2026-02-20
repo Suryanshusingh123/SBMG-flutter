@@ -24,22 +24,19 @@ class _SelectGpScreenState extends State<SelectGpScreen> {
   @override
   void initState() {
     super.initState();
-    _loadIdsAndGps();
+    _gpFuture = _loadGpsFuture();
   }
 
-  void _loadIdsAndGps() async {
+  Future<List<GramPanchayat>> _loadGpsFuture() async {
     final blockId = await AuthService().getBlockId();
     final districtId = await AuthService().getDistrictId();
-    setState(() {
-      if (blockId != null && districtId != null) {
-        _gpFuture = ApiService().getGramPanchayats(
-          blockId: blockId,
-          districtId: districtId,
-        );
-      } else {
-        _gpFuture = Future.value([]);
-      }
-    });
+    if (blockId != null && districtId != null) {
+      return ApiService().getGramPanchayats(
+        blockId: blockId,
+        districtId: districtId,
+      );
+    }
+    return Future.value(<GramPanchayat>[]);
   }
 
   void _showContractorDetails(int gpId, String gpName) async {

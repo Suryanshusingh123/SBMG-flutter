@@ -33,6 +33,27 @@ class _SmdComplaintDetailsScreenState extends State<SmdComplaintDetailsScreen> {
   // Store original media data
   List<dynamic>? _originalMediaUrls;
 
+  /// Resolves status string from API. When status is null, derives from status_id.
+  /// 1=OPEN, 2=RESOLVED, 3=VERIFIED, 4=CLOSED
+  String get _resolvedStatus {
+    final raw = _data['status']?.toString().trim();
+    if (raw != null && raw.isNotEmpty) return raw.toUpperCase();
+    final statusId = _data['status_id'];
+    if (statusId == null) return 'OPEN';
+    switch (statusId is int ? statusId : int.tryParse(statusId.toString())) {
+      case 1:
+        return 'OPEN';
+      case 2:
+        return 'RESOLVED';
+      case 3:
+        return 'VERIFIED';
+      case 4:
+        return 'CLOSED';
+      default:
+        return 'OPEN';
+    }
+  }
+
   // Use fetched data or fallback to passed complaint
   Map<String, dynamic> get _data {
     final data = _complaintData ?? widget.complaint;
@@ -168,25 +189,32 @@ class _SmdComplaintDetailsScreenState extends State<SmdComplaintDetailsScreen> {
     return AppLocalizations.of(context)!.roadMaintenance;
   }
 
+  bool get _isClosed {
+    final statusId = _data['status_id'];
+    final closedAt = _data['closed_at'];
+    return closedAt != null ||
+        statusId == 4 ||
+        (statusId != null && statusId.toString() == '4');
+  }
+
   /// True when complaint is verified (by VDO) and not yet closed — SMD can close only then.
   bool get _isVerifiedAndNotClosed {
-    final status = _data['status']?.toString().toUpperCase() ?? 'OPEN';
+    if (_isClosed) return false;
+    final status = _resolvedStatus;
     final verifiedAt = _data['verified_at'];
-    final closedAt = _data['closed_at'];
-    if (status == 'CLOSED' || closedAt != null) return false;
     return status == 'VERIFIED' || verifiedAt != null;
   }
 
   // Dynamic status text based on API fields
   String get _dynamicStatusText {
-    final status = _data['status']?.toString().toUpperCase() ?? 'OPEN';
+    final status = _resolvedStatus;
     final resolvedAt = _data['resolved_at'];
     final verifiedAt = _data['verified_at'];
     final closedAt = _data['closed_at'];
     final l10n = AppLocalizations.of(context)!;
 
-    // Check if closed
-    if (status == 'CLOSED' || closedAt != null) {
+    // Check if closed (use status_id when status/closed_at may be null from API)
+    if (status == 'CLOSED' || _isClosed) {
       return l10n.complaintHasBeenClosed;
     }
 
@@ -207,7 +235,7 @@ class _SmdComplaintDetailsScreenState extends State<SmdComplaintDetailsScreen> {
   // Dynamic location text based on API fields
   String _getLocationText() {
     final l10n = AppLocalizations.of(context)!;
-    String? _readString(List<String> keys) {
+    String? readString(List<String> keys) {
       for (final key in keys) {
         final value = _data[key];
         if (value is String && value.trim().isNotEmpty) return value;
@@ -219,10 +247,10 @@ class _SmdComplaintDetailsScreenState extends State<SmdComplaintDetailsScreen> {
       cacheKey: 'smd-detail-${_data['id']}',
       latitude: _latitude,
       longitude: _longitude,
-      locationField: _readString(['location', 'Location']),
-      district: _readString(['district_name', 'districtName']),
-      block: _readString(['block_name', 'blockName']),
-      village: _readString(['village_name', 'villageName']),
+      locationField: readString(['location', 'Location']),
+      district: readString(['district_name', 'districtName']),
+      block: readString(['block_name', 'blockName']),
+      village: readString(['village_name', 'villageName']),
       scheduleUpdate: () {
         if (!mounted) return;
         setState(() {});
@@ -278,7 +306,7 @@ class _SmdComplaintDetailsScreenState extends State<SmdComplaintDetailsScreen> {
 
   // Dynamic status color based on current state
   Color get _dynamicStatusColor {
-    final status = _data['status']?.toString().toUpperCase() ?? 'OPEN';
+    final status = _resolvedStatus;
 
     switch (status) {
       case 'CLOSED':
@@ -389,7 +417,7 @@ class _SmdComplaintDetailsScreenState extends State<SmdComplaintDetailsScreen> {
   }
 
   Widget _buildStatusBanner() {
-    final status = _data['status']?.toString().toLowerCase() ?? 'open';
+    final status = _resolvedStatus.toLowerCase();
     final isCompleted =
         status == 'resolved' || status == 'verified' || status == 'closed';
 
@@ -794,6 +822,10 @@ class _SmdComplaintDetailsScreenState extends State<SmdComplaintDetailsScreen> {
     final resolvedAt = _data['resolved_at'];
     final verifiedAt = _data['verified_at'];
     final closedAt = _data['closed_at'];
+    final updatedAt = _data['updated_at'];
+
+    // Complaint is closed when closed_at is set OR status_id is 4 (API may not set closed_at)
+    final isClosed = _isClosed;
 
     // Check if there's a resolution comment
     final hasResolutionComment = _hasResolutionComment;
@@ -808,7 +840,7 @@ class _SmdComplaintDetailsScreenState extends State<SmdComplaintDetailsScreen> {
       'showLine':
           resolvedAt != null ||
           verifiedAt != null ||
-          closedAt != null ||
+          isClosed ||
           hasResolutionComment ||
           hasVerificationComment,
       'stage': 'created',
@@ -824,7 +856,7 @@ class _SmdComplaintDetailsScreenState extends State<SmdComplaintDetailsScreen> {
         ),
         'isCompleted': true,
         'showLine':
-            verifiedAt != null || closedAt != null || hasVerificationComment,
+            verifiedAt != null || isClosed || hasVerificationComment,
         'stage': 'resolved',
       });
     }
@@ -838,16 +870,17 @@ class _SmdComplaintDetailsScreenState extends State<SmdComplaintDetailsScreen> {
           verifiedAt ?? _getVerificationDateFromComments(),
         ),
         'isCompleted': true,
-        'showLine': closedAt != null,
+        'showLine': isClosed,
         'stage': 'verified',
       });
     }
 
-    // Add closed item if closed_at is present
-    if (closedAt != null) {
+    // Add closed item when closed_at is present OR status_id is 4 (SMD closed)
+    if (isClosed) {
+      final closedDate = closedAt ?? updatedAt ?? '';
       items.add({
         'title': AppLocalizations.of(context)!.closed,
-        'subtitle': _formatTimelineSubtitle('Citizen', closedAt),
+        'subtitle': _formatTimelineSubtitle('SMD', closedDate),
         'isCompleted': true,
         'showLine': false, // Last item, no line needed
         'stage': 'closed',

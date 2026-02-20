@@ -465,7 +465,7 @@ class _UpdateContractorDetailsScreenState
         ),
         SizedBox(height: 8.h),
         DropdownButtonFormField<String>(
-          value: _selectedAgency?.id.toString(),
+          initialValue: _selectedAgency?.id.toString(),
           dropdownColor: Colors.white,
           decoration: InputDecoration(
             hintText: 'Select Agency',
@@ -610,8 +610,9 @@ class _UpdateContractorDetailsScreenState
                                 newValue,
                               ) {
                                 if (newValue.text.isEmpty) return newValue;
-                                if (newValue.text.split('.').length - 1 > 1)
+                                if (newValue.text.split('.').length - 1 > 1) {
                                   return oldValue;
+                                }
                                 return newValue;
                               }),
                             ],

@@ -5,6 +5,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:intl/intl.dart';
 import 'dart:io';
 import '../../config/connstants.dart';
+import '../../l10n/app_localizations.dart';
 import '../../services/api_services.dart';
 import '../../services/auth_services.dart';
 
@@ -110,6 +111,9 @@ class _NewInspectionScreenState extends State<NewInspectionScreen> {
                       label: 'Village',
                       controller: _villageController,
                       placeholder: 'Enter village name',
+                      validator: (v) => (v == null || v.trim().isEmpty)
+                          ? AppLocalizations.of(context)!.thisFieldIsRequired
+                          : null,
                     ),
 
                     SizedBox(height: 20.h),
@@ -128,6 +132,9 @@ class _NewInspectionScreenState extends State<NewInspectionScreen> {
                           controller: _numberOfWardsController,
                           placeholder: 'Number',
                           keyboardType: TextInputType.number,
+                          validator: (v) => (v == null || v.trim().isEmpty)
+                              ? AppLocalizations.of(context)!.thisFieldIsRequired
+                              : null,
                         ),
                         SizedBox(height: 16.h),
                         _buildYesNoRadioGroup(
@@ -399,6 +406,9 @@ class _NewInspectionScreenState extends State<NewInspectionScreen> {
                             controller: _suggestionsController,
                             maxLines: 5,
                             maxLength: 100,
+                            validator: (v) => (v == null || v.trim().isEmpty)
+                                ? AppLocalizations.of(context)!.thisFieldIsRequired
+                                : null,
                             decoration: InputDecoration(
                               hintText: 'Write your comment here...',
                               hintStyle: TextStyle(color: Colors.grey.shade500),
@@ -472,6 +482,7 @@ class _NewInspectionScreenState extends State<NewInspectionScreen> {
     required TextEditingController controller,
     required String placeholder,
     TextInputType? keyboardType,
+    String? Function(String?)? validator,
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -488,6 +499,7 @@ class _NewInspectionScreenState extends State<NewInspectionScreen> {
         TextFormField(
           controller: controller,
           keyboardType: keyboardType,
+          validator: validator,
           decoration: InputDecoration(
             hintText: placeholder,
             hintStyle: TextStyle(color: Colors.grey.shade500, fontSize: 14),
@@ -940,16 +952,45 @@ class _NewInspectionScreenState extends State<NewInspectionScreen> {
     return value == 'Yes';
   }
 
+  /// Returns null if all required fields (except images) are filled; otherwise returns error message.
+  String? _validateAllRequiredFields(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    if (_villageController.text.trim().isEmpty) return l10n.pleaseFillAllFields;
+    if (_numberOfWardsController.text.trim().isEmpty) return l10n.pleaseFillAllFields;
+    if (_suggestionsController.text.trim().isEmpty) return l10n.pleaseFillAllFields;
+    if (_dailyRegisterMaintained == null) return l10n.pleaseFillAllFields;
+    if (_wasteCollectionInterval == null) return l10n.pleaseFillAllFields;
+    if (_separateCollectionWetDry == null) return l10n.pleaseFillAllFields;
+    if (_wasteDisposalAtRRC == null) return l10n.pleaseFillAllFields;
+    if (_arrangementAtRRC == null) return l10n.pleaseFillAllFields;
+    if (_vehicleProperlyPrepared == null) return l10n.pleaseFillAllFields;
+    if (_roadCleaningInterval == null) return l10n.pleaseFillAllFields;
+    if (_drainCleaningInterval == null) return l10n.pleaseFillAllFields;
+    if (_sludgeDisposalArrangement == null) return l10n.pleaseFillAllFields;
+    if (_drainWasteCollectedRoadside == null) return l10n.pleaseFillAllFields;
+    if (_cscCleaningInterval == null) return l10n.pleaseFillAllFields;
+    if (_cscElectricityWaterAvailable == null) return l10n.pleaseFillAllFields;
+    if (_cscUsedByCommunity == null) return l10n.pleaseFillAllFields;
+    if (_pinkToiletUsedInSchools == null) return l10n.pleaseFillAllFields;
+    if (_firmPaidRegularly == null) return l10n.pleaseFillAllFields;
+    if (_staffPaidRegularly == null) return l10n.pleaseFillAllFields;
+    if (_safetyEquipmentProvided == null) return l10n.pleaseFillAllFields;
+    if (_feedbackRegisterEntry == null) return l10n.pleaseFillAllFields;
+    if (_rateChartPrepared == null) return l10n.pleaseFillAllFields;
+    if (_rateChartDisplayed == null) return l10n.pleaseFillAllFields;
+    return null;
+  }
+
   Future<void> _submitForm() async {
     if (!_formKey.currentState!.validate()) {
       return;
     }
 
-    // Validate village is filled
-    if (_villageController.text.trim().isEmpty) {
+    final validationError = _validateAllRequiredFields(context);
+    if (validationError != null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please enter village name'),
+        SnackBar(
+          content: Text(validationError),
           backgroundColor: Colors.red,
         ),
       );

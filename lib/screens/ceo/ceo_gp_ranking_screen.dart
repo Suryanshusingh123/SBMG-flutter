@@ -244,7 +244,7 @@ class _CeoGpRankingScreenState extends State<CeoGpRankingScreen> {
                     children: [
                       Expanded(
                         child: DropdownButtonFormField<Block>(
-                          value: _selectedBlock,
+                          initialValue: _selectedBlock,
                           decoration: InputDecoration(
                             contentPadding: EdgeInsets.symmetric(
                               horizontal: 12.w,

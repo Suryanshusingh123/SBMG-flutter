@@ -57,9 +57,7 @@ class _SmdComplaintsScreenState extends State<SmdComplaintsScreen>
     // Load saved location for COMPLAINTS page if available
     // Fallback to old inspection location for backward compatibility
     var savedLocation = await _authService.getPageLocation('smd', 'complaints');
-    if (savedLocation == null) {
-      savedLocation = await _authService.getInspectionLocation('smd');
-    }
+    savedLocation ??= await _authService.getInspectionLocation('smd');
     if (savedLocation != null) {
       setState(() {
         _complaintLocation = savedLocation;

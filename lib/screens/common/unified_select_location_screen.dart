@@ -200,15 +200,11 @@ class _UnifiedSelectLocationScreenState
               'bdo',
               'complaints',
             );
-            if (savedLocation == null) {
-              savedLocation = await _authService.getPageLocation(
+            savedLocation ??= await _authService.getPageLocation(
                 'bdo',
                 'inspections',
               );
-            }
-            if (savedLocation == null) {
-              savedLocation = await _authService.getInspectionLocation('bdo');
-            }
+            savedLocation ??= await _authService.getInspectionLocation('bdo');
             final savedGpId = savedLocation?['gpId'] as int?;
             if (savedGpId != null && _gramPanchayats.isNotEmpty) {
               final savedGP = _gramPanchayats.firstWhere(

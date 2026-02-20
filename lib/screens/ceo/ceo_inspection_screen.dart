@@ -46,9 +46,7 @@ class _CeoInspectionScreenState extends State<CeoInspectionScreen> {
     // Check if INSPECTION page location exists
     // Fallback to old inspection location for backward compatibility
     var location = await _authService.getPageLocation('ceo', 'inspections');
-    if (location == null) {
-      location = await _authService.getInspectionLocation('ceo');
-    }
+    location ??= await _authService.getInspectionLocation('ceo');
     
     if (location == null) {
       // Show location selection screen once (Block and GP optional for CEO)

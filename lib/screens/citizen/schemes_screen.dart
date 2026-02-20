@@ -180,15 +180,16 @@ class _SchemesScreenState extends State<SchemesScreen> {
                           final isLoggedIn = await authService.isLoggedIn();
                           
                           if (!isLoggedIn) {
-                            // Show login required message
+                            // Show login required message (hide after 5s; action snackbars often ignore duration)
                             if (mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(
+                              final messenger = ScaffoldMessenger.of(context);
+                              messenger.showSnackBar(
                                 SnackBar(
                                   content: Text(
                                     'Please login to bookmark schemes',
                                   ),
                                   backgroundColor: Colors.orange,
-                                  duration: const Duration(seconds: 3),
+                                  duration: const Duration(seconds: 5),
                                   action: SnackBarAction(
                                     label: 'Login',
                                     textColor: Colors.white,
@@ -202,6 +203,9 @@ class _SchemesScreenState extends State<SchemesScreen> {
                                   ),
                                 ),
                               );
+                              Future.delayed(const Duration(seconds: 5), () {
+                                messenger.hideCurrentSnackBar();
+                              });
                             }
                             return;
                           }

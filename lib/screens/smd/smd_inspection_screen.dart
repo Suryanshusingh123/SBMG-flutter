@@ -53,9 +53,7 @@ class _SmdInspectionScreenState extends State<SmdInspectionScreen> {
     // Check if INSPECTION page location exists
     // Fallback to old inspection location for backward compatibility
     var location = await _authService.getPageLocation('smd', 'inspections');
-    if (location == null) {
-      location = await _authService.getInspectionLocation('smd');
-    }
+    location ??= await _authService.getInspectionLocation('smd');
     
     if (location == null || location['districtId'] == null) {
       // Show location selection screen once

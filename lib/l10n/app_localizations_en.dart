@@ -918,6 +918,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get logout => 'Logout';
 
   @override
+  String get updateYourFeedback => 'Update your feedback';
+
+  @override
+  String get yourFeedbackHasBeenUpdated => 'Your feedback has been updated';
+
+  @override
   String get confirm => 'Confirm';
 
   @override

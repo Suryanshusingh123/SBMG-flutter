@@ -47,9 +47,7 @@ class _BdoInspectionScreenState extends State<BdoInspectionScreen> {
 
     // Check if INSPECTION page location exists
     var location = await _authService.getPageLocation('bdo', 'inspections');
-    if (location == null) {
-      location = await _authService.getInspectionLocation('bdo');
-    }
+    location ??= await _authService.getInspectionLocation('bdo');
     // BDO: district/block are fixed from login. If no saved location, pre-fill from auth.
     if (location == null || location['blockId'] == null) {
       final districtId = await _authService.getDistrictId();

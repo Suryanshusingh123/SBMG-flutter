@@ -385,6 +385,8 @@
   "chooseYourExperience": "Choose your experience",
   "enterFeedback": "Enter Feedback",
   "yourFeedbackIsSuccessfullySubmitted": "Your feedback is successfully submitted",
+  "updateYourFeedback": "Update your feedback",
+  "yourFeedbackHasBeenUpdated": "Your feedback has been updated",
   "confirm": "Confirm",
   "areYouSureYouWantToLogOut": "Are you sure you want to log out?",
   "youllNeedToSignInAgainToAccessTheApp": "You'll need to sign in again to access your account.",

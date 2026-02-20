@@ -22,7 +22,7 @@ class VdoInspectionScreen extends StatefulWidget {
 }
 
 class _VdoInspectionScreenState extends State<VdoInspectionScreen> {
-  int _selectedIndex = 2; // Inspection tab is selected
+  final int _selectedIndex = 2; // Inspection tab is selected
   bool _hasLoadedInspections = false;
   DateTime? _filterDate;
   DateTime? _filterStartDate;

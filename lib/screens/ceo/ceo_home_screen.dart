@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:provider/provider.dart';
 import 'package:sbmg/screens/citizen/scheme_details_screen.dart';
@@ -765,7 +764,8 @@ class _CeoHomeScreenState extends State<CeoHomeScreen> {
       },
       child: Container(
         width: double.infinity,
-        padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
+        height: 56,
+        padding: EdgeInsets.symmetric(horizontal: 16.w),
         decoration: BoxDecoration(
           color: const Color(0xFF18a558), // Medium green background
           borderRadius: BorderRadius.circular(12.r),
@@ -781,8 +781,8 @@ class _CeoHomeScreenState extends State<CeoHomeScreen> {
           children: [
             // Icon with light green background
             Container(
-              width: 40.w,
-              height: 40.h,
+              width: 36.w,
+              height: 36.h,
               decoration: BoxDecoration(
                 color: const Color(0xFFe8f5e9), // Light green background
                 shape: BoxShape.circle,

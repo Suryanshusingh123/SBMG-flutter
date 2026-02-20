@@ -41,7 +41,7 @@ class LoadingDropdownField<T> extends StatelessWidget {
         ),
         SizedBox(height: 8.h),
         DropdownButtonFormField<T>(
-          value: value as T?,
+          initialValue: value,
           decoration: InputDecoration(
             hintText: placeholder,
             hintStyle: TextStyle(

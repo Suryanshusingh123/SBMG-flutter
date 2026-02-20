@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:provider/provider.dart';
 import 'package:sbmg/screens/citizen/scheme_details_screen.dart';
@@ -716,7 +715,8 @@ class _SmdHomeScreenState extends State<SmdHomeScreen> {
       onTap: () => _openLocationSelection('ranking'),
       child: Container(
         width: double.infinity,
-        padding: EdgeInsets.all(16.r),
+        height: 56,
+        padding: EdgeInsets.symmetric(horizontal: 16.w),
         decoration: BoxDecoration(
           color: const Color(0xFF18a558), // Medium green background
           borderRadius: BorderRadius.circular(12.r),
@@ -732,8 +732,8 @@ class _SmdHomeScreenState extends State<SmdHomeScreen> {
           children: [
             // Icon with light green background
             Container(
-              width: 50.w,
-              height: 50.h,
+              width: 36.w,
+              height: 36.h,
               decoration: BoxDecoration(
                 color: const Color(0xFFe8f5e9), // Light green background
                 shape: BoxShape.circle,
@@ -742,7 +742,7 @@ class _SmdHomeScreenState extends State<SmdHomeScreen> {
               child: Icon(
                 Icons.emoji_events, // Ribbon/medal icon
                 color: const Color(0xFF18a558),
-                size: 24.sp,
+                size: 20.sp,
               ),
             ),
             SizedBox(width: 16.w),

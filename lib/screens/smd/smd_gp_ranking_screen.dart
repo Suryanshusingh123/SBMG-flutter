@@ -232,7 +232,7 @@ class _SmdGpRankingScreenState extends State<SmdGpRankingScreen> {
                     children: [
                       Expanded(
                         child: DropdownButtonFormField<Block>(
-                          value: _selectedBlock,
+                          initialValue: _selectedBlock,
                           decoration: InputDecoration(
                             contentPadding: EdgeInsets.symmetric(
                               horizontal: 12.w,

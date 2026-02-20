@@ -1862,6 +1862,18 @@ abstract class AppLocalizations {
   /// **'Logout'**
   String get logout;
 
+  /// No description provided for @updateYourFeedback.
+  ///
+  /// In en, this message translates to:
+  /// **'Update your feedback'**
+  String get updateYourFeedback;
+
+  /// No description provided for @yourFeedbackHasBeenUpdated.
+  ///
+  /// In en, this message translates to:
+  /// **'Your feedback has been updated'**
+  String get yourFeedbackHasBeenUpdated;
+
   /// No description provided for @confirm.
   ///
   /// In en, this message translates to:

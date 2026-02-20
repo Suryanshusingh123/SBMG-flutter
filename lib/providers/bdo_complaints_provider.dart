@@ -46,9 +46,7 @@ class BdoComplaintsProvider extends ChangeNotifier {
       final districtId = await _authService.getDistrictId();
       final blockId = await _authService.getBlockId();
       var savedLocation = await _authService.getPageLocation('bdo', 'complaints');
-      if (savedLocation == null) {
-        savedLocation = await _authService.getInspectionLocation('bdo');
-      }
+      savedLocation ??= await _authService.getInspectionLocation('bdo');
       final gpId = savedLocation?['gpId'] as int?;
 
       print('📡 [BDO] Complaints Parameters:');
@@ -86,7 +84,7 @@ class BdoComplaintsProvider extends ChangeNotifier {
           }
           final afterCount = filteredComplaints.length;
           if (beforeCount != afterCount) {
-            print('⚠️ API returned ${beforeCount} complaints, but only ${afterCount} match GP ID $gpId');
+            print('⚠️ API returned $beforeCount complaints, but only $afterCount match GP ID $gpId');
           }
         }
 

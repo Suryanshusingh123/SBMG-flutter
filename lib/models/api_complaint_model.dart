@@ -57,6 +57,23 @@ class ApiComplaintModel {
     return '';
   }
 
+  /// Maps status_id to status string when API returns status as null/empty.
+  /// Matches details screens: 1=OPEN, 2=RESOLVED, 3=VERIFIED, 4=CLOSED.
+  static String _statusFromStatusId(int statusId) {
+    switch (statusId) {
+      case 1:
+        return 'OPEN';
+      case 2:
+        return 'RESOLVED';
+      case 3:
+        return 'VERIFIED';
+      case 4:
+        return 'CLOSED';
+      default:
+        return 'OPEN';
+    }
+  }
+
   factory ApiComplaintModel.fromJson(Map<String, dynamic> json) {
     print('🔍 PARSING COMPLAINT ${json['id']}:');
     print('   - Raw media_urls: ${json['media_urls']}');
@@ -72,15 +89,23 @@ class ApiComplaintModel {
     final complaintTypeName = _complaintTypeNameFromJson(json['complaint_type']);
     final fallbackType = json['complaint_type']?.toString().trim() ?? '';
 
+    final rawStatus = json['status']?.toString().trim();
+    final statusId = json['status_id'] ?? 0;
+    // When API returns status as null/empty, derive from status_id so tab assignment
+    // (open/resolved/verified/closed) is correct. 1=OPEN, 2=RESOLVED, 3=VERIFIED, 4=CLOSED.
+    final status = (rawStatus != null && rawStatus.isNotEmpty)
+        ? rawStatus
+        : _statusFromStatusId(statusId);
+
     return ApiComplaintModel(
       id: json['id'] ?? 0,
       description: json['description'] ?? '',
       mobileNumber: json['mobile_number'] ?? '',
       complaintTypeId: json['complaint_type_id'] ?? 0,
       createdAt: json['created_at'] ?? '',
-      statusId: json['status_id'] ?? 0,
+      statusId: statusId,
       complaintType: complaintTypeName.isNotEmpty ? complaintTypeName : fallbackType,
-      status: json['status'] ?? '',
+      status: status,
       villageName: json['village_name'] ?? '',
       blockName: json['block_name'] ?? '',
       districtName: json['district_name'] ?? '',

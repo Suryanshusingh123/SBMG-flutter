@@ -2,6 +2,8 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<key>CADisableMinimumFrameDurationOnPhone</key>
+	<true/>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
@@ -22,7 +24,46 @@
 	<string>????</string>
 	<key>CFBundleVersion</key>
 	<string>$(FLUTTER_BUILD_NUMBER)</string>
+	<key>LSApplicationQueriesSchemes</key>
+	<array>
+		<string>geo</string>
+		<string>comgooglemaps</string>
+		<string>maps</string>
+		<string>http</string>
+		<string>https</string>
+	</array>
 	<key>LSRequiresIPhoneOS</key>
+	<true/>
+	<key>NSCameraUsageDescription</key>
+	<string>This app needs camera access to capture complaint images.</string>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>This app needs location access to geotag complaint images for better service delivery.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>This app needs location access to geotag complaint images for better service delivery.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>This app needs photo library access to select complaint images.</string>
+	<key>UIApplicationSceneManifest</key>
+	<dict>
+		<key>UIApplicationSupportsMultipleScenes</key>
+		<false/>
+		<key>UISceneConfigurations</key>
+		<dict>
+			<key>UIWindowSceneSessionRoleApplication</key>
+			<array>
+				<dict>
+					<key>UISceneClassName</key>
+					<string>UIWindowScene</string>
+					<key>UISceneConfigurationName</key>
+					<string>flutter</string>
+					<key>UISceneDelegateClassName</key>
+					<string>FlutterSceneDelegate</string>
+					<key>UISceneStoryboardFile</key>
+					<string>Main</string>
+				</dict>
+			</array>
+		</dict>
+	</dict>
+	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
 	<key>UILaunchStoryboardName</key>
 	<string>LaunchScreen</string>
@@ -40,26 +81,6 @@
 		<string>UIInterfaceOrientationPortraitUpsideDown</string>
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
-	</array>
-	<key>CADisableMinimumFrameDurationOnPhone</key>
-	<true/>
-	<key>UIApplicationSupportsIndirectInputEvents</key>
-	<true/>
-	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>This app needs location access to geotag complaint images for better service delivery.</string>
-	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
-	<string>This app needs location access to geotag complaint images for better service delivery.</string>
-	<key>NSCameraUsageDescription</key>
-	<string>This app needs camera access to capture complaint images.</string>
-	<key>NSPhotoLibraryUsageDescription</key>
-	<string>This app needs photo library access to select complaint images.</string>
-	<key>LSApplicationQueriesSchemes</key>
-	<array>
-		<string>geo</string>
-		<string>comgooglemaps</string>
-		<string>maps</string>
-		<string>http</string>
-		<string>https</string>
 	</array>
 </dict>
 </plist>

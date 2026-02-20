@@ -44,9 +44,7 @@ class CeoComplaintsProvider extends ChangeNotifier {
       // Get saved location for COMPLAINTS page (includes district, block, and GP)
       // Fallback to old inspection location or district storage for backward compatibility
       var savedLocation = await _authService.getPageLocation('ceo', 'complaints');
-      if (savedLocation == null) {
-        savedLocation = await _authService.getInspectionLocation('ceo');
-      }
+      savedLocation ??= await _authService.getInspectionLocation('ceo');
       
       // Get district ID from saved location, fallback to old storage method
       int? districtId;
@@ -110,7 +108,7 @@ class CeoComplaintsProvider extends ChangeNotifier {
           }
           final afterCount = filteredComplaints.length;
           if (beforeCount != afterCount) {
-            print('⚠️ API returned ${beforeCount} complaints, but only ${afterCount} match selected location');
+            print('⚠️ API returned $beforeCount complaints, but only $afterCount match selected location');
           }
         } else if (blockId != null) {
           final blockName = savedLocation?['blockName'] as String?;
@@ -121,7 +119,7 @@ class CeoComplaintsProvider extends ChangeNotifier {
             }).toList();
             final afterCount = filteredComplaints.length;
             if (beforeCount != afterCount) {
-              print('⚠️ Filtered by block name: ${beforeCount} -> ${afterCount} complaints');
+              print('⚠️ Filtered by block name: $beforeCount -> $afterCount complaints');
             }
           }
         }

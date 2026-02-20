@@ -15,6 +15,7 @@ import '../../l10n/app_localizations.dart';
 import '../../models/scheme_model.dart';
 import '../../models/event_model.dart';
 import '../../config/connstants.dart';
+import '../../services/auth_services.dart';
 import '../../providers/bdo_provider.dart';
 import '../citizen/gp_master_data_details_screen.dart';
 import '../citizen/language_screen.dart';
@@ -74,6 +75,7 @@ class _BdoHomeScreenState extends State<BdoHomeScreen> {
                       SizedBox(height: 24.h),
                    
                       _buildInspectionSection(),
+                      SizedBox(height: 16.h),
                       _buildGpMasterDataSection(),
                       SizedBox(height: 24.h),
                       _buildFeaturedSchemesSection(),
@@ -131,7 +133,7 @@ class _BdoHomeScreenState extends State<BdoHomeScreen> {
               Consumer<BdoProvider>(
                 builder: (context, provider, child) {
                   return Text(
-                    '${provider.districtName} • ${provider.blockName}',
+                    provider.locationPath,
                     style: TextStyle(
                       fontFamily: 'Noto Sans',
                       fontSize: 12.sp,
@@ -139,6 +141,8 @@ class _BdoHomeScreenState extends State<BdoHomeScreen> {
                       color: const Color(0xFF6B7280),
                       letterSpacing: 0.5,
                     ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
                   );
                 },
               ),
@@ -146,6 +150,37 @@ class _BdoHomeScreenState extends State<BdoHomeScreen> {
           ),
           Row(
             children: [
+              GestureDetector(
+                onTap: () async {
+                  final result = await Navigator.push<Map<String, dynamic>>(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const SelectGpScreen(returnOnTap: true),
+                    ),
+                  );
+                  if (result != null && result['gpId'] != null && result['gpName'] != null && mounted) {
+                    final districtId = await AuthService().getDistrictId();
+                    final blockId = await AuthService().getBlockId();
+                    if (districtId != null && blockId != null) {
+                      await AuthService().savePageLocation('bdo', 'home', {
+                        'districtId': districtId,
+                        'blockId': blockId,
+                        'gpId': result['gpId'],
+                        'gpName': result['gpName'],
+                      });
+                      context.read<BdoProvider>().loadAllData();
+                    }
+                  }
+                },
+                child: Padding(
+                  padding: EdgeInsets.only(right: 8.w),
+                  child: Icon(
+                    Icons.location_on,
+                    size: 24,
+                    color: AppColors.primaryColor,
+                  ),
+                ),
+              ),
               IconButton(
                 onPressed: () {
                   Navigator.push(
@@ -676,8 +711,9 @@ class _BdoHomeScreenState extends State<BdoHomeScreen> {
             },
             child: Container(
               width: double.infinity,
+              height: 56,
               margin: EdgeInsets.only(top: 8.h),
-              padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 18.h),
+              padding: EdgeInsets.symmetric(horizontal: 16.w),
               decoration: BoxDecoration(
                 color: const Color(0xFF009B56),
                 borderRadius: BorderRadius.circular(12.r),

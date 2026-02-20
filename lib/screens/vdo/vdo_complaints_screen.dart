@@ -29,7 +29,7 @@ class _VdoComplaintsScreenState extends State<VdoComplaintsScreen> {
   final List<String> _statusKeys = ['Open', 'Resolved', 'Verified', 'Disposed complaints'];
   int _selectedTabIndex = 0; // Default to Open tab
   String _sortOrder = 'newest'; // 'newest' or 'oldest'
-  int _selectedIndex = 1; // Complaints tab is selected
+  final int _selectedIndex = 1; // Complaints tab is selected
   bool _hasLoadedComplaints = false;
   String? _gpName;
   DateTime? _filterDate;

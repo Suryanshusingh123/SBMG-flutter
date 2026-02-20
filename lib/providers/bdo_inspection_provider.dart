@@ -38,9 +38,7 @@ class BdoInspectionProvider extends ChangeNotifier {
         return;
       }
       var savedLocation = await _authService.getPageLocation('bdo', 'inspections');
-      if (savedLocation == null) {
-        savedLocation = await _authService.getInspectionLocation('bdo');
-      }
+      savedLocation ??= await _authService.getInspectionLocation('bdo');
       final gpId = savedLocation?['gpId'] as int?;
 
       print('📡 BDO Inspection Provider Parameters:');
@@ -66,7 +64,7 @@ class BdoInspectionProvider extends ChangeNotifier {
         filteredInspections = filteredInspections.where((inspection) => inspection.villageId == gpId).toList();
         final afterCount = filteredInspections.length;
         if (beforeCount != afterCount) {
-          print('⚠️ API returned ${beforeCount} inspections, but only ${afterCount} match GP ID $gpId');
+          print('⚠️ API returned $beforeCount inspections, but only $afterCount match GP ID $gpId');
           print('   Filtered out ${beforeCount - afterCount} inspections that don\'t match the selected GP');
         }
       }

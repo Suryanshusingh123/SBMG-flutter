@@ -32,9 +32,7 @@ class SmdInspectionProvider extends ChangeNotifier {
       // Get saved location for INSPECTIONS page (includes district, block, and GP)
       // Fallback to old inspection location for backward compatibility
       var savedLocation = await _authService.getPageLocation('smd', 'inspections');
-      if (savedLocation == null) {
-        savedLocation = await _authService.getInspectionLocation('smd');
-      }
+      savedLocation ??= await _authService.getInspectionLocation('smd');
       
       // Get district ID from saved location, fallback to old storage method
       int? districtId;
@@ -83,7 +81,7 @@ class SmdInspectionProvider extends ChangeNotifier {
         filteredInspections = filteredInspections.where((inspection) => inspection.villageId == gpId).toList();
         final afterCount = filteredInspections.length;
         if (beforeCount != afterCount) {
-          print('⚠️ API returned ${beforeCount} inspections, but only ${afterCount} match GP ID $gpId');
+          print('⚠️ API returned $beforeCount inspections, but only $afterCount match GP ID $gpId');
           print('   Filtered out ${beforeCount - afterCount} inspections that don\'t match the selected GP');
         }
       }

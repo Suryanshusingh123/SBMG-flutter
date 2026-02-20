@@ -39,6 +39,8 @@ class BdoProvider extends ChangeNotifier {
   // Location info
   String _districtName = 'District';
   String _blockName = 'Block';
+  String? _gpName;
+  int? _gpId;
 
   // Date range for analytics
   DateTime? _fromDate;
@@ -61,19 +63,29 @@ class BdoProvider extends ChangeNotifier {
 
   String get districtName => _districtName;
   String get blockName => _blockName;
+  String? get gpName => _gpName;
+  int? get gpId => _gpId;
+
+  /// Display path: "District • Block" or "District • Block • GP" when GP is set.
+  String get locationPath {
+    if (_gpName != null && _gpName!.isNotEmpty) {
+      return '$_districtName • $_blockName • $_gpName';
+    }
+    return '$_districtName • $_blockName';
+  }
 
   String get dateRangeText => _dateRangeText;
   DateTime? get fromDate => _fromDate;
   DateTime? get toDate => _toDate;
 
-  // Load all data
+  // Load all data (location first so home GP is set before complaints/inspections)
   Future<void> loadAllData() async {
+    await loadLocationInfo();
     await Future.wait([
       loadSchemes(),
       loadEvents(),
       loadComplaintsAnalytics(),
       loadInspectionData(),
-      loadLocationInfo(),
     ]);
   }
 
@@ -100,6 +112,23 @@ class BdoProvider extends ChangeNotifier {
               Block(id: blockId, name: 'Block', districtId: districtId),
         );
         _blockName = block.name;
+      }
+
+      // Restore saved GP for home page
+      final savedLocation = await _authService.getPageLocation('bdo', 'home');
+      if (savedLocation != null) {
+        final savedGpId = savedLocation['gpId'];
+        final savedGpName = savedLocation['gpName'];
+        if (savedGpId != null && savedGpName != null) {
+          _gpId = savedGpId is int ? savedGpId : int.tryParse(savedGpId.toString());
+          _gpName = savedGpName is String ? savedGpName : savedGpName.toString();
+        } else {
+          _gpId = null;
+          _gpName = null;
+        }
+      } else {
+        _gpId = null;
+        _gpName = null;
       }
 
       notifyListeners();
@@ -140,7 +169,7 @@ class BdoProvider extends ChangeNotifier {
     }
   }
 
-  // Load complaints analytics
+  // Load complaints analytics (filtered by selected GP when set)
   Future<void> loadComplaintsAnalytics() async {
     try {
       _isComplaintsLoading = true;
@@ -154,10 +183,12 @@ class BdoProvider extends ChangeNotifier {
       print('📡 BDO Complaints Parameters:');
       print('   - District ID: $districtId');
       print('   - Block ID: $blockId');
+      if (_gpId != null) print('   - GP ID: $_gpId');
 
       final response = await _complaintsService.getComplaintsWithAnalytics(
         districtId: districtId,
         blockId: blockId,
+        gpId: _gpId,
         limit: 500,
         orderBy: 'newest',
         fromDate: _fromDate,
@@ -181,7 +212,7 @@ class BdoProvider extends ChangeNotifier {
     }
   }
 
-  // Load inspection data
+  // Load inspection data (filtered by selected GP when set)
   Future<void> loadInspectionData() async {
     try {
       print('🔄 Starting to load inspections for BDO...');
@@ -192,9 +223,11 @@ class BdoProvider extends ChangeNotifier {
 
       print('📡 BDO Inspection Parameters:');
       print('   - Block ID: $blockId');
+      if (_gpId != null) print('   - GP ID: $_gpId');
 
       final inspectionResponse = await _apiService.getInspections(
         blockId: blockId,
+        gpId: _gpId,
         page: 1,
         pageSize: 100,
       );

@@ -52,9 +52,7 @@ class _BdoComplaintsScreenState extends State<BdoComplaintsScreen> {
     // Load saved location for COMPLAINTS page if available
     // Fallback to old inspection location for backward compatibility
     var savedLocation = await _authService.getPageLocation('bdo', 'complaints');
-    if (savedLocation == null) {
-      savedLocation = await _authService.getInspectionLocation('bdo');
-    }
+    savedLocation ??= await _authService.getInspectionLocation('bdo');
     if (savedLocation != null && mounted) {
       setState(() {
         _complaintLocation = savedLocation;
